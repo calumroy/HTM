@@ -1,3 +1,8 @@
+# Title: HTM
+# Description: git managed development of a HTM network
+# Author: Calum Meiklejohn
+# Development phase: alpha V 0.63
+
 import pygame
 import numpy as np
 import random
