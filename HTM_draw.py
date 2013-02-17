@@ -12,7 +12,7 @@ def draw_HTM(HTM,input):
     colors = [(255,255,255), (0,0,0),(100,100,100)]    # Set up colors [white, black, grey]
     c = len(HTM.HTMLayerArray[0].columns[0])         # This is an NxN chess board.
     r = len(HTM.HTMLayerArray[0].columns)                  # The number of rows in the screen
-    surface_sz = 640        # Proposed physical surface size.
+    surface_sz = 880        # Proposed physical surface size.
     sq_sz = surface_sz // c    # sq_sz is length of a square.
     surface_sz = c * sq_sz     # Adjust to exactly fit n squares.
     font = pygame.font.Font(None, 36)
@@ -25,6 +25,7 @@ def draw_HTM(HTM,input):
     offset = 0.0
     # REQUIRES A CLEANUP SHOULD NOT BE DONE THIS WAY
     # Display the HTM for the first time 
+    print "Layer 1 output"
     for row in range(r):           # Draw each row of the board
             for col in range(c):       # Run through cols drawing squares
                 the_square = (col*sq_sz, row*sq_sz, sq_sz, sq_sz)
@@ -128,7 +129,32 @@ def draw_HTM(HTM,input):
                             text = font.render("%s" % round(HTM.HTMLayerArray[layer].columns[row][col].boost,3), 1, (255, 50, 200))
                             textpos = (col*sq_sz+offset,row*sq_sz+offset)
                             surface.blit(text,textpos)
+                elif event.key == pygame.K_o:
+                    print "o overlapDutyCycle"
+                    for row in range(r):           # Draw each row of the board.
+                        for col in range(c):       # Run through cols drawing squares
+                            the_square = (col*sq_sz, row*sq_sz, sq_sz, sq_sz)
+                            if HTM.HTMLayerArray[layer].columns[row][col].activeState==True:
+                                surface.fill(colors[0], the_square)
+                            else:
+                                surface.fill(colors[1], the_square)
+                            text = font.render("%s" % round(HTM.HTMLayerArray[layer].columns[row][col].overlapDutyCycle,3), 1, (255, 50, 200))
+                            textpos = (col*sq_sz+offset,row*sq_sz+offset)
+                            surface.blit(text,textpos)
+                elif event.key == pygame.K_m:
+                    print "m minDutyCycle"
+                    for row in range(r):           # Draw each row of the board.
+                        for col in range(c):       # Run through cols drawing squares
+                            the_square = (col*sq_sz, row*sq_sz, sq_sz, sq_sz)
+                            if HTM.HTMLayerArray[layer].columns[row][col].activeState==True:
+                                surface.fill(colors[0], the_square)
+                            else:
+                                surface.fill(colors[1], the_square)
+                            text = font.render("%s" % round(HTM.HTMLayerArray[layer].columns[row][col].minDutyCycle,3), 1, (255, 50, 200))
+                            textpos = (col*sq_sz+offset,row*sq_sz+offset)
+                            surface.blit(text,textpos)
                 else:
+                    print "overlap layer = %s" %layer
                     for row in range(r):           # Draw each row of the board.
                         for col in range(c):       # Run through cols drawing squares
                             the_square = (col*sq_sz, row*sq_sz, sq_sz, sq_sz)

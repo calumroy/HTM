@@ -19,11 +19,11 @@ class Synapse:
             self.pos_x=pos_x            # The start of the synapse the other end is at a columns position 
             self.pos_y=pos_y
             self.sourceInput=input[pos_y][pos_x]
-            self.permanence = 0.3
+            self.permanence = 0.31
             self.source_input_index = 0.0
             #If the permanence value for a synapse is greater than this
             #value, it is said to be connected.
-            self.connectPermanence = 0.2
+            self.connectPermanence = 0.3
     def updateInput(self,input):
         self.sourceInput=input[self.pos_y][self.pos_x]
 
@@ -53,16 +53,16 @@ class Column:
         self.overlap = 0.0
         self.minOverlap = 4
         self.boost = 1
-        self.inhibitionRadius = 2   # The max distance a column can inhibit another column
+        self.inhibitionRadius = 1   # The max distance a column can inhibit another column
         self.potentialRadius = 1    # The max distance that Synapses can be made at
         self.permanenceInc = 0.1
-        self.permanenceDec = 0.02
+        self.permanenceDec = 0.05
         self.minDutyCycle = 0.01   # The minimum firing rate of the column
-        self.activeDutyCycleArray = np.array([0.0]) # Keeps track of when the column was active. All columns start as active. It stores the numInhibition time when the column was active
+        self.activeDutyCycleArray = np.array([0]) # Keeps track of when the column was active. All columns start as active. It stores the numInhibition time when the column was active
         self.activeDutyCycle = 0.0 # the firing rate of the column
         self.activeState = False
         self.overlapDutyCycle = 0.0 # The rate at which the overlap is larger then the min overlap
-        self.overlapDutyCycleArray = np.array([0.0]) # Keeps track of when the colums overlap was larger then the minoverlap
+        self.overlapDutyCycleArray = np.array([0]) # Keeps track of when the colums overlap was larger then the minoverlap
         self.boostStep = 0.1
         self.connectedSynapses=np.array([],dtype=object)
         self.potentialSynapses=np.array([],dtype=object) # the possible feed forward Synapse connections for the column
@@ -96,14 +96,14 @@ class HTMLayer:
         self.width = column_array_width
         self.height = column_array_height
         self.input = input
-        self.desiredLocalActivity = 3
+        self.desiredLocalActivity = 1
         self.cellsPerColumn = 3
         self.activationThreshold = 3
         self.connectPermanence = 0.2
         self.learningRadius = 4
         self.initialPerm = 0.3
         #This is also defined in the Synapse class!!! Maybe change this
-        self.connectedPerm = 0.2    # The value a connected Synapses must be higher then.
+        self.connectedPerm = 0.3    # The value a connected Synapses must be higher then.
         self.minThreshold = 10
         self.newSynapseCount = 5
         self.dutyCycleAverageLength = 20
@@ -255,7 +255,7 @@ class HTMLayer:
 class HTM:
     def __init__(self, numLayers,input, column_array_width,column_array_height):
         # The class contains multiple HTM layers stack on one another
-        self.numberLayers = numLayers
+        self.numberLayers = numLayers   # The number of layers in the HTM network
         self.width = column_array_width
         self.height = column_array_height
         self.HTMLayerArray = np.array([],dtype = object)
@@ -277,10 +277,10 @@ class HTM:
 def run_loop(HTM,input):
     HTM_draw.initialize_drawing()
     even = 0
-    for j in range(100):
+    for j in range(100):    # number of learning iterations
         even += 1
         print "NEW learning stage\n"
-        # Added some noise with an alternating pattern for testing
+        # Created an alternating pattern to learn with noise for testing
         for k in range(len(input)):
             for l in range(len(input[k])):
                 some_number = round(random.uniform(0,10))
@@ -311,8 +311,8 @@ def run_loop(HTM,input):
     HTM_draw.quit_drawing()
 
 if __name__ == "__main__":
-    sizew = 15
+    sizew = 12
     sizeh = 10
     input = np.array([[round(random.uniform(0,1)) for i in range(sizew)] for j in range(sizeh)])
-    HTMNetwork = HTM(9,input,sizew,sizeh)
+    HTMNetwork = HTM(5,input,sizew,sizeh)
     run_loop(HTMNetwork,input)
