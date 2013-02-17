@@ -96,7 +96,10 @@ class HTMLayer:
         self.width = column_array_width
         self.height = column_array_height
         self.input = input
-        self.desiredLocalActivity = 1
+        # The overlap values are used in determining the active columns. For columns with the same overlap value
+        # both columns are active. This is why sometimes more columns then the desiredLocalActivity parameter
+        # are observed in the inhibition radius.
+        self.desiredLocalActivity = 1 # How many cells within the inhibition radius are active
         self.cellsPerColumn = 3
         self.activationThreshold = 3
         self.connectPermanence = 0.2
@@ -281,15 +284,15 @@ def run_loop(HTM,input):
         even += 1
         print "NEW learning stage\n"
         # Created an alternating pattern to learn with noise for testing
+        # Zero all inputs
         for k in range(len(input)):
             for l in range(len(input[k])):
+                input[k][l] = 0
+                # Add some noise
                 some_number = round(random.uniform(0,10))
-                if some_number>8:
+                if some_number>10:
                     input[k][l] = 1
-                else:
-                    input[k][l] = 0
-##        input = np.array([[round(random.uniform(0,1)) for i in
-##         range(width)] for j in range(height)])
+
         if even % 2 == 0:
             print "EVEN"
             input[2][3:7] = 1
