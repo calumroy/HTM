@@ -109,7 +109,7 @@ class HTMLayer:
         self.connectedPerm = 0.3    # The value a connected Synapses must be higher then.
         self.minThreshold = 10
         self.newSynapseCount = 5
-        self.dutyCycleAverageLength = 20
+        self.dutyCycleAverageLength = 1000
         self.timeStep = 0                     
         self.output = np.array([[0 for i in range(self.width)] for j in range(self.height)])
         self.activeColumns = np.array([],dtype=object)
@@ -295,14 +295,15 @@ def run_loop(HTM,input):
 
         if even % 2 == 0:
             print "EVEN"
-            input[2][3:7] = 1
+            input[2][3:8] = 1
             input[3][7] = 1 
             input[4][7] = 1 
             input[5][7] = 1 
-            input[6][3:7] = 1
+            input[6][3:8] = 1
             input[3][3] = 1 
             input[4][3] = 1 
-            input[5][3] = 1 
+            input[5][3] = 1
+            input[6][3] = 1 
         else:
             print "ODD"
             input[8][7:9] = 1
