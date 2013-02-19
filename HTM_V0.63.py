@@ -57,6 +57,7 @@ class Column:
         self.potentialRadius = 1    # The max distance that Synapses can be made at
         self.permanenceInc = 0.1
         self.permanenceDec = 0.05
+        self.buPredicted = False    # Wether the column was predicted to be active
         self.minDutyCycle = 0.01   # The minimum firing rate of the column
         self.activeDutyCycleArray = np.array([0]) # Keeps track of when the column was active. All columns start as active. It stores the numInhibition time when the column was active
         self.activeDutyCycle = 0.0 # the firing rate of the column
@@ -188,7 +189,7 @@ class HTMLayer:
         pass
     def activeState(c,i,t):
         pass
-    def predictiveState(c,i,t):
+    def predictiveState(self,c,i,t):
         pass
     def learnState(c,i,t):
         pass
@@ -254,7 +255,14 @@ class HTMLayer:
                 if c.overlapDutyCycle<c.minDutyCycle:
                     self.increasePermanence(c,0.1*self.connectPermanence)
         self.updateOutput()
-                
+    def activeState(self,timeStep):
+        for c in self.activeColumns:
+            c.buPredicted = False
+            for i in range(self.cellsPerColumn):
+                if predictiveState(c,i,self.timeStep) == True:
+                    pass
+            
+    
 class HTM:
     def __init__(self, numLayers,input, column_array_width,column_array_height):
         # The class contains multiple HTM layers stack on one another
@@ -275,7 +283,8 @@ class HTM:
             self.HTMLayerArray[i].Overlap()
             self.HTMLayerArray[i].inhibition()
             self.HTMLayerArray[i].learning()
-
+    def temporal(self):
+        pass    # Updates the cells and their horizontal synapses
 
 def run_loop(HTM,input):
     HTM_draw.initialize_drawing()
