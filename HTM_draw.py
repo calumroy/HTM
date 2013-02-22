@@ -106,10 +106,14 @@ def draw_HTM(HTM,input):
                             textpos = (col*sq_sz+offset,row*sq_sz+offset)
                             surface.blit(text,textpos)
                 if event.key == pygame.K_ESCAPE:
-                    print "escape"
+                    print "escape Next iterition"
+                    drawing = False
+                elif event.key == pygame.K_q:
+                    print "q quit network"
+                    HTM.quit = True
                     drawing = False
                 elif event.key == pygame.K_i:
-                    print "i input"
+                    print "i input of layer %s" %layer
                     for row in range(len(HTM.HTMLayerArray[layer].input)):           # Draw each row of the board.
                         for col in range(len(HTM.HTMLayerArray[layer].input[row])):       # Run through cols drawing squares
                             the_square = (col*sq_sz, row*sq_sz, sq_sz, sq_sz)
@@ -118,7 +122,7 @@ def draw_HTM(HTM,input):
                             else:
                                 surface.fill(colors[1], the_square)
                 elif event.key == pygame.K_b:
-                    print "b boost"
+                    print "b boost of layer %s" %layer
                     for row in range(r):           # Draw each row of the board.
                         for col in range(c):       # Run through cols drawing squares
                             the_square = (col*sq_sz, row*sq_sz, sq_sz, sq_sz)
@@ -130,7 +134,7 @@ def draw_HTM(HTM,input):
                             textpos = (col*sq_sz+offset,row*sq_sz+offset)
                             surface.blit(text,textpos)
                 elif event.key == pygame.K_o:
-                    print "o overlapDutyCycle"
+                    print "o overlapDutyCycle of layer %s" %layer
                     for row in range(r):           # Draw each row of the board.
                         for col in range(c):       # Run through cols drawing squares
                             the_square = (col*sq_sz, row*sq_sz, sq_sz, sq_sz)
@@ -142,7 +146,7 @@ def draw_HTM(HTM,input):
                             textpos = (col*sq_sz+offset,row*sq_sz+offset)
                             surface.blit(text,textpos)
                 elif event.key == pygame.K_m:
-                    print "m minDutyCycle"
+                    print "m minDutyCycle of layer %s" %layer
                     for row in range(r):           # Draw each row of the board.
                         for col in range(c):       # Run through cols drawing squares
                             the_square = (col*sq_sz, row*sq_sz, sq_sz, sq_sz)
