@@ -30,7 +30,7 @@ class Synapse:
             self.source_input_index = 0.0
             #If the permanence value for a synapse is greater than this
             #value, it is said to be connected.
-            self.connectPermanence = 0.3
+            self.connectPermanence = 0.4
     def updateInput(self,input):
         # If Synapse is vertical then self.cell = -1 otherwise the synapse is horizontal
         # and connects to a cell within the HTM. If it is horizontal then there is no 
@@ -46,10 +46,14 @@ class Segment:
         self.sequenceSegment = False
         self.activeSynapses = np.array([],dtype = object) #NEED TO FINISH THIS WITH THE SYNAPSE SOURCE INPUT
 
+
 class Cell:
     def __init__(self):
         # dendrite segments
+        self.numInitSegments = 2
         self.segments = np.array(Segment())
+        for i in range(self.numInitSegments):
+            self.segments = np.hstack((self.segments,[Segment()]))
 ##        # State of the cell
 ##        self.active = False
 ##        self.predict = False   
@@ -69,7 +73,6 @@ class Column:
         self.potentialRadius = 1    # The max distance that Synapses can be made at
         self.permanenceInc = 0.1
         self.permanenceDec = 0.05
-        self.buPredicted = False    # Wether the column was predicted to be active
         self.minDutyCycle = 0.01   # The minimum firing rate of the column
         self.activeDutyCycleArray = np.array([0]) # Keeps track of when the column was active. All columns start as active. It stores the numInhibition time when the column was active
         self.activeDutyCycle = 0.0 # the firing rate of the column
@@ -95,6 +98,10 @@ class Column:
         self.activeStateVector = np.array([]) 
         for i in range(length):
             self.activeStateVector = np.hstack((self.activeStateVector,[0]))
+        self.learnStateVector = np.array([]) 
+        for i in range(length):
+            self.learnStateVector = np.hstack((self.learnStateVector,[0]))
+    # POSSIBLY MOVE THESE FUNCTIONS TO THE HTMLayer CLASS?
     def updateConnectedSynapses(self):
         self.connectedSynapses=np.array([],dtype=object)
         for i in range(len(self.potentialSynapses)):
@@ -125,12 +132,12 @@ class HTMLayer:
         # are observed in the inhibition radius.
         self.desiredLocalActivity = 1 # How many cells within the inhibition radius are active
         self.cellsPerColumn = 3
-        self.connectPermanence = 0.2
+        self.connectPermanence = 0.4
         self.learningRadius = 4
         self.initialPerm = 0.3
         #This is also defined in the Synapse class!!! Maybe change this
         self.connectedPerm = 0.3    # The value a connected Synapses must be higher then.
-        self.minThreshold = 10
+        self.minThreshold = 4
         self.newSynapseCount = 5
         self.activationThreshold = 3    # How many synapses on a segment must be active for the segment to be active
         self.dutyCycleAverageLength = 1000
@@ -170,8 +177,10 @@ class HTMLayer:
             #print "overlap DutyCycle = %s length = %s averagelength = %s"%(c.overlapDutyCycle,len(c.overlapDutyCycleArray),self.dutyCycleAverageLength)
     
     def increasePermanence(self,c,scale):
+        # Increases all the permanences of the Synapses.
+        # It's used to help columns win that don't have a good overlap with any inputs
         for i in range(len(c.potentialSynapses)):
-            c.potentialSynapses[i].permanence = (1+scale)*(c.potentialSynapses[i].permanence)  # Increase the permance by a scale factor
+            c.potentialSynapses[i].permanence = min(1.0,(1+scale)*(c.potentialSynapses[i].permanence))  # Increase the permance by a scale factor
     def boostFunction(c):
         pass
     def kthScore(self,cols,kth):
@@ -189,7 +198,7 @@ class HTMLayer:
         for i in range(len(self.columns)):
             for c in self.columns[i]:
                 self.averageReceptiveFeildSizeArray = np.append(self.averageReceptiveFeildSizeArray,len(c.connectedSynapses))
-        print np.average(self.averageReceptiveFeildSizeArray)
+        #print np.average(self.averageReceptiveFeildSizeArray)
         return int(math.sqrt(np.average(self.averageReceptiveFeildSizeArray))/2)    #Returns the radius of the average receptive feild size
     def updateActiveDutyCycle(self,c):
         if c.activeState==True:
@@ -214,7 +223,7 @@ class HTMLayer:
     def activeState(c,i,t):
         pass
     def predictiveState(self,c,i,t):
-        if c.predictVector[i] == 1:
+        if c.predictiveStateVector[i] == 1:
             return True
         else:
             return False 
@@ -226,20 +235,13 @@ class HTMLayer:
         sequenceSegmentFound = False
         for s in c.cells[i].segments:
             activity = segmentActive(s,timeStep,1)
-            # Update the active vector stored in the column
-            if activity == 0:
-                c.activeStateVector[i] = 0 
+            if s.sequenceSegment == True:
+                return  s
             else:
-                c.activeStateVector[i] = 1
-                if s.sequenceSegment == True:
-                    return  s
-                else:
-                    if activity > highestActivity and sequenceSegmentFound == False:
-                        highestActivity = activity
-                        mostActiveSegment =  s
-            return mostActiveSegment
-        print "didn't find any active sequences"
-        return 0 
+                if activity > highestActivity and sequenceSegmentFound == False:
+                    highestActivity = activity
+                    mostActiveSegment =  s
+        return mostActiveSegment
     def segmentActive(self,s,t,state):
         # For Segment s check if the number of activeSynapses with state is larger then 
         # the self.activationThreshold
@@ -249,23 +251,56 @@ class HTMLayer:
             x = s.activeSynapses[i].pos_x
             y = s.activeSynapses[i].pos_y
             cell = s.activeSynapses[i].cell
-            if state == 1:
+            if state == 1:  # 1 is active state
                 if self.columns[x][y].activeStateVector[cell] == 1:
                     count += 1
-            elif state == -1:
+            elif state == -1: # -1 is predictive state
                 if self.columns[x][y].predictiveStateVector[cell] == 1:
                     count += 1
+            elif state == 2:    # 2 is learn state
+                if self.columns[x][y].learnStateVector[cell] == 1:
+                    count += 1
             else:
-                print "ERROR state is not a -1 predictive or 1 active"
+                print "ERROR state is not a -1 predictive or 1 active or 2 learn"
         # Return how active the segment is if it's activated otherwise return zero.
         if count > self.activationThreshold:       
             return count
         else:
             return 0
-    def getBestMatchingSegment(c,i,t):
-        pass    
-    def getBestMatchingCell(c):
-        pass
+    def getBestMatchingSegment(self,c,i,t):
+        # This routine ios agressive. The permanence value is allowed to be less
+        # then connectedPermance and activationThreshold > number of active Synpses > minThreshold
+        h = -1 # mostActiveSegmentIndex
+        for g in range(len(c.cells[i].segments)):
+            # MAY NEED TO UPDATE THE activeSynapses list for each segment first?
+            if len(c.cells[i].segments[g].activeSynapses) > len(c.cells[i].segments[h].activeSynapses):
+                h = g
+        if len(c.cells[i].segments[h].activeSynapses)>self.minThreshold:
+            return h    # returns just the index to the most active segment in the cell
+        else:
+            return -1   # -1 means no segment was active enough
+    def getBestMatchingCell(self,c):
+        # Return the cell and the segment that is most matching in the column.
+        # If no cell has a matching segment (no segment has more then minThreshold synapses active)
+        # then return the cell with the fewest segments
+        bestCell = -1   # Cell index with the most active Segment
+        bestSegment = -1 # The segment index for the most active segment
+        fewestSegments = -1 # The segment index of the cell with the least munber of segments
+        h = -1       
+        for i in range(self.cellsPerColumn):
+            if len(c.cells[i].segments) > fewestSegments:
+                fewestSegments = i
+            # h is the SegmentIndex of the most active segment for the current cell i
+            h = self.getBestMatchingSegment(c,i,self.timeStep)
+            if h >= 0:
+                if len(c.cells[i].segments[h].activeSegments) > len(c.cells[bestCell].segments[bestSegment].activeSegments):
+                    bestCell = i
+                    bestSegment = h
+        if bestCell != -1:
+            return (bestCell,bestSegment)
+        else:
+            # Return the first segment from the cell with the fewest segments
+            return (fewestSegments,0)
     def getSegmentActiveSynapses(c,i,t,s,newSynapses=False):
         pass
     def adaptSegment(segmentList,positiveReinforcement):
@@ -323,16 +358,26 @@ class HTMLayer:
     def activeState(self,timeStep):
         # First function called to update the temporal pooler.
         for c in self.activeColumns:
-            c.buPredicted = False
+            buPredicted = False
+            lcChosen = False
             for i in range(self.cellsPerColumn):
                 if self.predictiveState(c,i,self.timeStep-1) == True:
                     activeState = 1
                     s = self.getActiveSegment(c,i,timeStep,activeState)
                     if s.sequenceSegment == True:
-                        self.buPredicted = True
+                        buPredicted = True
                         c.activeStateVector[i] = 1
-                        
-            
+                        learnState = 2
+                        if self.segmentActive(s,timeStep-1,learnState):
+                            lcChosen = True
+                            c.learnStateVector[i] = 1
+            if buPredicted == False:
+                for i in range(self.cellsPerColumn):
+                    c.activeStateVector[i] = 1
+            if lcChosen == False:
+                (cell,s) = self.getBestMatchingCell(c)
+                c.learnStateVector[cell] = 1
+                ## NEED TO MAKE getActiveSynapses function
     
 class HTM:
     def __init__(self, numLayers,input, column_array_width,column_array_height):
@@ -344,7 +389,7 @@ class HTM:
         self.HTMLayerArray = np.array([],dtype = object)
         for i in range(numLayers):
             self.HTMLayerArray = np.append(self.HTMLayerArray,HTMLayer(input,self.width,self.height))
-    def spatial(self):
+    def spatial_temporal(self):
         # Update the spatial pooler. Find spatial patterns from the input.
         # This updates the columns and all there vertical synapses
         for i in range(len(self.HTMLayerArray)):
@@ -354,14 +399,13 @@ class HTM:
             else:
                 output = self.HTMLayerArray[i-1].output
                 self.HTMLayerArray[i].Input(output)
+            # This updates the spatial pooler
             self.HTMLayerArray[i].Overlap()
             self.HTMLayerArray[i].inhibition()
             self.HTMLayerArray[i].learning()
-    def temporal(self):
-        # Updates the cells and their horizontal synapses
-        # It predicts the next pattern by updating the predictive state of all the
-        # cells within the columns
-        pass
+            #This Updates the temporal pooler
+            self.HTMLayerArray[i].activeState(self.HTMLayerArray[i].timeStep)
+            # STILL NEED TO ADD TEMPORAL POOLER STEPS 2 and 3
 
 def run_loop(HTM,input):
     HTM_draw.initialize_drawing()
@@ -371,6 +415,7 @@ def run_loop(HTM,input):
             break
         even += 1
         print "NEW learning stage\n"
+        
         # Created an alternating pattern to learn with noise for testing
         # Zero all inputs
         for k in range(len(input)):
@@ -378,9 +423,8 @@ def run_loop(HTM,input):
                 input[k][l] = 0
                 # Add some noise
                 some_number = round(random.uniform(0,10))
-                if some_number>10:
+                if some_number>6:
                     input[k][l] = 1
-
         if even % 2 == 0:
             print "EVEN"
             input[2][3:8] = 1
@@ -398,13 +442,14 @@ def run_loop(HTM,input):
             input[7][7:9] = 1
             
         #Learning and updating
-        HTM.spatial()
+        HTM.spatial_temporal()
         HTM_draw.draw_HTM(HTM,input)
     HTM_draw.quit_drawing()
 
 if __name__ == "__main__":
     sizew = 12
     sizeh = 10
+    numLayers = 3
     input = np.array([[round(random.uniform(0,1)) for i in range(sizew)] for j in range(sizeh)])
-    HTMNetwork = HTM(5,input,sizew,sizeh)
+    HTMNetwork = HTM(numLayers,input,sizew,sizeh)
     run_loop(HTMNetwork,input)
