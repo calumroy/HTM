@@ -134,7 +134,7 @@ def draw_HTM(HTM,input):
                             textpos = (col*sq_sz+offset,row*sq_sz+offset)
                             surface.blit(text,textpos)
                 elif event.key == pygame.K_o:
-                    print "o overlapDutyCycle of layer %s" %layer
+                    print "o overlapDutyCycle(percent) of layer %s" %layer
                     for row in range(r):           # Draw each row of the board.
                         for col in range(c):       # Run through cols drawing squares
                             the_square = (col*sq_sz, row*sq_sz, sq_sz, sq_sz)
@@ -142,11 +142,12 @@ def draw_HTM(HTM,input):
                                 surface.fill(colors[0], the_square)
                             else:
                                 surface.fill(colors[1], the_square)
-                            text = font.render("%s" % round(HTM.HTMLayerArray[layer].columns[row][col].overlapDutyCycle,3), 1, (255, 50, 200))
+                            # Display the overlapDutyCycle as a percentage
+                            text = font.render("%s" % round(100*HTM.HTMLayerArray[layer].columns[row][col].overlapDutyCycle,3), 1, (255, 50, 200))
                             textpos = (col*sq_sz+offset,row*sq_sz+offset)
                             surface.blit(text,textpos)
                 elif event.key == pygame.K_m:
-                    print "m minDutyCycle of layer %s" %layer
+                    print "m minDutyCycle(percent) of layer %s" %layer
                     for row in range(r):           # Draw each row of the board.
                         for col in range(c):       # Run through cols drawing squares
                             the_square = (col*sq_sz, row*sq_sz, sq_sz, sq_sz)
@@ -154,7 +155,8 @@ def draw_HTM(HTM,input):
                                 surface.fill(colors[0], the_square)
                             else:
                                 surface.fill(colors[1], the_square)
-                            text = font.render("%s" % round(HTM.HTMLayerArray[layer].columns[row][col].minDutyCycle,3), 1, (255, 50, 200))
+                            # Display the minDutyCycle as a percentage
+                            text = font.render("%s" % round(100*HTM.HTMLayerArray[layer].columns[row][col].minDutyCycle,3), 1, (255, 50, 200))
                             textpos = (col*sq_sz+offset,row*sq_sz+offset)
                             surface.blit(text,textpos)
                 else:

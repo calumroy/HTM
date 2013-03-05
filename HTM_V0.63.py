@@ -30,7 +30,7 @@ class Synapse:
             self.source_input_index = 0.0
             #If the permanence value for a synapse is greater than this
             #value, it is said to be connected.
-            self.connectPermanence = 0.4
+            self.connectPermanence = 0.3
     def updateInput(self,input):
         # If Synapse is vertical then self.cell = -1 otherwise the synapse is horizontal
         # and connects to a cell within the HTM. If it is horizontal then there is no 
@@ -72,7 +72,7 @@ class Column:
         self.inhibitionRadius = 1   # The max distance a column can inhibit another column
         self.potentialRadius = 1    # The max distance that Synapses can be made at
         self.permanenceInc = 0.1
-        self.permanenceDec = 0.05
+        self.permanenceDec = 0.1
         self.minDutyCycle = 0.01   # The minimum firing rate of the column
         self.activeDutyCycleArray = np.array([0]) # Keeps track of when the column was active. All columns start as active. It stores the numInhibition time when the column was active
         self.activeDutyCycle = 0.0 # the firing rate of the column
@@ -132,7 +132,7 @@ class HTMLayer:
         # are observed in the inhibition radius.
         self.desiredLocalActivity = 1 # How many cells within the inhibition radius are active
         self.cellsPerColumn = 3
-        self.connectPermanence = 0.4
+        self.connectPermanence = 0.3
         self.learningRadius = 4
         self.initialPerm = 0.3
         #This is also defined in the Synapse class!!! Maybe change this
@@ -190,7 +190,8 @@ class HTMLayer:
             for i in range(1,len(cols)):    #Add the overlap values to a single list
                 orderedScore = np.append(orderedScore,[cols[i].overlap])
             orderedScore=np.sort(orderedScore)
-            #print orderedScore
+            print orderedScore
+            print "     "
             return orderedScore[-kth]       # Minus since list starts at lowest   
         return 0
     def averageReceptiveFeildSize(self):
@@ -325,14 +326,16 @@ class HTMLayer:
                 #print "%d %d %d" %(c.overlap,c.minOverlap,c.boost)
     def inhibition(self):
         self.activeColumns=np.array([],dtype=object)
+        #print "actve cols before %s" %self.activeColumns
         for i in range(len(self.columns)):
             for c in self.columns[i]:
-                minLocalActivity = self.kthScore(self.neighbours(c),self.desiredLocalActivity)  
-                #print "current column = (%s,%s)"%(c.pos_x,c.pos_y)
-                if c.overlap>0 and c.overlap>=minLocalActivity:
-                    self.activeColumns=np.append(self.activeColumns,c)
-                    c.activeState = True
-                    #print "x,y = %s,%s overlap = %d min = %d" %(c.pos_x,c.pos_y,c.overlap,minLocalActivity)
+                if c.overlap>0:
+                    minLocalActivity = self.kthScore(self.neighbours(c),self.desiredLocalActivity)  
+                    #print "current column = (%s,%s)"%(c.pos_x,c.pos_y)
+                    if c.overlap>=minLocalActivity:
+                        self.activeColumns=np.append(self.activeColumns,c)
+                        c.activeState = True
+                        #print "x,y = %s,%s overlap = %d min = %d" %(c.pos_x,c.pos_y,c.overlap,minLocalActivity)
                 else:
                     c.activeState = False
                 self.updateActiveDutyCycle(c)       # Update the active duty cycle variable of every column
@@ -423,7 +426,7 @@ def run_loop(HTM,input):
                 input[k][l] = 0
                 # Add some noise
                 some_number = round(random.uniform(0,10))
-                if some_number>6:
+                if some_number>8:
                     input[k][l] = 1
         if even % 2 == 0:
             print "EVEN"
@@ -449,7 +452,7 @@ def run_loop(HTM,input):
 if __name__ == "__main__":
     sizew = 12
     sizeh = 10
-    numLayers = 3
+    numLayers = 1
     input = np.array([[round(random.uniform(0,1)) for i in range(sizew)] for j in range(sizeh)])
     HTMNetwork = HTM(numLayers,input,sizew,sizeh)
     run_loop(HTMNetwork,input)
