@@ -72,7 +72,7 @@ class Column:
         self.inhibitionRadius = 1   # The max distance a column can inhibit another column
         self.potentialRadius = 1    # The max distance that Synapses can be made at
         self.permanenceInc = 0.1
-        self.permanenceDec = 0.1
+        self.permanenceDec = 0.8
         self.minDutyCycle = 0.01   # The minimum firing rate of the column
         self.activeDutyCycleArray = np.array([0]) # Keeps track of when the column was active. All columns start as active. It stores the numInhibition time when the column was active
         self.activeDutyCycle = 0.0 # the firing rate of the column
@@ -190,8 +190,7 @@ class HTMLayer:
             for i in range(1,len(cols)):    #Add the overlap values to a single list
                 orderedScore = np.append(orderedScore,[cols[i].overlap])
             orderedScore=np.sort(orderedScore)
-            print orderedScore
-            print "     "
+            #print orderedScore
             return orderedScore[-kth]       # Minus since list starts at lowest   
         return 0
     def averageReceptiveFeildSize(self):
@@ -413,7 +412,7 @@ class HTM:
 def run_loop(HTM,input):
     HTM_draw.initialize_drawing()
     even = 0
-    for j in range(100):    # number of learning iterations
+    for j in range(500):    # number of learning iterations
         if HTM.quit == True:
             break
         even += 1
@@ -429,7 +428,7 @@ def run_loop(HTM,input):
                 if some_number>8:
                     input[k][l] = 1
         if even % 2 == 0:
-            print "EVEN"
+            print "pattern1"
             input[2][3:8] = 1
             input[3][7] = 1 
             input[4][7] = 1 
@@ -440,9 +439,22 @@ def run_loop(HTM,input):
             input[5][3] = 1
             input[6][3] = 1 
         else:
-            print "ODD"
-            input[8][7:9] = 1
-            input[7][7:9] = 1
+            if j<80 or j>150:
+                print "pattern2"
+                input[8][7:9] = 1
+                input[7][7:9] = 1
+            else:
+                print "pattern3"
+                input[9][4:9] = 1
+                input[8][8] = 1 
+                input[7][8] = 1 
+                input[6][8] = 1 
+                input[5][4:9] = 1
+                input[6][4] = 1 
+                input[7][4] = 1 
+                input[8][4] = 1
+                input[9][4] = 1 
+            
             
         #Learning and updating
         HTM.spatial_temporal()
@@ -452,7 +464,7 @@ def run_loop(HTM,input):
 if __name__ == "__main__":
     sizew = 12
     sizeh = 10
-    numLayers = 1
+    numLayers = 3
     input = np.array([[round(random.uniform(0,1)) for i in range(sizew)] for j in range(sizeh)])
     HTMNetwork = HTM(numLayers,input,sizew,sizeh)
     run_loop(HTMNetwork,input)
