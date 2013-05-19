@@ -4,7 +4,7 @@
 # Development phase: alpha V 0.63
 
 import HTM_draw
-#import pygame
+import pygame
 import numpy as np
 import random
 import math
@@ -527,7 +527,7 @@ def run_loop(HTM,input):
                 input[k][l] = 0
                 # Add some noise
                 some_number = round(random.uniform(0,10))
-                if some_number>6:
+                if some_number>8:
                     input[k][l] = 1
         if even % 2 == 0:
             print "pattern1"
