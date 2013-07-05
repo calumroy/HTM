@@ -15,7 +15,7 @@ import numpy as np
 import random
 import sys
 from PyQt4 import QtGui, QtCore
-import HTM_V1
+import HTM_V11
 import math
 
 class HTMInput(QtGui.QWidget):
@@ -155,7 +155,7 @@ class Example(QtGui.QWidget):
     def initUI(self):
         self.iteration = 0
         self.input = self.setInput(12,10)
-        self.htm = HTM_V1.HTM(3,self.input,12,10)
+        self.htm = HTM_V11.HTM(1,self.input,12,10)
         self.HTMNetworkGrid = HTMGridViewer(12,10)
         self.inputGrid = HTMInput(12,10)
         self.setHTMViewer(self.HTMNetworkGrid)
@@ -177,13 +177,16 @@ class Example(QtGui.QWidget):
                         HTMViewer.array[i][j] = 0
                     # Show the active cells
                     for c in range(self.htm.HTMLayerArray[0].cellsPerColumn):
-                        if self.htm.HTMLayerArray[0].columns[i][j].activeStateVector[c] == 1:
+                        # Convert to an int the array is in floats
+                        if int(self.htm.HTMLayerArray[0].columns[i][j].activeStateArray[c]) == self.iteration:
                             HTMViewer.cellsActiveArray[i][j][c] = 1
                         else:
                             HTMViewer.cellsActiveArray[i][j][c] = 0
+                            #if int(self.htm.HTMLayerArray[0].columns[i][j].activeStateArray[c])!=0:
+                            #    print "\n HTMViewer iteration=%s activeStateArray=%s for x,y,i = %s,%s,%s"%(self.iteration,self.htm.HTMLayerArray[0].columns[i][j].activeStateArray[c],j,i,c)
                     # Show the predictive cells
                     for c in range(self.htm.HTMLayerArray[0].cellsPerColumn):
-                        if self.htm.HTMLayerArray[0].columns[i][j].predictiveStateVector[c] == 1:
+                        if int(self.htm.HTMLayerArray[0].columns[i][j].predictiveStateArray[c]) == self.iteration:
                             HTMViewer.cellsPredictiveArray[i][j][c] = 1
                         else:
                             HTMViewer.cellsPredictiveArray[i][j][c] = 0
