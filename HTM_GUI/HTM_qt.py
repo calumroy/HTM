@@ -15,7 +15,7 @@ import numpy as np
 import random
 import sys
 from PyQt4 import QtGui, QtCore
-import HTM_V11
+import HTM_V12
 import math
 
 class HTMInput(QtGui.QWidget):
@@ -155,7 +155,7 @@ class Example(QtGui.QWidget):
     def initUI(self):
         self.iteration = 0
         self.input = self.setInput(12,10)
-        self.htm = HTM_V11.HTM(1,self.input,12,10)
+        self.htm = HTM_V12.HTM(1,self.input,12,10)
         self.HTMNetworkGrid = HTMGridViewer(12,10)
         self.inputGrid = HTMInput(12,10)
         self.setHTMViewer(self.HTMNetworkGrid)
