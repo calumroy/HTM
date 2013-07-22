@@ -84,6 +84,9 @@ class HTMGridViewer(QtGui.QWidget):
         self.pos_x = 0
         self.pos_y = 0
         self.numCells = 3
+        self.showActiveCells = True
+        self.showPredictCells = False
+        self.showLearnCells = False
         #sld = QtGui.QSlider(QtCore.Qt.Horizontal, self
         self.setGeometry(300, 300, 350, 100)
         self.setWindowTitle('Colors')
@@ -91,6 +94,7 @@ class HTMGridViewer(QtGui.QWidget):
         self.array = np.array([[0 for i in range(width)] for j in range(height)])
         self.cellsActiveArray = np.array([[[0 for k in range(self.numCells)] for i in range(width)] for j in range(height)])
         self.cellsPredictiveArray = np.array([[[0 for k in range(self.numCells)] for i in range(width)] for j in range(height)])
+        self.cellsLearnArray = np.array([[[0 for k in range(self.numCells)] for i in range(width)] for j in range(height)])
         # Scale the size of the grid so the cells can be shown if there are too many cells
         while (int (math.ceil(self.numCells ** 0.5))>self.size/2):
             self.size = self.size *2
@@ -131,14 +135,25 @@ class HTMGridViewer(QtGui.QWidget):
             for j in range(numSquares):
                 qp.setOpacity(0.05) # Make the non existent cells faint
                 if count < numCells:
-                    if self.cellsActiveArray[pos_y][pos_x][count] == 1:
-                        qp.setOpacity(1.0)
-                    else:
-                        qp.setOpacity(0.2)
-                    if self.cellsPredictiveArray[pos_y][pos_x][count] == 1:
-                        qp.setBrush(QtGui.QColor(50, 100, 10))
-                    else:
-                        qp.setBrush(QtGui.QColor(0, 10, 100))
+                    if self.showActiveCells==True:
+                        if self.cellsActiveArray[pos_y][pos_x][count] == 1:
+                            qp.setOpacity(1.0)
+                        else:
+                            qp.setOpacity(0.2)
+                    if self.showPredictCells==True:
+                        if self.cellsPredictiveArray[pos_y][pos_x][count] == 1:
+                            qp.setBrush(QtGui.QColor(50, 100, 10))
+                            qp.setOpacity(1.0)
+                        else:
+                            qp.setBrush(QtGui.QColor(0, 10, 100))
+                            qp.setOpacity(0.2)
+                    if self.showLearnCells==True:
+                        if self.cellsLearnArray[pos_y][pos_x][count] == 1:
+                            qp.setBrush(QtGui.QColor(100, 50, 10))
+                            qp.setOpacity(1.0)
+                        else:
+                            qp.setBrush(QtGui.QColor(0, 10, 100))
+                            qp.setOpacity(0.2)
                 count += 1
                 # Separate the small squares
                 x = pos_x*size + 0.5*squareSize+1.5*i*squareSize
@@ -190,6 +205,12 @@ class Example(QtGui.QWidget):
                             HTMViewer.cellsPredictiveArray[i][j][c] = 1
                         else:
                             HTMViewer.cellsPredictiveArray[i][j][c] = 0
+                    # Show the learning cells
+                    for c in range(self.htm.HTMLayerArray[0].cellsPerColumn):
+                        if int(self.htm.HTMLayerArray[0].columns[i][j].learnStateArray[c]) == self.iteration:
+                            HTMViewer.cellsLearnArray[i][j][c] = 1
+                        else:
+                            HTMViewer.cellsLearnArray[i][j][c] = 0
 
     def setInput(self,width,height):
         input = np.array([[0 for i in range(width)] for j in range(height)])
@@ -213,14 +234,54 @@ class Example(QtGui.QWidget):
         btn6.clicked.connect(self.inputZoomIn)
         btn7 = QtGui.QPushButton("IN -", self)
         btn7.clicked.connect(self.inputZoomOut)
-        btn1.move(300,90)
-        btn2.move(400,90)
-        btn3.move(300,30)
-        btn4.move(350,60)
+        btn8 = QtGui.QPushButton("Active Cells", self)
+        btn8.clicked.connect(self.showActiveCells)
+        btn9 = QtGui.QPushButton("Predict Cells", self)
+        btn9.clicked.connect(self.showPredictCells)
+        btn10 = QtGui.QPushButton("Learn Cells", self)
+        btn10.clicked.connect(self.showLearnCells)
+        btn1.move(315,90)
+        btn2.move(415,90)
+        btn3.move(315,30)
+        btn4.move(415,30)
         btn5.move(15, 30)
         btn6.move(15, 90)
         btn7.move(115, 90)
-
+        btn8.move(215, 30)
+        btn9.move(215, 60)
+        btn10.move(215, 90)
+        
+    def showActiveCells(self):
+        # Toggle between showing the active cells or not
+        if self.HTMNetworkGrid.showActiveCells==True:
+            self.HTMNetworkGrid.showActiveCells=False
+        else:
+            self.HTMNetworkGrid.showActiveCells=True
+            # Don't show the learning or predictive cells
+            self.HTMNetworkGrid.showPredictCells=False
+            self.HTMNetworkGrid.showLearnCells=False
+            
+        self.HTMNetworkGrid.update()
+    def showPredictCells(self):
+        # Toggle between showing the predicting cells or not
+        if self.HTMNetworkGrid.showPredictCells==True:
+            self.HTMNetworkGrid.showPredictCells=False
+        else:
+            self.HTMNetworkGrid.showPredictCells=True
+            # Don't show the learning or active cells
+            self.HTMNetworkGrid.showActiveCells=False
+            self.HTMNetworkGrid.showLearnCells=False
+        self.HTMNetworkGrid.update()
+    def showLearnCells(self):
+        # Toggle between showing the learning cells or not
+        if self.HTMNetworkGrid.showLearnCells==True:
+            self.HTMNetworkGrid.showLearnCells=False
+        else:
+            self.HTMNetworkGrid.showLearnCells=True
+            # Don't show the learning or active cells
+            self.HTMNetworkGrid.showActiveCells=False
+            self.HTMNetworkGrid.showPredictCells=False
+        self.HTMNetworkGrid.update()
     def HTMzoomIn(self):
         self.HTMNetworkGrid.scale = self.HTMNetworkGrid.scale*1.2
         self.HTMNetworkGrid.update()
@@ -306,6 +367,8 @@ class Example(QtGui.QWidget):
         # Set the HTM viewers array to the new state of the htm network
         self.setHTMViewer(self.HTMNetworkGrid)
         self.HTMNetworkGrid.update()
+    def mouseMoveEvent(self,event):
+        print "Enter!" 
 
 def main():   
     app = QtGui.QApplication(sys.argv)
