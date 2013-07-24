@@ -31,7 +31,7 @@ class Synapse:
                 self.sourceInput=input[pos_y][pos_x]
             else:   # If the Synpase is horizontal then just set sourceInput to 0 it's unused 
                 self.sourceInput=0  
-            self.permanence = 0.31
+            self.permanence = 0.36
             self.source_input_index = 0.0
             #If the permanence value for a synapse is greater than this
             #value, it is said to be connected.
@@ -84,7 +84,7 @@ class Column:
         self.boost = 1
         self.inhibitionRadius = 1   # The max distance a column can inhibit another column
         self.potentialRadius = 1    # The max distance that Synapses can be made at
-        self.permanenceInc = 0.1
+        self.permanenceInc = 0.2
         self.permanenceDec = 0.05
         self.minDutyCycle = 0.01   # The minimum firing rate of the column
         self.activeDutyCycleArray = np.array([0]) # Keeps track of when the column was active. All columns start as active. It stores the numInhibition time when the column was active
@@ -154,12 +154,12 @@ class HTMLayer:
         self.cellsPerColumn = 3
         self.connectPermanence = 0.3
         self.learningRadius = 4
-        self.initialPerm = 0.3
+        #self.initialPerm = 0.3
         #This is also defined in the Synapse class!!! Maybe change this
-        self.connectedPerm = 0.3    # The value a connected Synapses must be higher then.
+        #self.connectedPerm = 0.3    # The value a connected Synapses must be higher then.
         self.minThreshold = 3       # Should be smaller than activationThreshold
         self.newSynapseCount = 7    # This limits the activeSynapse array to this length. It should be renamed
-        self.activationThreshold = 4    # How many synapses on a segment must be active for the segment to be active
+        self.activationThreshold = 4    # More than this many synapses on a segment must be active for the segment to be active
         self.dutyCycleAverageLength = 1000
         self.timeStep = 0
         self.output = np.array([[0 for i in range(self.width)] for j in range(self.height)])
@@ -240,6 +240,16 @@ class HTMLayer:
         pass
     def activeColumns(t):
         pass
+    def deleteEmptySegments(self,c,i):
+        # Delete the segments that have no synapses in them.
+        # This should only be done before or after learning
+        deleteEmptySegments=[]  # This is a list of the indicies of the segments that will be deleted
+        for s in range(len(c.cells[i].segments)):
+            if len(c.cells[i].segments[s].synapses)==0:
+                deleteEmptySegments.append(s)
+        if len(deleteEmptySegments)>0:  # Used for printing only
+            print "Deleted %s segments from x,y,i=%s,%s,%s segindex=%s"%(len(deleteEmptySegments),c.pos_x,c.pos_y,i,deleteEmptySegments)
+        c.cells[i].segments=np.delete(c.cells[i].segments,deleteEmptySegments)
     def deleteWeakSynapses(self,c,i,segIndex):
         # Delete the synapses that have a permanence value that is too low form the segment.
         deleteActiveSynapses=[]  # This is a list of the indicies of the active synapses that will be deleted
@@ -273,15 +283,20 @@ class HTMLayer:
                     if  m.learnStateArray[j] == timeStep:
                         #print "time = %s synapse ends at active cell x,y,i = %s,%s,%s"%(timeStep,m.pos_x,m.pos_y,j)
                         synapseList = np.append(synapseList,Synapse(0,m.pos_x,m.pos_y,j))
-        # We need to take a random sample from the list synapseList 
-        numNewSynapses = self.newSynapseCount-len(c.cells[i].segments[s].synapses)
+        # Take a random sample from the list synapseList 
+        # Check that there is at least one segment and the segment index isnot -1 meaning 
+        # it's a new segment that hasn't been created yet.
+        if len(c.cells[i].segments)>0 and s!=-1:
+            numNewSynapses = self.newSynapseCount-len(c.cells[i].segments[s].synapses)
+        else:
+            numNewSynapses = self.newSynapseCount
         # Make sure that the number of new synapses to choose isn't larger than the
         #total amount of active synapses to choose from but is larger than zero.
         if numNewSynapses>len(synapseList):
             numNewSynapses = len(synapseList)
-        if numNewSynapses<0:
+        if numNewSynapses<=0:
             numNewSynapses = 0
-            #print "%s new synapses from len(synList) = %s" %(numNewSynapses,len(synapseList))
+            print "%s new synapses from len(synList) = %s" %(numNewSynapses,len(synapseList))
             # return an empty list. This means this segment has too many synapses already
             return np.array([])
         return np.array(random.sample(synapseList,numNewSynapses))
@@ -320,6 +335,8 @@ class HTMLayer:
                     count += 1
             else:
                 print "ERROR state is not a -1 predictive or 1 active or 2 learn"
+        #if state==2:    # Used for printing only
+        #    print"lcchosen count = %s avtiveThreshold=%s"%(count,self.activationThreshold)
         if count > self.activationThreshold: 
             #print"         %s synapses were active on segment"%count
             # If the state is active then those synapses in the segment have activated the
@@ -355,9 +372,11 @@ class HTMLayer:
                 print "\n new best matching segment found for h = %s\n"%h
                 #print "segIndex = %s num of syn = %s num active syn = "%(h,len(c.cells[i].segments[h].synapses),currentSegSynCount)
                 print "segIndex = %s"%(h)
-        if self.segmentNumSynapsesActive(c.cells[i].segments[h],t)>self.minThreshold:
-            print "returned the segment index (%s) which HAD MORE THAN THE MINTHRESHOLD SYNAPSES"%h
-            return h    # returns just the index to the most active segment in the cell
+        # Make sure the cell has at least one segment
+        if len(c.cells[i].segments)>0:
+            if self.segmentNumSynapsesActive(c.cells[i].segments[h],t)>self.minThreshold:
+                print "returned the segment index (%s) which HAD MORE THAN THE MINTHRESHOLD SYNAPSES"%h
+                return h    # returns just the index to the most active segment in the cell
         print "returned no segment. None had enough active synapses return -1"
         return -1   # -1 means no segment was active enough and a new one will be created.
     def getBestMatchingCell(self,c,timeStep):
@@ -370,8 +389,7 @@ class HTMLayer:
         h = -1           # h is the SegmentIndex of the most active segment for the current cell i  
         print "getBestMatchingCell for x,y = %s,%s"%(c.pos_x,c.pos_y)
         for i in range(self.cellsPerColumn):
-            # We minus one since the length of the segments array starts at 1 
-            #and fewestSegments index starts at 0.
+            # Find the cell index with the fewest number of segments.
             if len(c.cells[i].segments) < len(c.cells[fewestSegments].segments):
                 fewestSegments = i
             h = self.getBestMatchingSegment(c,i,timeStep)
@@ -380,12 +398,12 @@ class HTMLayer:
                     bestCell = i
                     bestSegment = h
         if bestCell != -1:
-            print "returned from GETBESTMATCHINGCELL the cell with the best segment = %s"%bestCell
+            print "returned from GETBESTMATCHINGCELL the cell i=%s with the best segment s=%s"%(bestCell,bestSegment)
             return (bestCell,bestSegment)
         else:
             # Return the first segment from the cell with the fewest segments
-            print "returned from getBestMatchingCell the cell %s with the fewest segments"%fewestSegments
-            return (fewestSegments,0)
+            print "returned from getBestMatchingCell cell i=%s with the fewest number of segments num=%s"%(fewestSegments,len(c.cells[fewestSegments].segments))
+            return (fewestSegments,-1)
     def getSegmentActiveSynapses(self,c,i,t,s,newSynapses=False):
         # Returns an segmentUpdate structure. This is used to update the segments and there
         # synapses during learning. It adds the synapses from the segments synapse list
@@ -393,7 +411,7 @@ class HTMLayer:
         # appropriately (either inc or dec) later during learning.
         # s is the index of the segment in the cells segment list.
         newSegmentUpdate = {'index':s,'activeSynapses':np.array([],dtype=object),'newSynapses':np.array([],dtype=object),'sequenceSegment':0, 'createdAtTime': t}
-        print "    getSegmentActiveSynapse called for t = %s x,y,i = %s,%s,%s newSyn = %s"%(t,c.pos_x,c.pos_y,i,newSynapses) 
+        print "    getSegmentActiveSynapse called for t = %s x,y,i,s = %s,%s,%s,%s newSyn = %s"%(t,c.pos_x,c.pos_y,i,s,newSynapses) 
         # If segment exists then go through an see which synapses are active. 
         #Add them to the update structure.
         if s != -1:
@@ -407,8 +425,8 @@ class HTMLayer:
                         # Check to see if the Synapse is connected to an active cell
                         if self.columns[end_y][end_x].activeStateArray[end_cell] == t:
                             # If so add it to the updateSegment structure
-                            print "     active synapse starts at x,y,cell,segIndex = %s,%s,%s,%s"%(c.pos_x,c.pos_y,i,s)
-                            print "     the synapse ends at x,y,cell = %s,%s,%s"%(end_x,end_y,end_cell)
+                            #print "     active synapse starts at x,y,cell,segIndex = %s,%s,%s,%s"%(c.pos_x,c.pos_y,i,s)
+                            #print "     the synapse ends at x,y,cell = %s,%s,%s"%(end_x,end_y,end_cell)
                             newSegmentUpdate['activeSynapses']=np.append(newSegmentUpdate['activeSynapses'],c.cells[i].segments[s].synapses[k])
         if newSynapses == True:
             # Add new synapses that have an active end. 
@@ -444,7 +462,7 @@ class HTMLayer:
                         s.permanence -= c.permanenceDec
                         s.permanence = max(0.0,s.permanence)
                     print "     x,y,cell,segment= %s,%s,%s,%s syn end x,y,cell = %s,%s,%s"%(c.pos_x,c.pos_y,i,c.cells[i].segmentUpdateList[j]['index'],s.pos_x,s.pos_y,s.cell)
-                    print "     synapse permanence = %s was increased"%(s.permanence)
+                    print "     synapse permanence = %s"%(s.permanence)
                 # Decrement the permanence of all synapses in the synapse list
                 for s in c.cells[i].segments[segIndex].synapses:
                     s.permanence -= c.permanenceDec
@@ -462,7 +480,9 @@ class HTMLayer:
                 newSegment = Segment()
                 newSegment.synapses = c.cells[i].segmentUpdateList[j]['newSynapses']
                 c.cells[i].segments = np.append(c.cells[i].segments,newSegment)
-                print "     new segment added for x,y,cell,seg = %s,%s,%s,%s"%(c.pos_x,c.pos_y,i,len(c.cells[i].segments)-1)
+                print "     new segment added for x,y,cell,seg = %s,%s,%s,%s"%(c.pos_x,c.pos_y,i,len(c.cells[i].segments)-1)                
+                #for s in c.cells[i].segments[len(c.cells[i].segments)-1].synapses:  # Used for printing only
+                #    print "         synapse ends at x,y=%s,%s"%(s.pos_x,s.pos_y)
         c.cells[i].segmentUpdateList=[]  # Delete the list as the updates have been added.
         
     def Input(self,Input):
@@ -529,8 +549,8 @@ class HTMLayer:
                     activeState = 1
                     s = self.getActiveSegment(c,i,timeStep-1,activeState)
                     # Since we get the active segments from 1 time step ago then we need to 
-                    #find which of these where sequence segments 1 time step ago. This mean they
-                    #were predicting that the cell would be active now.
+                    # find which of these where sequence segments 1 time step ago. This means they
+                    # were predicting that the cell would be active now.
                     if s.sequenceSegment == timeStep-1:
                         buPredicted = True
                         c.activeStateArray[i] = timeStep
@@ -558,8 +578,15 @@ class HTMLayer:
                 for i in range(len(c.cells)):
                     segIndex=0   
                     for s in c.cells[i].segments:
-                        activeState = 1
-                        if self.segmentActive(s,timeStep,activeState) == True:
+                        # This differs to the CLA. The segmentActiveChecks that 
+                        # the cell was in a learn state. learn state means the cell is also active.
+                        # When all cells are active in a column this stops them from all causing predictions.
+                        # lcchosen will be correctly set when a cell predicts and is activated by a group of 
+                        # learning cells.
+                        #activeState = 1
+                        #if self.segmentActive(s,timeStep,activeState) == True:
+                        learnState = 2
+                        if self.segmentActive(s,timeStep,learnState) == True:
                             print "time = %s segment x,y,cell,segindex = %s,%s,%s,%s is active and NOW PREDICTING"%(timeStep,c.pos_x,c.pos_y,i,segIndex)
                             c.predictiveStateArray[i] = timeStep
                             activeUpdate=self.getSegmentActiveSynapses(c,i,timeStep,segIndex,False)
@@ -589,7 +616,10 @@ class HTMLayer:
                     if self.activeState(c,i,timeStep) == False and self.predictiveState(c,i,timeStep-1) == True:
                         #print "predictive state for x,y,cell = %s,%s,%s"%(c.pos_x,c.pos_y,i)
                         self.adaptSegments(c,i,False)
-        
+                    # After the learning delete any segments that have zero synapses in them.
+                    # This must be done after learning since during learning the index of the segment
+                    # is used to identify each segment and this changes when segments are deleted.
+                    self.deleteEmptySegments(c,i)
 class HTM:
     def __init__(self, numLayers,input, column_array_width,column_array_height):
         self.quit = False

@@ -169,10 +169,12 @@ class Example(QtGui.QWidget):
 
     def initUI(self):
         self.iteration = 0
-        self.input = self.setInput(12,10)
-        self.htm = HTM_V12.HTM(1,self.input,12,10)
-        self.HTMNetworkGrid = HTMGridViewer(12,10)
-        self.inputGrid = HTMInput(12,10)
+        width=15
+        height=14
+        self.input = self.setInput(width,height)
+        self.htm = HTM_V12.HTM(1,self.input,width,height)
+        self.HTMNetworkGrid = HTMGridViewer(width,height)
+        self.inputGrid = HTMInput(width,height)
         self.setHTMViewer(self.HTMNetworkGrid)
         self.make_frame()
         self.make_buttons()
@@ -329,16 +331,16 @@ class Example(QtGui.QWidget):
             for l in range(len(self.input[k])):
                 self.input[k][l] = 0
                 # Add some noise
-                some_number = round(random.uniform(0,10))
-                if some_number>9:
-                    self.input[k][l] = 1
+                #some_number = round(random.uniform(0,10))
+                #if some_number>9:
+                #    self.input[k][l] = 1
         if self.iteration % 2 == 0:
             print "\n pattern1"
-            self.input[2][3:8] = [1,]
-            self.input[3][7] = 1
-            self.input[4][7] = 1
-            self.input[5][7] = 1
-            self.input[6][3:8] = [1,]   # makes 1 iterable
+            self.input[2][3:12] = [1,]
+            self.input[3][3:12] = 1
+            self.input[4][11] = 1
+            self.input[5][3:12] = 1
+            self.input[6][3:12] = [1,]   # makes 1 iterable
             self.input[3][3] = 1
             self.input[4][3] = 1
             self.input[5][3] = 1
@@ -346,16 +348,18 @@ class Example(QtGui.QWidget):
         else:
             if self.iteration<80 or self.iteration>150:
                 print "\n pattern2"
-                self.input[8][7:9] = [1,] # makes 1 iterable
-                self.input[7][7:9] = [1,]
+                self.input[8][4:12] = [1,] # makes 1 iterable
+                self.input[9][4:12] = [1,]
+                self.input[11][4:12] = [1,]
+                self.input[12][4:12] = [1,]
             else:
                 print "\n pattern3"
                 self.input[9][4:9] = [1,]
-                self.input[8][8] = 1
+                self.input[8][4:9] = 1
                 self.input[7][8] = 1
                 self.input[6][8] = 1
                 self.input[5][4:9] = [1,]
-                self.input[6][4] = 1
+                self.input[6][4:9] = 1
                 self.input[7][4] = 1
                 self.input[8][4] = 1
                 self.input[9][4] = 1
