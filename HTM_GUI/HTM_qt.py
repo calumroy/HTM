@@ -91,7 +91,7 @@ class HTMGridViewer(QtGui.QWidget):
         self.setGeometry(300, 300, 350, 100)
         self.setWindowTitle('Colors')
         self.setGeometry(QtCore.QRect(0, 0, 400, 400))
-        self.array = np.array([[0 for i in range(width)] for j in range(height)])
+        self.columnActiveArray = np.array([[0 for i in range(width)] for j in range(height)])
         self.cellsActiveArray = np.array([[[0 for k in range(self.numCells)] for i in range(width)] for j in range(height)])
         self.cellsPredictiveArray = np.array([[[0 for k in range(self.numCells)] for i in range(width)] for j in range(height)])
         self.cellsLearnArray = np.array([[[0 for k in range(self.numCells)] for i in range(width)] for j in range(height)])
@@ -114,10 +114,11 @@ class HTMGridViewer(QtGui.QWidget):
         qp.setPen(color)
         for y in range(rows):
                 for x in range(cols):
-                    v = self.array[y][x]
+                    v = self.columnActiveArray[y][x]
                     if v == 0:
                             qp.setBrush(QtGui.QColor(200, 0, 0))
-                    else:
+                    if v == 1:
+                            #print"PAINTING grid cell x,y=%s,%s"%(x,y)
                             qp.setBrush(QtGui.QColor(0, 200, 0))
                     qp.drawRect(x*size, y*size, size, size)
                     self.drawCells(qp,self.numCells,x,y,size)
@@ -189,9 +190,10 @@ class Example(QtGui.QWidget):
             for j in range(len(self.htm.HTMLayerArray[0].columns[i])):
                     # Show the active columns
                     if self.htm.HTMLayerArray[0].columns[i][j].activeState == True:
-                        HTMViewer.array[i][j] = 1
+                        HTMViewer.columnActiveArray[i][j] = 1
+                        #print"PAINTING grid cell x,y=%s,%s"%(j,i)
                     else:
-                        HTMViewer.array[i][j] = 0
+                        HTMViewer.columnActiveArray[i][j] = 0
                     # Show the active cells
                     for c in range(self.htm.HTMLayerArray[0].cellsPerColumn):
                         # Convert to an int the array is in floats
@@ -334,7 +336,7 @@ class Example(QtGui.QWidget):
                 #some_number = round(random.uniform(0,10))
                 #if some_number>9:
                 #    self.input[k][l] = 1
-        if self.iteration % 2 == 0:
+        if self.iteration % 3 == 0:
             print "\n pattern1"
             self.input[2][3:12] = [1,]
             self.input[3][3:12] = 1
@@ -346,23 +348,23 @@ class Example(QtGui.QWidget):
             self.input[5][3] = 1
             self.input[6][3] = 1
         else:
-            if self.iteration<80 or self.iteration>150:
+            if self.iteration%3==1:
                 print "\n pattern2"
                 self.input[8][4:12] = [1,] # makes 1 iterable
                 self.input[9][4:12] = [1,]
                 self.input[11][4:12] = [1,]
                 self.input[12][4:12] = [1,]
-            else:
-                print "\n pattern3"
-                self.input[9][4:9] = [1,]
-                self.input[8][4:9] = 1
-                self.input[7][8] = 1
-                self.input[6][8] = 1
-                self.input[5][4:9] = [1,]
-                self.input[6][4:9] = 1
-                self.input[7][4] = 1
-                self.input[8][4] = 1
-                self.input[9][4] = 1
+        if self.iteration%3==2:
+            print "\n pattern3"
+            self.input[9][4:9] = [1,]
+            self.input[8][4:9] = 1
+            self.input[7][8] = 1
+            self.input[6][8] = 1
+            self.input[5][4:9] = [1,]
+            self.input[6][4:9] = 1
+            self.input[7][4] = 1
+            self.input[8][4] = 1
+            self.input[9][4] = 1
         # Put the new input through the htm
         self.htm.spatial_temporal(self.input)
         # Set the input viewers array to self.input

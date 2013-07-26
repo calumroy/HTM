@@ -508,15 +508,14 @@ class HTMLayer:
         #print "actve cols before %s" %self.activeColumns
         for i in range(len(self.columns)):
             for c in self.columns[i]:
+                c.activeState = False
                 if c.overlap>0:
                     minLocalActivity = self.kthScore(self.neighbours(c),self.desiredLocalActivity)  
                     #print "current column = (%s,%s)"%(c.pos_x,c.pos_y)
                     if c.overlap>=minLocalActivity:
                         self.activeColumns=np.append(self.activeColumns,c)
                         c.activeState = True
-                        #print "x,y = %s,%s overlap = %d min = %d" %(c.pos_x,c.pos_y,c.overlap,minLocalActivity)
-                else:
-                    c.activeState = False
+                        #print "ACTIVE COLUMN x,y = %s,%s overlap = %d min = %d" %(c.pos_x,c.pos_y,c.overlap,minLocalActivity)
                 self.updateActiveDutyCycle(c)       # Update the active duty cycle variable of every column
     def learning(self):
         for c in self.activeColumns:
@@ -620,6 +619,10 @@ class HTMLayer:
                     # This must be done after learning since during learning the index of the segment
                     # is used to identify each segment and this changes when segments are deleted.
                     self.deleteEmptySegments(c,i)
+                    
+        
+
+        
 class HTM:
     def __init__(self, numLayers,input, column_array_width,column_array_height):
         self.quit = False
@@ -648,6 +651,8 @@ class HTM:
             self.HTMLayerArray[i].updateActiveState(self.HTMLayerArray[i].timeStep)
             self.HTMLayerArray[i].updatePredictiveState(self.HTMLayerArray[i].timeStep)
             self.HTMLayerArray[i].temporalLearning(self.HTMLayerArray[i].timeStep)
+            
+            
 
 # NOT CURRENTLY USED WITH THE VIEWER
 def runLoop(HTM,input,iteration):
