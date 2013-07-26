@@ -333,38 +333,37 @@ class Example(QtGui.QWidget):
             for l in range(len(self.input[k])):
                 self.input[k][l] = 0
                 # Add some noise
-                #some_number = round(random.uniform(0,10))
-                #if some_number>9:
-                #    self.input[k][l] = 1
+                some_number = round(random.uniform(0,10))
+                if some_number>10:
+                    self.input[k][l] = 1
         if self.iteration % 3 == 0:
             print "\n pattern1"
-            self.input[2][3:12] = [1,]
-            self.input[3][3:12] = 1
-            self.input[4][11] = 1
-            self.input[5][3:12] = 1
-            self.input[6][3:12] = [1,]   # makes 1 iterable
-            self.input[3][3] = 1
-            self.input[4][3] = 1
-            self.input[5][3] = 1
-            self.input[6][3] = 1
+            self.input[0][1:12] = [1,]
+            self.input[1][1:12] = 1
+            self.input[2][11] = 1
+            self.input[3][1:12] = 1
+            self.input[4][1:12] = [1,]   # makes 1 iterable
+            self.input[3][1] = 1
+            self.input[2][1] = 1
+            self.input[1][1] = 1
+            self.input[0][1] = 1
         else:
             if self.iteration%3==1:
                 print "\n pattern2"
-                self.input[8][4:12] = [1,] # makes 1 iterable
+                self.input[6][4:12] = [1,] # makes 1 iterable
+                self.input[7][4:12] = [1,]
+                self.input[8][4:12] = [1,]
                 self.input[9][4:12] = [1,]
-                self.input[11][4:12] = [1,]
-                self.input[12][4:12] = [1,]
         if self.iteration%3==2:
             print "\n pattern3"
-            self.input[9][4:9] = [1,]
-            self.input[8][4:9] = 1
-            self.input[7][8] = 1
-            self.input[6][8] = 1
-            self.input[5][4:9] = [1,]
-            self.input[6][4:9] = 1
-            self.input[7][4] = 1
-            self.input[8][4] = 1
-            self.input[9][4] = 1
+            self.input[8][5:13] = [1,]
+            self.input[9][5:13] = 1
+            self.input[10][5] = 1
+            self.input[11][5:13] = [1,]
+            self.input[12][5:13] = 1
+            self.input[10][4] = 1
+            self.input[11][4] = 1
+            self.input[10][12] = 1
         # Put the new input through the htm
         self.htm.spatial_temporal(self.input)
         # Set the input viewers array to self.input
