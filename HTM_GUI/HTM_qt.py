@@ -18,57 +18,118 @@ from PyQt4 import QtGui, QtCore
 import HTM_V12
 import math
 
-class HTMInput(QtGui.QWidget):
+##class HTMInput(QtGui.QWidget):
+##
+##    def __init__(self,width,height):
+##        super(HTMInput, self).__init__()
+##        self.initUI(width,height)
+##
+##    def initUI(self,width,height):
+##        self.size = 10
+##        self.cols = width
+##        self.rows = height
+##        self.scale = 4
+##        self.pos_x = 0
+##        self.pos_y = 0
+##        #sld = QtGui.QSlider(QtCore.Qt.Horizontal, self
+##        self.setGeometry(300, 300, 350, 100)
+##        self.setWindowTitle('Colors')
+##        self.setGeometry(QtCore.QRect(0, 0, 400, 400))
+##        self.inputArray = np.array([[0 for i in range(width)] for j in range(height)])
+##        self.show()
+##
+##    def paintEvent(self, e):
+##        qp = QtGui.QPainter()
+##        qp.begin(self)
+##        qp.scale(self.scale, self.scale)
+##        qp.translate(self.pos_x,self.pos_y)
+##        self.drawGrid(qp,self.rows,self.cols,self.size)
+##        qp.end()
+##
+##    def drawGrid(self, qp, rows, cols, size):
+##        color = QtGui.QColor(0, 0, 0)
+##        color.setNamedColor('#d4d4d4')
+##        qp.setPen(color)
+##        #print "self.rows, self.cols = (%s,%s)"%(self.rows, self.cols)
+##        #print "rows, cols = (%s,%s)" %(rows, cols)
+##        for y in range(rows):
+##                for x in range(cols):
+##                        #print "x, y = (%s,%s)" %(x, y)
+##                        #print "inputArray c,r = (%s,%s)"%(len(self.inputArray[0]),len(self.inputArray))
+##                        value = self.inputArray[y][x]
+##                        if value == 0:
+##                                qp.setBrush(QtGui.QColor(200, 0, 0))
+##                        else:
+##                                qp.setBrush(QtGui.QColor(0, 200, 0))
+##                        qp.drawRect( x*size,y*size, size, size)
+##
+##
+##    def setInput(self,newInput):
+##        self.cols = len(newInput[0])
+##        self.rows = len(newInput)
+##        #print "rows, cols = (%s,%s)" %(self.rows, self.cols)
+##        self.inputArray = newInput
+
+
+
+class HTMInput(QtGui.QGraphicsView):
 
     def __init__(self,width,height):
         super(HTMInput, self).__init__()
+        
         self.initUI(width,height)
 
     def initUI(self,width,height):
-        self.size = 10
+        self.scene=QtGui.QGraphicsScene(self)
+        self.scaleSize = 1
+        self.setScene(self.scene)
+        self.size = 20
         self.cols = width
         self.rows = height
-        self.scale = 4
         self.pos_x = 0
         self.pos_y = 0
-        #sld = QtGui.QSlider(QtCore.Qt.Horizontal, self
-        self.setGeometry(300, 300, 350, 100)
-        self.setWindowTitle('Colors')
-        self.setGeometry(QtCore.QRect(0, 0, 400, 400))
         self.inputArray = np.array([[0 for i in range(width)] for j in range(height)])
+        self.drawGrid(self.rows,self.cols,self.size)
         self.show()
+        
+    def scaleScene(self,scaleSize):
+        self.scale(scaleSize, scaleSize)
 
-    def paintEvent(self, e):
-        qp = QtGui.QPainter()
-        qp.begin(self)
-        qp.scale(self.scale, self.scale)
-        qp.translate(self.pos_x,self.pos_y)
-        self.drawGrid(qp,self.rows,self.cols,self.size)
-        qp.end()
-
-    def drawGrid(self, qp, rows, cols, size):
-        color = QtGui.QColor(0, 0, 0)
-        color.setNamedColor('#d4d4d4')
-        qp.setPen(color)
-        #print "self.rows, self.cols = (%s,%s)"%(self.rows, self.cols)
-        #print "rows, cols = (%s,%s)" %(rows, cols)
+    def drawGrid(self, rows, cols, size):
+        pen   = QtGui.QPen(QtGui.QColor(QtCore.Qt.green))
+        brush = QtGui.QBrush(pen.color().darker(150))
         for y in range(rows):
                 for x in range(cols):
-                        #print "x, y = (%s,%s)" %(x, y)
-                        #print "inputArray c,r = (%s,%s)"%(len(self.inputArray[0]),len(self.inputArray))
                         value = self.inputArray[y][x]
                         if value == 0:
-                                qp.setBrush(QtGui.QColor(200, 0, 0))
+                            brush.setColor(QtCore.Qt.red);
                         else:
-                                qp.setBrush(QtGui.QColor(0, 200, 0))
-                        qp.drawRect( x*size,y*size, size, size)
-
-
+                            brush.setColor(QtCore.Qt.green);
+                        item = self.scene.addRect(x*size,y*size,size,size, pen, brush)
+                        item.setFlag(QtGui.QGraphicsItem.ItemIsSelectable)
+    
+    def drawInput(self):
+        for y in range(self.rows):
+                for x in range(self.cols):
+                        brush = QtGui.QBrush(QtCore.Qt.green)
+                        brush.setStyle(QtCore.Qt.SolidPattern)
+                        item = self.scene.itemAt(x*self.size,y*self.size)
+                        value = self.inputArray[y][x]
+                        if value == 0:
+                            brush.setColor(QtCore.Qt.red)
+                            item.setBrush(brush)
+                        else:
+                            brush.setColor(QtCore.Qt.green)
+                            item.setBrush(brush)
+        
     def setInput(self,newInput):
         self.cols = len(newInput[0])
         self.rows = len(newInput)
         #print "rows, cols = (%s,%s)" %(self.rows, self.cols)
         self.inputArray = newInput
+        
+    def mousePressEvent(self,event):
+        print"HIHIHIHIH"
 
 class HTMGridViewer(QtGui.QWidget):
     
@@ -299,11 +360,9 @@ class Example(QtGui.QWidget):
         self.HTMNetworkGrid.pos_x -= 2
         self.HTMNetworkGrid.update()
     def inputZoomIn(self):
-        self.inputGrid.scale = self.inputGrid.scale*1.2
-        self.inputGrid.update()
+        self.inputGrid.scaleScene(1.2)
     def inputZoomOut(self):
-        self.inputGrid.scale = self.inputGrid.scale*0.8
-        self.inputGrid.update()
+        self.inputGrid.scaleScene(0.8)
 
     def make_frame(self):
         frame1 = QtGui.QFrame(self)
@@ -334,7 +393,7 @@ class Example(QtGui.QWidget):
                 self.input[k][l] = 0
                 # Add some noise
                 some_number = round(random.uniform(0,10))
-                if some_number>10:
+                if some_number>9:
                     self.input[k][l] = 1
         if self.iteration % 3 == 0:
             print "\n pattern1"
@@ -368,12 +427,14 @@ class Example(QtGui.QWidget):
         self.htm.spatial_temporal(self.input)
         # Set the input viewers array to self.input
         self.inputGrid.setInput(self.input)
+        self.inputGrid.drawInput()
         self.inputGrid.update()
         # Set the HTM viewers array to the new state of the htm network
         self.setHTMViewer(self.HTMNetworkGrid)
         self.HTMNetworkGrid.update()
     def mouseMoveEvent(self,event):
         print "Enter!" 
+    
 
 def main():   
     app = QtGui.QApplication(sys.argv)

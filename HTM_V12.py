@@ -82,10 +82,11 @@ class Column:
         self.overlap = 0.0
         self.minOverlap = 4
         self.boost = 1
-        self.inhibitionRadius = 1   # The max distance a column can inhibit another column
+        # The max distance a column can inhibit another column. This parameters value is automatically reset.
+        self.inhibitionRadius = 1   
         self.potentialRadius = 1    # The max distance that Synapses can be made at
         self.permanenceInc = 0.2
-        self.permanenceDec = 0.05
+        self.permanenceDec = 0.01
         self.minDutyCycle = 0.01   # The minimum firing rate of the column
         self.activeDutyCycleArray = np.array([0]) # Keeps track of when the column was active. All columns start as active. It stores the numInhibition time when the column was active
         self.activeDutyCycle = 0.0 # the firing rate of the column
@@ -157,7 +158,7 @@ class HTMLayer:
         #This is also defined in the Synapse class!!! Maybe change this
         #self.connectedPerm = 0.3    # The value a connected Synapses must be higher then.
         self.minThreshold = 3       # Should be smaller than activationThreshold
-        self.newSynapseCount = 7    # This limits the activeSynapse array to this length. It should be renamed
+        self.newSynapseCount = 15    # This limits the activeSynapse array to this length. It should be renamed
         self.activationThreshold = 4    # More than this many synapses on a segment must be active for the segment to be active
         self.dutyCycleAverageLength = 1000
         self.timeStep = 0
@@ -179,6 +180,7 @@ class HTMLayer:
         pass
     def neighbours(self,c):
         close_columns=np.array([],dtype=object)     # returns a list of the columns that are within the inhibitionRadius of c
+        # Add one to the c.pos_y+c.inhibitionRadius because for example range(0,2)=(0,1)
         for i in range(int(c.pos_y-c.inhibitionRadius),int(c.pos_y+c.inhibitionRadius)+1):
             if i>=0 and i<(len(self.columns)):
                 for j in range(int(c.pos_x-c.inhibitionRadius),int(c.pos_x+c.inhibitionRadius)+1):
@@ -469,8 +471,8 @@ class HTMLayer:
                     else:
                         s.permanence -= c.permanenceDec
                         s.permanence = max(0.0,s.permanence)
-                    print "     x,y,cell,segment= %s,%s,%s,%s syn end x,y,cell = %s,%s,%s"%(c.pos_x,c.pos_y,i,c.cells[i].segmentUpdateList[j]['index'],s.pos_x,s.pos_y,s.cell)
-                    print "     synapse permanence = %s"%(s.permanence)
+                    #print "     x,y,cell,segment= %s,%s,%s,%s syn end x,y,cell = %s,%s,%s"%(c.pos_x,c.pos_y,i,c.cells[i].segmentUpdateList[j]['index'],s.pos_x,s.pos_y,s.cell)
+                    #print "     synapse permanence = %s"%(s.permanence)
                 # Decrement the permanence of all synapses in the synapse list
                 for s in c.cells[i].segments[segIndex].synapses:
                     s.permanence -= c.permanenceDec
@@ -535,7 +537,7 @@ class HTMLayer:
                     s.permanence -= c.permanenceDec
                     s.permanence = max(0.0,s.permanence)
         average = self.averageReceptiveFeildSize() #Find the average of the receptive feild sizes just once
-        #print "inhibition radius = %s" %average
+        print "inhibition radius = %s" %average
         for i in range(len(self.columns)):
             for c in self.columns[i]:
                 c.minDutyCycle = 0.01*self.maxDutyCycle(self.neighbours(c))
