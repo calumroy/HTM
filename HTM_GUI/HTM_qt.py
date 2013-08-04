@@ -18,6 +18,8 @@ from PyQt4 import QtGui, QtCore
 import HTM_V12
 import math
 
+import HTM_lineInput
+
 ##class HTMInput(QtGui.QWidget):
 ##
 ##    def __init__(self,width,height):
@@ -70,6 +72,134 @@ import math
 ##        #print "rows, cols = (%s,%s)" %(self.rows, self.cols)
 ##        self.inputArray = newInput
 
+##class HTMGridViewer(QtGui.QWidget):
+##    
+##    def __init__(self,width,height):
+##        super(HTMGridViewer, self).__init__()
+##        self.initUI(width,height)
+##        
+##    def initUI(self,width,height):
+##        self.size = 10
+##        self.cols = width
+##        self.rows = height
+##        self.scale = 4
+##        self.pos_x = 0
+##        self.pos_y = 0
+##        self.numCells = 3
+##        self.showActiveCells = True
+##        self.showPredictCells = False
+##        self.showLearnCells = False
+##        #sld = QtGui.QSlider(QtCore.Qt.Horizontal, self
+##        self.setGeometry(300, 300, 350, 100)
+##        self.setWindowTitle('Colors')
+##        self.setGeometry(QtCore.QRect(0, 0, 400, 400))
+##        self.columnActiveArray = np.array([[0 for i in range(width)] for j in range(height)])
+##        self.cellsActiveArray = np.array([[[0 for k in range(self.numCells)] for i in range(width)] for j in range(height)])
+##        self.cellsPredictiveArray = np.array([[[0 for k in range(self.numCells)] for i in range(width)] for j in range(height)])
+##        self.cellsLearnArray = np.array([[[0 for k in range(self.numCells)] for i in range(width)] for j in range(height)])
+##        # Scale the size of the grid so the cells can be shown if there are too many cells
+##        while (int (math.ceil(self.numCells ** 0.5))>self.size/2):
+##            self.size = self.size *2
+##        self.show()
+##
+##    def paintEvent(self, e):
+##        qp = QtGui.QPainter()
+##        qp.begin(self)
+##        qp.scale(self.scale, self.scale)
+##        qp.translate(self.pos_x,self.pos_y)
+##        self.drawGrid(qp,self.rows,self.cols,self.size)
+##        qp.end()
+##        
+##    def drawGrid(self, qp,rows, cols, size):
+##        color = QtGui.QColor(0, 0, 0)
+##        color.setNamedColor('#d4d4d4')
+##        qp.setPen(color)
+##        for y in range(rows):
+##                for x in range(cols):
+##                    v = self.columnActiveArray[y][x]
+##                    if v == 0:
+##                            qp.setBrush(QtGui.QColor(200, 0, 0))
+##                    if v == 1:
+##                            #print"PAINTING grid cell x,y=%s,%s"%(x,y)
+##                            qp.setBrush(QtGui.QColor(0, 200, 0))
+##                    qp.drawRect(x*size, y*size, size, size)
+##                    self.drawCells(qp,self.numCells,x,y,size)
+##
+##    def drawCells(self,qp,numCells,pos_x,pos_y,size):
+##        qp.setBrush(QtGui.QColor(0, 10, 100))
+##        qp.setOpacity(0.2)
+##        # Find the smallest number which when squared is larger than numCells
+##        numSquares = int (math.ceil(numCells ** 0.5))
+##        # Set the small sqaures to a size smaller than the large ones
+##        squareSize = size/(1.5*numSquares)
+##        # Count the cells that are drawn so we can identify them
+##        count = 0
+##        for i in range(numSquares):
+##            for j in range(numSquares):
+##                qp.setOpacity(0.05) # Make the non existent cells faint
+##                if count < numCells:
+##                    if self.showActiveCells==True:
+##                        if self.cellsActiveArray[pos_y][pos_x][count] == 1:
+##                            qp.setOpacity(1.0)
+##                        else:
+##                            qp.setOpacity(0.2)
+##                    if self.showPredictCells==True:
+##                        if self.cellsPredictiveArray[pos_y][pos_x][count] == 1:
+##                            qp.setBrush(QtGui.QColor(50, 100, 10))
+##                            qp.setOpacity(1.0)
+##                        else:
+##                            qp.setBrush(QtGui.QColor(0, 10, 100))
+##                            qp.setOpacity(0.2)
+##                    if self.showLearnCells==True:
+##                        if self.cellsLearnArray[pos_y][pos_x][count] == 1:
+##                            qp.setBrush(QtGui.QColor(100, 50, 10))
+##                            qp.setOpacity(1.0)
+##                        else:
+##                            qp.setBrush(QtGui.QColor(0, 10, 100))
+##                            qp.setOpacity(0.2)
+##                count += 1
+##                # Separate the small squares
+##                x = pos_x*size + 0.5*squareSize+1.5*i*squareSize
+##                y = pos_y*size + 0.5*squareSize+1.5*j*squareSize
+##                qp.drawRect(x, y, squareSize, squareSize)
+##        qp.setOpacity(1.0)
+
+class HTMColumn(QtGui.QGraphicsRectItem):
+    def __init__(self,HTM_x,HTM_y,squareSize,pen,brush):
+        super(HTMColumn, self).__init__()
+        self.initUI(HTM_x,HTM_y,squareSize,pen,brush)
+
+    def initUI(self,HTM_x,HTM_y,squareSize,pen,brush):
+        self.pos_x = HTM_x  # The x position in the HTM grid
+        self.pos_y = HTM_y # The y position in the HTM grid
+        self.setPos(HTM_x*squareSize,HTM_y*squareSize)
+        self.setRect(0,0,squareSize,squareSize)
+        self.setPen(pen)
+        self.setBrush(brush)
+        self.setFlag(QtGui.QGraphicsItem.ItemIsSelectable)
+        
+    def mousePressEvent(self,event):
+        print"column pos_x,pos_y = %s,%s"%(self.pos_x,self.pos_y)
+
+
+
+class HTMCell(QtGui.QGraphicsRectItem):
+    def __init__(self,HTM_x,HTM_y,cell,x,y,squareSize,pen,brush):
+        super(HTMCell, self).__init__()
+        self.initUI(HTM_x,HTM_y,cell,x,y,squareSize,pen,brush)
+
+    def initUI(self,HTM_x,HTM_y,cell,x,y,squareSize,pen,brush):
+        self.pos_x = HTM_x  # The x position in the HTM grid
+        self.pos_y = HTM_y # The y position in the HTM grid
+        self.cell = cell  # The cell number oin the HTM grid
+        self.setPos(x,y)
+        self.setRect(0,0,squareSize,squareSize)
+        self.setPen(pen)
+        self.setBrush(brush)
+        self.setFlag(QtGui.QGraphicsItem.ItemIsSelectable)
+    
+    def mousePressEvent(self,event):
+        print"cell pos_x,pos_y,cell = %s,%s,%s"%(self.pos_x,self.pos_y,self.cell)
 
 
 class HTMInput(QtGui.QGraphicsView):
@@ -96,7 +226,7 @@ class HTMInput(QtGui.QGraphicsView):
         self.scale(scaleSize, scaleSize)
 
     def drawGrid(self, rows, cols, size):
-        pen   = QtGui.QPen(QtGui.QColor(QtCore.Qt.green))
+        pen   = QtGui.QPen(QtGui.QColor(QtCore.Qt.black))
         brush = QtGui.QBrush(pen.color().darker(150))
         for y in range(rows):
                 for x in range(cols):
@@ -108,7 +238,7 @@ class HTMInput(QtGui.QGraphicsView):
                         item = self.scene.addRect(x*size,y*size,size,size, pen, brush)
                         item.setFlag(QtGui.QGraphicsItem.ItemIsSelectable)
     
-    def drawInput(self):
+    def updateInput(self):
         for y in range(self.rows):
                 for x in range(self.cols):
                         brush = QtGui.QBrush(QtCore.Qt.green)
@@ -128,65 +258,68 @@ class HTMInput(QtGui.QGraphicsView):
         #print "rows, cols = (%s,%s)" %(self.rows, self.cols)
         self.inputArray = newInput
         
-    def mousePressEvent(self,event):
-        print"HIHIHIHIH"
-
-class HTMGridViewer(QtGui.QWidget):
+class HTMGridViewer(QtGui.QGraphicsView):
     
     def __init__(self,width,height):
         super(HTMGridViewer, self).__init__()
         self.initUI(width,height)
         
     def initUI(self,width,height):
+        self.scene=QtGui.QGraphicsScene(self)
+        self.scaleSize = 1
+        self.setScene(self.scene)
         self.size = 10
         self.cols = width
         self.rows = height
-        self.scale = 4
         self.pos_x = 0
         self.pos_y = 0
         self.numCells = 3
+        
         self.showActiveCells = True
         self.showPredictCells = False
         self.showLearnCells = False
-        #sld = QtGui.QSlider(QtCore.Qt.Horizontal, self
-        self.setGeometry(300, 300, 350, 100)
-        self.setWindowTitle('Colors')
-        self.setGeometry(QtCore.QRect(0, 0, 400, 400))
+
         self.columnActiveArray = np.array([[0 for i in range(width)] for j in range(height)])
         self.cellsActiveArray = np.array([[[0 for k in range(self.numCells)] for i in range(width)] for j in range(height)])
         self.cellsPredictiveArray = np.array([[[0 for k in range(self.numCells)] for i in range(width)] for j in range(height)])
         self.cellsLearnArray = np.array([[[0 for k in range(self.numCells)] for i in range(width)] for j in range(height)])
+        
+        self.scaleGridSize()
+        self.cellItems = []   # Stores all the cell items in the scene
+        self.columnItems = [] # Stores all the column items in the scene
+        
+        self.drawGrid(self.rows,self.cols,self.size)
+        self.show()
+        
+    def scaleGridSize(self):
         # Scale the size of the grid so the cells can be shown if there are too many cells
         while (int (math.ceil(self.numCells ** 0.5))>self.size/2):
             self.size = self.size *2
-        self.show()
-
-    def paintEvent(self, e):
-        qp = QtGui.QPainter()
-        qp.begin(self)
-        qp.scale(self.scale, self.scale)
-        qp.translate(self.pos_x,self.pos_y)
-        self.drawGrid(qp,self.rows,self.cols,self.size)
-        qp.end()
-        
-    def drawGrid(self, qp,rows, cols, size):
-        color = QtGui.QColor(0, 0, 0)
-        color.setNamedColor('#d4d4d4')
-        qp.setPen(color)
-        for y in range(rows):
-                for x in range(cols):
+            
+    def drawGrid(self,rows, cols, size):
+        pen   = QtGui.QPen(QtGui.QColor(QtCore.Qt.black))
+        brush = QtGui.QBrush(pen.color().darker(150))
+        for x in range(rows):
+                for y in range(cols):
                     v = self.columnActiveArray[y][x]
                     if v == 0:
-                            qp.setBrush(QtGui.QColor(200, 0, 0))
+                            brush.setColor(QtCore.Qt.red)
                     if v == 1:
-                            #print"PAINTING grid cell x,y=%s,%s"%(x,y)
-                            qp.setBrush(QtGui.QColor(0, 200, 0))
-                    qp.drawRect(x*size, y*size, size, size)
-                    self.drawCells(qp,self.numCells,x,y,size)
+                            brush.setColor(QtCore.Qt.green)
+                    # Create a column item and add it to a list so we can iterate through them to update
+                    columnItem = HTMColumn(x,y,size,pen,brush)
+                    columnItem.setFlag(QtGui.QGraphicsItem.ItemIsSelectable)  
+                    #columnItem.setFlag(QtGui.QGraphicsItem.ItemIsMovable)                  
+                    self.columnItems.append(columnItem) 
+                    self.scene.addItem(columnItem)
+                    self.drawCells(self.numCells,x,y,size)
 
-    def drawCells(self,qp,numCells,pos_x,pos_y,size):
-        qp.setBrush(QtGui.QColor(0, 10, 100))
-        qp.setOpacity(0.2)
+    def drawCells(self,numCells,pos_x,pos_y,size):
+        transp = QtGui.QColor(0, 0, 0, 0)
+        transpRed = QtGui.QColor(0xFF, 0, 0, 0x20)
+        red = QtGui.QColor(0xFF, 0, 0, 0xFF)
+        pen   = QtGui.QPen(transp)
+        brush = QtGui.QBrush(red)  # Color has an opacity
         # Find the smallest number which when squared is larger than numCells
         numSquares = int (math.ceil(numCells ** 0.5))
         # Set the small sqaures to a size smaller than the large ones
@@ -195,45 +328,84 @@ class HTMGridViewer(QtGui.QWidget):
         count = 0
         for i in range(numSquares):
             for j in range(numSquares):
-                qp.setOpacity(0.05) # Make the non existent cells faint
+                brush = QtGui.QBrush(transpRed) # Make the non existent cells faint
                 if count < numCells:
-                    if self.showActiveCells==True:
-                        if self.cellsActiveArray[pos_y][pos_x][count] == 1:
-                            qp.setOpacity(1.0)
-                        else:
-                            qp.setOpacity(0.2)
-                    if self.showPredictCells==True:
-                        if self.cellsPredictiveArray[pos_y][pos_x][count] == 1:
-                            qp.setBrush(QtGui.QColor(50, 100, 10))
-                            qp.setOpacity(1.0)
-                        else:
-                            qp.setBrush(QtGui.QColor(0, 10, 100))
-                            qp.setOpacity(0.2)
-                    if self.showLearnCells==True:
-                        if self.cellsLearnArray[pos_y][pos_x][count] == 1:
-                            qp.setBrush(QtGui.QColor(100, 50, 10))
-                            qp.setOpacity(1.0)
-                        else:
-                            qp.setBrush(QtGui.QColor(0, 10, 100))
-                            qp.setOpacity(0.2)
+                    # Separate the small squares
+                    x = pos_x*size + 0.5*squareSize+1.5*i*squareSize
+                    y = pos_y*size + 0.5*squareSize+1.5*j*squareSize
+                    #cellItem = self.scene.addRect(x,y,squareSize,squareSize, pen, brush)
+                    cellItem = HTMCell(pos_x,pos_y,count,x,y,squareSize,pen,brush)
+                    #cellItem.setFlag(QtGui.QGraphicsItem.ItemIsMovable)
+                    self.cellItems.append(cellItem) #Add the cells to a list so we can iterate through them to update
+                    self.scene.addItem(cellItem)    # Add the cells to the scene
+                # Increase the count to keep track of how many cells have been created
                 count += 1
-                # Separate the small squares
-                x = pos_x*size + 0.5*squareSize+1.5*i*squareSize
-                y = pos_y*size + 0.5*squareSize+1.5*j*squareSize
-                qp.drawRect(x, y, squareSize, squareSize)
-        qp.setOpacity(1.0)
+                
+    
+    def updateColumns(self):
+        for i in range(len(self.columnItems)):
+            brush = QtGui.QBrush(QtCore.Qt.green)
+            brush.setStyle(QtCore.Qt.SolidPattern)
+            pos_x=self.columnItems[i].pos_x
+            pos_y=self.columnItems[i].pos_y
+            value = self.columnActiveArray[pos_y][pos_x]
+            if value == 0:
+                    brush.setColor(QtCore.Qt.red)
+                    self.columnItems[i].setBrush(brush)
+            if value == 1:
+                    brush.setColor(QtCore.Qt.green)
+                    self.columnItems[i].setBrush(brush)
+        self.updateCells()
+                    
+    def updateCells(self):
+        transp = QtGui.QColor(0, 0, 0, 0)
+        pen = QtGui.QPen(transp, 0, QtCore.Qt.SolidLine)
+        transpRed = QtGui.QColor(0xFF, 0, 0, 0x20)
+        red = QtGui.QColor(0xFF, 0, 0, 0xFF)
+        transpBlue = QtGui.QColor(0, 0, 0xFF, 0x30)
+        green = QtGui.QColor(0, 0xFF, 0, 0xFF)
+        darkGreen = QtGui.QColor(0, 0x80, 0x40, 0xFF)
+        blue = QtGui.QColor(0x40, 0x30, 0xFF, 0xFF)
+        for i in range(len(self.cellItems)):
+            pos_x=self.cellItems[i].pos_x
+            pos_y=self.cellItems[i].pos_y
+            cell=self.cellItems[i].cell
+            brush = QtGui.QBrush(transp) # Make the non existent cells faint
+            if self.showActiveCells==True:
+                if self.cellsActiveArray[pos_y][pos_x][cell] == 1:
+                    brush.setColor(blue);
+                else:
+                    brush.setColor(transpBlue);
+            if self.showPredictCells==True:
+                if self.cellsPredictiveArray[pos_y][pos_x][cell] == 1:
+                    brush.setColor(green);
+                else:
+                    brush.setColor(transpBlue);
+            if self.showLearnCells==True:
+                if self.cellsLearnArray[pos_y][pos_x][cell] == 1:
+                    brush.setColor(darkGreen);
+                else:
+                    brush.setColor(transpBlue);
+            self.cellItems[i].setBrush(brush)
+            self.cellItems[i].setPen(pen)
+                
+    
+    def scaleScene(self,scaleSize):
+        self.scale(scaleSize, scaleSize)
         
-class Example(QtGui.QWidget):
+class HTMNetwork(QtGui.QWidget):
 
     def __init__(self):
-        super(Example, self).__init__()
+        super(HTMNetwork, self).__init__()
         self.initUI()
 
     def initUI(self):
         self.iteration = 0
-        width=15
-        height=14
+        width=20
+        height=20
+        self.scaleFactor=0.2    # How much to scale the grids by
         self.input = self.setInput(width,height)
+        self.patternsArray = HTM_lineInput.createPatternArray(3,width,height,4,0,30)
         self.htm = HTM_V12.HTM(1,self.input,width,height)
         self.HTMNetworkGrid = HTMGridViewer(width,height)
         self.inputGrid = HTMInput(width,height)
@@ -279,9 +451,6 @@ class Example(QtGui.QWidget):
 
     def setInput(self,width,height):
         input = np.array([[0 for i in range(width)] for j in range(height)])
-        for k in range(len(input)):
-            for l in range(len(input[k])):
-                input[k][l] = 0
         return input
 
     def make_buttons(self):
@@ -326,7 +495,7 @@ class Example(QtGui.QWidget):
             self.HTMNetworkGrid.showPredictCells=False
             self.HTMNetworkGrid.showLearnCells=False
             
-        self.HTMNetworkGrid.update()
+        self.HTMNetworkGrid.updateColumns()
     def showPredictCells(self):
         # Toggle between showing the predicting cells or not
         if self.HTMNetworkGrid.showPredictCells==True:
@@ -336,7 +505,7 @@ class Example(QtGui.QWidget):
             # Don't show the learning or active cells
             self.HTMNetworkGrid.showActiveCells=False
             self.HTMNetworkGrid.showLearnCells=False
-        self.HTMNetworkGrid.update()
+        self.HTMNetworkGrid.updateColumns()
     def showLearnCells(self):
         # Toggle between showing the learning cells or not
         if self.HTMNetworkGrid.showLearnCells==True:
@@ -346,13 +515,15 @@ class Example(QtGui.QWidget):
             # Don't show the learning or active cells
             self.HTMNetworkGrid.showActiveCells=False
             self.HTMNetworkGrid.showPredictCells=False
-        self.HTMNetworkGrid.update()
+        self.HTMNetworkGrid.updateColumns()
     def HTMzoomIn(self):
-        self.HTMNetworkGrid.scale = self.HTMNetworkGrid.scale*1.2
-        self.HTMNetworkGrid.update()
+        #self.HTMNetworkGrid.scale = self.HTMNetworkGrid.scale*1.2
+        #self.HTMNetworkGrid.update()
+        self.HTMNetworkGrid.scaleScene(1+self.scaleFactor)
     def HTMzoomOut(self):
-        self.HTMNetworkGrid.scale = self.HTMNetworkGrid.scale*0.8
-        self.HTMNetworkGrid.update()
+        #self.HTMNetworkGrid.scale = self.HTMNetworkGrid.scale*0.8
+        #self.HTMNetworkGrid.update()
+        self.HTMNetworkGrid.scaleScene(1-self.scaleFactor)
     def moveLeft(self):
         self.HTMNetworkGrid.pos_x += 2
         self.HTMNetworkGrid.update()
@@ -360,9 +531,9 @@ class Example(QtGui.QWidget):
         self.HTMNetworkGrid.pos_x -= 2
         self.HTMNetworkGrid.update()
     def inputZoomIn(self):
-        self.inputGrid.scaleScene(1.2)
+        self.inputGrid.scaleScene(1+self.scaleFactor)
     def inputZoomOut(self):
-        self.inputGrid.scaleScene(0.8)
+        self.inputGrid.scaleScene(1-self.scaleFactor)
 
     def make_frame(self):
         frame1 = QtGui.QFrame(self)
@@ -390,55 +561,67 @@ class Example(QtGui.QWidget):
         # Make sure the input is larger than this test input
         for k in range(len(self.input)):
             for l in range(len(self.input[k])):
-                self.input[k][l] = 0
+                #self.input[k][l] = 0
                 # Add some noise
                 some_number = round(random.uniform(0,10))
-                if some_number>9:
+                if some_number>10:
                     self.input[k][l] = 1
         if self.iteration % 3 == 0:
             print "\n pattern1"
-            self.input[0][1:12] = [1,]
-            self.input[1][1:12] = 1
-            self.input[2][11] = 1
-            self.input[3][1:12] = 1
-            self.input[4][1:12] = [1,]   # makes 1 iterable
-            self.input[3][1] = 1
-            self.input[2][1] = 1
-            self.input[1][1] = 1
-            self.input[0][1] = 1
+            self.input=self.patternsArray[0]
         else:
             if self.iteration%3==1:
                 print "\n pattern2"
-                self.input[6][4:12] = [1,] # makes 1 iterable
-                self.input[7][4:12] = [1,]
-                self.input[8][4:12] = [1,]
-                self.input[9][4:12] = [1,]
+                self.input=self.patternsArray[1]
         if self.iteration%3==2:
             print "\n pattern3"
-            self.input[8][5:13] = [1,]
-            self.input[9][5:13] = 1
-            self.input[10][5] = 1
-            self.input[11][5:13] = [1,]
-            self.input[12][5:13] = 1
-            self.input[10][4] = 1
-            self.input[11][4] = 1
-            self.input[10][12] = 1
+            self.input=self.patternsArray[2]
         # Put the new input through the htm
         self.htm.spatial_temporal(self.input)
         # Set the input viewers array to self.input
         self.inputGrid.setInput(self.input)
-        self.inputGrid.drawInput()
-        self.inputGrid.update()
+        self.inputGrid.updateInput()
         # Set the HTM viewers array to the new state of the htm network
         self.setHTMViewer(self.HTMNetworkGrid)
-        self.HTMNetworkGrid.update()
-    def mouseMoveEvent(self,event):
-        print "Enter!" 
+        self.HTMNetworkGrid.updateColumns()
     
+    #def createNewInput(self):
+    #    for i in range(self.inputGrid.input
+        
+    #def mouseMoveEvent(self,event):
+    #    print "Enter!" 
+    
+class HTMGui(QtGui.QMainWindow):
+    
+    def __init__(self):
+        super(HTMGui, self).__init__()
+        
+        self.initUI()
+        
+    def initUI(self):               
+        layout = QtGui.QHBoxLayout()
+        HTMWidget=HTMNetwork()
+        layout.addWidget(HTMWidget);
+        self.statusBar().showMessage('Ready')
+        
+        newInputAction = QtGui.QAction(QtGui.QIcon('grid.png'), '&New Input', self)        
+        newInputAction.setStatusTip('create a new input')
+        #newInputAction.triggered.connect(HTMWidget.createNewInput())
+
+        self.toolbar = self.addToolBar('create a new input')
+        self.toolbar.addAction(newInputAction)
+        menubar = self.menuBar()
+        fileMenu = menubar.addMenu('&File')
+        fileMenu.addAction(newInputAction)
+        
+        self.setGeometry(300, 330, 800, 600)
+        self.setWindowTitle('HTM')
+        self.setCentralWidget(HTMWidget);    
+        self.show()
 
 def main():   
     app = QtGui.QApplication(sys.argv)
-    ex = Example()
+    ex = HTMGui()
     sys.exit(app.exec_())
 
 

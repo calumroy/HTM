@@ -41,6 +41,8 @@ class Synapse:
         # and connects to a cell within the HTM. If it is horizontal then there is no 
         # self.sourceInput
         if self.cell == -1:
+            #print input
+            #print (self.pos_y,self.pos_x)
             self.sourceInput=input[self.pos_y][self.pos_x]
 
 
@@ -84,7 +86,7 @@ class Column:
         self.boost = 1
         # The max distance a column can inhibit another column. This parameters value is automatically reset.
         self.inhibitionRadius = 1   
-        self.potentialRadius = 1    # The max distance that Synapses can be made at
+        self.potentialRadius = 2    # The max distance that Synapses can be made at
         self.permanenceInc = 0.2
         self.permanenceDec = 0.01
         self.minDutyCycle = 0.01   # The minimum firing rate of the column
