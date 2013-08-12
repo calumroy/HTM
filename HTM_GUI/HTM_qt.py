@@ -242,6 +242,7 @@ class HTMGridViewer(QtGui.QGraphicsView):
     def drawSingleCell(self,pos_x,pos_y,cell,segment):
         # Draw the cells connected to the selected segment
         print"pos_x,pos_y,cell,seg = %s,%s,%s,%s"%(pos_x,pos_y,cell,segment)
+        print "Segment Synapse permanence"
         transp = QtGui.QColor(0, 0, 0, 0)
         pen = QtGui.QPen(transp, 0, QtCore.Qt.SolidLine)
         transpRed = QtGui.QColor(0xFF, 0, 0, 0x20)
@@ -260,6 +261,7 @@ class HTMGridViewer(QtGui.QGraphicsView):
             # Check each synapse and draw the connected cells
             for syn in self.htm.HTMLayerArray[0].columns[pos_y][pos_x].cells[cell].segments[segment].synapses:
                 if syn.pos_x==cell_pos_x and syn.pos_y==cell_pos_y and syn.cell==cell_cell:
+                    print "     syn x,y,cell= %s,%s,%s Permanence = %s"%(cell_pos_x,cell_pos_y,cell_cell,syn.permanence)
                     brush.setColor(blue);
             self.cellItems[i].setBrush(brush)
             self.cellItems[i].setPen(pen)
@@ -286,6 +288,7 @@ class HTMGridViewer(QtGui.QGraphicsView):
         pen = QtGui.QPen(transp, 0, QtCore.Qt.SolidLine)
         transpRed = QtGui.QColor(0xFF, 0, 0, 0x20)
         red = QtGui.QColor(0xFF, 0, 0, 0xFF)
+        black = QtGui.QColor(0, 0, 0, 0xFF)
         transpBlue = QtGui.QColor(0, 0, 0xFF, 0x30)
         green = QtGui.QColor(0, 0xFF, 0, 0xFF)
         darkGreen = QtGui.QColor(0, 0x80, 0x40, 0xFF)
@@ -302,7 +305,7 @@ class HTMGridViewer(QtGui.QGraphicsView):
                     brush.setColor(transpBlue);
             if self.showPredictCells==True:
                 if int(self.htm.HTMLayerArray[0].columns[pos_y][pos_x].predictiveStateArray[cell]) == self.iteration:
-                    brush.setColor(green);
+                    brush.setColor(black);
                 else:
                     brush.setColor(transpBlue);
             if self.showLearnCells==True:
@@ -480,14 +483,13 @@ class HTMNetwork(QtGui.QWidget):
                 some_number = round(random.uniform(0,10))
                 if some_number>10:
                     self.input[k][l] = 1
-        if self.iteration % 3 == 0:
+        if self.iteration % 4 == 0:
             print "\n pattern1"
             self.input=self.patternsArray[0]
-        else:
-            if self.iteration%3==1:
-                print "\n pattern2"
-                self.input=self.patternsArray[1]
-        if self.iteration%3==2:
+        if self.iteration%4==1  or self.iteration%4==2:
+            print "\n pattern2"
+            self.input=self.patternsArray[1]
+        if self.iteration%4==3:
             print "\n pattern3"
             self.input=self.patternsArray[2]
         # Put the new input through the htm
