@@ -162,7 +162,7 @@ class HTMGridViewer(QtGui.QGraphicsView):
         self.rows = height
         self.pos_x = 0
         self.pos_y = 0
-        self.numCells = 3
+        self.numCells = 5
         # For the popup segment selection box
         self.segmentSelect = None
         self.selectedItem = None
@@ -170,7 +170,7 @@ class HTMGridViewer(QtGui.QGraphicsView):
         # Create HTM network with an empty input
         self.iteration = 0
         input = np.array([[0 for i in range(width)] for j in range(height)])
-        self.htm = HTM_V12.HTM(1,input,width,height)
+        self.htm = HTM_V12.HTM(1,input,width,height,self.numCells)
         self.showAllHTM = True  # A flag to indicate to draw all the cells and column states
         
         self.showActiveCells = True
@@ -238,6 +238,29 @@ class HTMGridViewer(QtGui.QGraphicsView):
                     self.scene.addItem(cellItem)    # Add the cells to the scene
                 # Increase the count to keep track of how many cells have been created
                 count += 1
+    def drawSingleColumn(self,pos_x,pos_y):
+        # Draw the cells connected to the selected segment
+        print "Column Synapse permanence"
+        transp = QtGui.QColor(0, 0, 0, 0)
+        #pen = QtGui.QPen(transp, 0, QtCore.Qt.SolidLine)
+        transpRed = QtGui.QColor(0xFF, 0, 0, 0x20)
+        red = QtGui.QColor(0xFF, 0, 0, 0xFF)
+        transpBlue = QtGui.QColor(0, 0, 0xFF, 0x30)
+        green = QtGui.QColor(0, 0xFF, 0, 0xFF)
+        darkGreen = QtGui.QColor(0, 0x80, 0x40, 0xFF)
+        blue = QtGui.QColor(0x40, 0x30, 0xFF, 0xFF)
+        # Go through each column. If it is in the synapse list draw it otherwise don't
+        for i in range(len(self.columnItems)):
+            column_pos_x=self.columnItems[i].pos_x
+            column_pos_y=self.columnItems[i].pos_y
+            brush = QtGui.QBrush(transpBlue)   # Have to create a brush with a color
+            # Check each synapse and draw the connected columns
+            for syn in self.htm.HTMLayerArray[0].columns[pos_y][pos_x].connectedSynapses:
+                if syn.pos_x==column_pos_x and syn.pos_y==column_pos_y:
+                    print "     syn x,y= %s,%s Permanence = %s"%(column_pos_x,column_pos_y,syn.permanence)
+                    brush.setColor(darkGreen);
+            self.columnItems[i].setBrush(brush)
+            #self.columnItems[i].setPen(pen)
                 
     def drawSingleCell(self,pos_x,pos_y,cell,segment):
         # Draw the cells connected to the selected segment
@@ -251,7 +274,7 @@ class HTMGridViewer(QtGui.QGraphicsView):
         green = QtGui.QColor(0, 0xFF, 0, 0xFF)
         darkGreen = QtGui.QColor(0, 0x80, 0x40, 0xFF)
         blue = QtGui.QColor(0x40, 0x30, 0xFF, 0xFF)
-        # Go through each cell is it is in the synapse list draw it otherwise don't
+        # Go through each cell. If it is in the synapse list draw it otherwise don't
         for i in range(len(self.cellItems)):
             #print"HEYEHEYEHHYE"
             cell_pos_x=self.cellItems[i].pos_x
@@ -339,6 +362,9 @@ class HTMGridViewer(QtGui.QGraphicsView):
         if item.__class__.__name__ == "HTMColumn":
             print"column"
             print "pos_x,pos_y = %s,%s"%(item.pos_x,item.pos_y)
+            # Draw the columns synapses.
+            self.drawSingleColumn(item.pos_x,item.pos_y)
+            
         
         
     def step(self,input,timeStep):
@@ -357,7 +383,7 @@ class HTMNetwork(QtGui.QWidget):
         height=20
         self.scaleFactor=0.2    # How much to scale the grids by
         self.input = self.setInput(width,height)
-        self.patternsArray = HTM_lineInput.createPatternArray(3,width,height,4,0,30)
+        self.patternsArray = HTM_lineInput.createPatternArray(3,width,height,2,0,30)
         self.HTMNetworkGrid = HTMGridViewer(width,height)
         self.inputGrid = HTMInput(width,height)
         self.make_frame()
@@ -476,22 +502,36 @@ class HTMNetwork(QtGui.QWidget):
         self.iteration += 1
         # Temporary code to create a test input pattern
         # Make sure the input is larger than this test input
+        plen = 7    # The length of the total pattern eg ABBCBBA is plen = 6
+        if self.iteration % plen == 0:
+            print "\n pattern1"
+            # Copy the whole array using deep copy. Each value is actually copied
+            # into a new array not just the pointer. This is so the original stays the same.
+            np.empty_like(self.patternsArray[0])
+            self.input[:] = self.patternsArray[0]
+        if self.iteration%plen==1  or self.iteration%plen==2:
+            print "\n pattern2"
+            np.empty_like(self.patternsArray[1])
+            self.input[:] = self.patternsArray[1]
+        if self.iteration%plen==3:
+            print "\n pattern3"
+            np.empty_like(self.patternsArray[2])
+            self.input[:] = self.patternsArray[2]
+        if self.iteration%plen==4  or self.iteration%plen==5:
+            print "\n pattern2"
+            np.empty_like(self.patternsArray[1])
+            self.input[:] = self.patternsArray[1]
+        if self.iteration % plen == 6:
+            print "\n pattern1"
+            np.empty_like(self.patternsArray[0])
+            self.input[:] = self.patternsArray[0]
+        # Add some noise
         for k in range(len(self.input)):
             for l in range(len(self.input[k])):
                 #self.input[k][l] = 0
-                # Add some noise
                 some_number = round(random.uniform(0,10))
                 if some_number>10:
                     self.input[k][l] = 1
-        if self.iteration % 4 == 0:
-            print "\n pattern1"
-            self.input=self.patternsArray[0]
-        if self.iteration%4==1  or self.iteration%4==2:
-            print "\n pattern2"
-            self.input=self.patternsArray[1]
-        if self.iteration%4==3:
-            print "\n pattern3"
-            self.input=self.patternsArray[2]
         # Put the new input through the htm
         #self.htm.spatial_temporal(self.input)
         #self.HTMViewer.htm.spatial_temporal(self.input)

@@ -86,7 +86,7 @@ class Column:
         self.boost = 1
         # The max distance a column can inhibit another column. This parameters value is automatically reset.
         self.inhibitionRadius = 1   
-        self.potentialRadius = 2    # The max distance that Synapses can be made at
+        self.potentialRadius = 1    # The max distance that Synapses can be made at
         self.permanenceInc = 0.2
         self.permanenceDec = 0.02
         self.minDutyCycle = 0.01   # The minimum firing rate of the column
@@ -143,7 +143,7 @@ class Column:
         #return array
     
 class HTMLayer:
-    def __init__(self, input, column_array_width,column_array_height):
+    def __init__(self, input, column_array_width,column_array_height,cells_per_column):
         
         # The columns are in a 2 dimensional array column_array_width by column_array_height.
         # This might be a crap idea
@@ -154,14 +154,13 @@ class HTMLayer:
         # both columns are active. This is why sometimes more columns then the desiredLocalActivity parameter
         # are observed in the inhibition radius.
         self.desiredLocalActivity = 1 # How many cells within the inhibition radius are active
-        self.cellsPerColumn = 3
+        self.cellsPerColumn = cells_per_column
         self.connectPermanence = 0.3
-        self.learningRadius = 4
         #This is also defined in the Synapse class!!! Maybe change this
         #self.connectedPerm = 0.3    # The value a connected Synapses must be higher then.
         self.minThreshold = 3       # Should be smaller than activationThreshold
-        self.newSynapseCount = 6    # This limits the activeSynapse array to this length. It should be renamed
-        self.activationThreshold = 4    # More than this many synapses on a segment must be active for the segment to be active
+        self.newSynapseCount = 15    # This limits the activeSynapse array to this length. It should be renamed
+        self.activationThreshold = 8    # More than this many synapses on a segment must be active for the segment to be active
         self.dutyCycleAverageLength = 1000
         self.timeStep = 0
         self.output = np.array([[0 for i in range(self.width)] for j in range(self.height)])
@@ -655,15 +654,16 @@ class HTMLayer:
 
         
 class HTM:
-    def __init__(self, numLayers,input, column_array_width,column_array_height):
+    def __init__(self, numLayers,input, column_array_width,column_array_height,cells_per_column):
         self.quit = False
         # The class contains multiple HTM layers stacked on one another
         self.numberLayers = numLayers   # The number of layers in the HTM network
         self.width = column_array_width
         self.height = column_array_height
+        self.cellsPerColumn = cells_per_column
         self.HTMLayerArray = np.array([],dtype = object)
         for i in range(numLayers):
-            self.HTMLayerArray = np.append(self.HTMLayerArray,HTMLayer(input,self.width,self.height))
+            self.HTMLayerArray = np.append(self.HTMLayerArray,HTMLayer(input,self.width,self.height,self.cellsPerColumn))
     def spatial_temporal(self,input):
         # Update the spatial and temporal pooler. Find spatial and temporal patterns from the input.
         # This updates the columns and all there vertical synapses as well as the cells and the horizontal Synapses.
