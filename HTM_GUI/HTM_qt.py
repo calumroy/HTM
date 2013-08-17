@@ -322,17 +322,17 @@ class HTMGridViewer(QtGui.QGraphicsView):
             cell=self.cellItems[i].cell
             brush = QtGui.QBrush(transp) # Make the non existent cells faint
             if self.showActiveCells==True:
-                if int(self.htm.HTMLayerArray[0].columns[pos_y][pos_x].activeStateArray[cell]) == self.iteration:
+                if int(self.htm.HTMLayerArray[0].columns[pos_y][pos_x].activeStateArray[cell,0]) == self.iteration:
                     brush.setColor(blue);
                 else:
                     brush.setColor(transpBlue);
             if self.showPredictCells==True:
-                if int(self.htm.HTMLayerArray[0].columns[pos_y][pos_x].predictiveStateArray[cell]) == self.iteration:
+                if int(self.htm.HTMLayerArray[0].columns[pos_y][pos_x].predictiveStateArray[cell,0]) == self.iteration:
                     brush.setColor(black);
                 else:
                     brush.setColor(transpBlue);
             if self.showLearnCells==True:
-                if int(self.htm.HTMLayerArray[0].columns[pos_y][pos_x].learnStateArray[cell]) == self.iteration:
+                if int(self.htm.HTMLayerArray[0].columns[pos_y][pos_x].learnStateArray[cell,0]) == self.iteration:
                     brush.setColor(darkGreen);
                 else:
                     brush.setColor(transpBlue);
