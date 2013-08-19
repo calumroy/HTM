@@ -31,7 +31,7 @@ class Synapse:
                 self.sourceInput=input[pos_y][pos_x]
             else:   # If the Synpase is horizontal then just set sourceInput to 0 it's unused 
                 self.sourceInput=0  
-            self.permanence = 0.55
+            self.permanence = 0.50
             self.source_input_index = 0.0
             #If the permanence value for a synapse is greater than this
             #value, it is said to be connected.
@@ -88,7 +88,7 @@ class Column:
         self.inhibitionRadius = 1   
         self.potentialRadius = 1    # The max distance that Synapses can be made at
         self.permanenceInc = 0.2
-        self.permanenceDec = 0.05
+        self.permanenceDec = 0.02
         self.minDutyCycle = 0.01   # The minimum firing rate of the column
         self.activeDutyCycleArray = np.array([0]) # Keeps track of when the column was active. All columns start as active. It stores the numInhibition time when the column was active
         self.activeDutyCycle = 0.0 # the firing rate of the column
@@ -457,7 +457,7 @@ class HTMLayer:
         # appropriately (either inc or dec) later during learning.
         # s is the index of the segment in the cells segment list.
         newSegmentUpdate = {'index':s,'activeSynapses':np.array([],dtype=object),'newSynapses':np.array([],dtype=object),'sequenceSegment':0, 'createdAtTime': timeStep}
-        print "    getSegmentActiveSynapse called for timeStep = %s x,y,i,s = %s,%s,%s,%s newSyn = %s"%(timeStep,c.pos_x,c.pos_y,i,s,newSynapses) 
+        #print "    getSegmentActiveSynapse called for timeStep = %s x,y,i,s = %s,%s,%s,%s newSyn = %s"%(timeStep,c.pos_x,c.pos_y,i,s,newSynapses) 
         # If segment exists then go through an see which synapses are active. 
         #Add them to the update structure.
         if s != -1:
@@ -485,7 +485,7 @@ class HTMLayer:
         #print "     returned from getSegmentActiveSynapse"
         return newSegmentUpdate
     def adaptSegments(self,c,i,positiveReinforcement):
-        print " adaptSegments x,y,cell = %s,%s,%s positive reinforcement = %r"%(c.pos_x,c.pos_y,i,positiveReinforcement)
+        #print " adaptSegments x,y,cell = %s,%s,%s positive reinforcement = %r"%(c.pos_x,c.pos_y,i,positiveReinforcement)
         # Adds the new segments to the cell and inc or dec the segments synapses
         # If positive reinforcement is true then segments on the update list
         # get their permanence values increased all others get their permanence decreased. 
@@ -495,8 +495,7 @@ class HTMLayer:
             #print "     segIndex = %s"%segIndex
             # If the segment exists
             if segIndex>-1:
-                if positiveReinforcement == False:
-                    print "     Decremented x,y,cell,segment= %s,%s,%s,%s"%(c.pos_x,c.pos_y,i,c.cells[i].segmentUpdateList[j]['index']) 
+                #print "     adapted x,y,cell,segment= %s,%s,%s,%s"%(c.pos_x,c.pos_y,i,c.cells[i].segmentUpdateList[j]['index']) 
                 for s in c.cells[i].segmentUpdateList[j]['activeSynapses']:
                     # For each synapse in the segments activeSynapse list increment or
                     # decrement their permanence values.
@@ -527,7 +526,7 @@ class HTMLayer:
                 newSegment = Segment()
                 newSegment.synapses = c.cells[i].segmentUpdateList[j]['newSynapses']
                 c.cells[i].segments = np.append(c.cells[i].segments,newSegment)
-                print "     new segment added for x,y,cell,seg = %s,%s,%s,%s"%(c.pos_x,c.pos_y,i,len(c.cells[i].segments)-1)                
+                #print "     new segment added for x,y,cell,seg = %s,%s,%s,%s"%(c.pos_x,c.pos_y,i,len(c.cells[i].segments)-1)                
                 #for s in c.cells[i].segments[len(c.cells[i].segments)-1].synapses:  # Used for printing only
                 #    print "         synapse ends at x,y=%s,%s"%(s.pos_x,s.pos_y)
         c.cells[i].segmentUpdateList=[]  # Delete the list as the updates have been added.

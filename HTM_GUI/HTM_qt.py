@@ -157,12 +157,12 @@ class HTMGridViewer(QtGui.QGraphicsView):
         self.scene=QtGui.QGraphicsScene(self)
         self.scaleSize = 1
         self.setScene(self.scene)
-        self.size = 10
+        self.size = 20
         self.cols = width
         self.rows = height
         self.pos_x = 0
         self.pos_y = 0
-        self.numCells = 5
+        self.numCells = 10
         # For the popup segment selection box
         self.segmentSelect = None
         self.selectedItem = None
@@ -502,7 +502,7 @@ class HTMNetwork(QtGui.QWidget):
         self.iteration += 1
         # Temporary code to create a test input pattern
         # Make sure the input is larger than this test input
-        plen = 7    # The length of the total pattern eg ABBCBBA is plen = 6
+        plen = 6    # The length of the total pattern eg ABBCBBA is plen = 6
         if self.iteration % plen == 0:
             print "\n pattern1"
             # Copy the whole array using deep copy. Each value is actually copied
@@ -521,10 +521,10 @@ class HTMNetwork(QtGui.QWidget):
             print "\n pattern2"
             np.empty_like(self.patternsArray[1])
             self.input[:] = self.patternsArray[1]
-        if self.iteration % plen == 6:
-            print "\n pattern1"
-            np.empty_like(self.patternsArray[0])
-            self.input[:] = self.patternsArray[0]
+        #if self.iteration % plen == 6:
+        #    print "\n pattern1"
+        #    np.empty_like(self.patternsArray[0])
+        #    self.input[:] = self.patternsArray[0]
         # Add some noise
         for k in range(len(self.input)):
             for l in range(len(self.input[k])):
