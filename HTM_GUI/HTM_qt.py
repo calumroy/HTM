@@ -16,7 +16,7 @@ import random
 import sys
 from PyQt4 import QtGui, QtCore
 from PyQt4.QtCore import QObject, pyqtSlot
-import HTM_V12
+import HTM_V13 as HTM_V
 import math
 
 import HTM_lineInput
@@ -170,7 +170,7 @@ class HTMGridViewer(QtGui.QGraphicsView):
         # Create HTM network with an empty input
         self.iteration = 0
         input = np.array([[0 for i in range(width)] for j in range(height)])
-        self.htm = HTM_V12.HTM(1,input,width,height,self.numCells)
+        self.htm = HTM_V.HTM(1,input,width,height,self.numCells)
         self.showAllHTM = True  # A flag to indicate to draw all the cells and column states
         
         self.showActiveCells = True
