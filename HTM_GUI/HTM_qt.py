@@ -383,7 +383,8 @@ class HTMNetwork(QtGui.QWidget):
         height=20
         self.scaleFactor=0.2    # How much to scale the grids by
         self.input = self.setInput(width,height)
-        self.patternsArray = HTM_lineInput.createPatternArray(3,width,height,2,0,30)
+        self.numPatterns = 20
+        self.patternsArray = HTM_lineInput.createBallPatternArray(self.numPatterns,width,height,3)
         self.HTMNetworkGrid = HTMGridViewer(width,height)
         self.inputGrid = HTMInput(width,height)
         self.make_frame()
@@ -502,29 +503,36 @@ class HTMNetwork(QtGui.QWidget):
         self.iteration += 1
         # Temporary code to create a test input pattern
         # Make sure the input is larger than this test input
-        plen = 6    # The length of the total pattern eg ABBCBBA is plen = 6
-        if self.iteration % plen == 0:
-            print "\n pattern1"
-            # Copy the whole array using deep copy. Each value is actually copied
-            # into a new array not just the pointer. This is so the original stays the same.
-            np.empty_like(self.patternsArray[0])
-            self.input[:] = self.patternsArray[0]
-        if self.iteration%plen==1  or self.iteration%plen==2:
-            print "\n pattern2"
-            np.empty_like(self.patternsArray[1])
-            self.input[:] = self.patternsArray[1]
-        if self.iteration%plen==3:
-            print "\n pattern3"
-            np.empty_like(self.patternsArray[2])
-            self.input[:] = self.patternsArray[2]
-        if self.iteration%plen==4  or self.iteration%plen==5:
-            print "\n pattern2"
-            np.empty_like(self.patternsArray[1])
-            self.input[:] = self.patternsArray[1]
-        #if self.iteration % plen == 6:
-        #    print "\n pattern1"
-        #    np.empty_like(self.patternsArray[0])
-        #    self.input[:] = self.patternsArray[0]
+        pattern=self.iteration%self.numPatterns
+        print "\n pattern %s"%pattern
+        np.empty_like(self.patternsArray[pattern])
+        self.input[:] = self.patternsArray[pattern]
+##        if self.iteration % plen == 0:
+##            print "\n pattern1"
+##            # Copy the whole array using deep copy. Each value is actually copied
+##            # into a new array not just the pointer. This is so the original stays the same.
+##            np.empty_like(self.patternsArray[0])
+##            self.input[:] = self.patternsArray[0]
+##        if self.iteration%plen==1  or self.iteration%plen==2:
+##            print "\n pattern2"
+##            np.empty_like(self.patternsArray[1])
+##            self.input[:] = self.patternsArray[1]
+##        if self.iteration%plen==3:
+##            print "\n pattern3"
+##            np.empty_like(self.patternsArray[2])
+##            self.input[:] = self.patternsArray[2]
+##        if self.iteration%plen==4  or self.iteration%plen==5 or self.iteration%plen==6:
+##            print "\n pattern2"
+##            np.empty_like(self.patternsArray[1])
+##            self.input[:] = self.patternsArray[1]
+##        if self.iteration % plen == 7 or self.iteration%plen==9:
+##            print "\n pattern1"
+##            np.empty_like(self.patternsArray[0])
+##            self.input[:] = self.patternsArray[0]
+##        if self.iteration % plen == 8:
+##            print "\n pattern4"
+##            np.empty_like(self.patternsArray[3])
+##            self.input[:] = self.patternsArray[3]
         # Add some noise
         for k in range(len(self.input)):
             for l in range(len(self.input[k])):

@@ -169,7 +169,7 @@ class HTMLayer:
         #This is also defined in the Synapse class!!! Maybe change this
         #self.connectedPerm = 0.3    # The value a connected Synapses must be higher then.
         self.minThreshold = 6       # Should be smaller than activationThreshold
-        self.minScoreThreshold = 1  # The minimum score needed by a cell to be added to the alternative sequence.
+        self.minScoreThreshold = 3  # The minimum score needed by a cell to be added to the alternative sequence.
         self.newSynapseCount = 15    # This limits the activeSynapse array to this length. It should be renamed
         self.activationThreshold = 8    # More than this many synapses on a segment must be active for the segment to be active
         self.dutyCycleAverageLength = 1000
@@ -483,11 +483,11 @@ class HTMLayer:
                         bestSegment = h
                         bestCellFound=True
         if bestCellFound==True:
-            print "returned from GETBESTMATCHINGCELL the cell i=%s with the best segment s=%s"%(bestCell,bestSegment)
+            #print "returned from GETBESTMATCHINGCELL the cell i=%s with the best segment s=%s"%(bestCell,bestSegment)
             return (bestCell,bestSegment)
         else:
             # Return the first segment from the cell with the fewest segments
-            print "returned from getBestMatchingCell cell i=%s with the fewest number of segments num=%s"%(fewestSegments,len(c.cells[fewestSegments].segments))
+            #print "returned from getBestMatchingCell cell i=%s with the fewest number of segments num=%s"%(fewestSegments,len(c.cells[fewestSegments].segments))
             return (fewestSegments,-1)
     def getSegmentActiveSynapses(self,c,i,timeStep,s,newSynapses=False):
         # Returns an segmentUpdate structure. This is used to update the segments and there
@@ -625,7 +625,7 @@ class HTMLayer:
                 if c.overlapDutyCycle<c.minDutyCycle:
                     self.increasePermanence(c,0.1*self.connectPermanence)
         self.updateOutput()
-    def updateActiveState(self,timeStep):
+'['/
         # First function called to update the temporal pooler.
         # First reset the active cells calculated from the previous time step. 
         for c in self.activeColumns:
@@ -642,7 +642,7 @@ class HTMLayer:
                 bestMatchSeg = self.getBestMatchingSegment(c,i,timeStep-1,False)
                 if  bestMatchSeg != -1:
                     c.cells[i].score = 1 + self.segmentHighestScore(c.cells[i].segments[bestMatchSeg],timeStep-1)
-                    print"Cell x,y,i = %s,%s,%s bestSeg = %s score = %s"%(c.pos_x,c.pos_y,i,bestMatchSeg,c.cells[i].score)
+                    #print"Cell x,y,i = %s,%s,%s bestSeg = %s score = %s"%(c.pos_x,c.pos_y,i,bestMatchSeg,c.cells[i].score)
                     if c.cells[i].score > highestScore:
                         highestScore = c.cells[i].score
                         highestScoredCell = i
@@ -669,7 +669,7 @@ class HTMLayer:
             # If the column is about to burst because no cell was predicting 
             # check the cell with the highest score.  
             if highestScoredCell != None:
-                if buPredicted == False and c.cells[highestScoredCell].score >= 3:
+                if buPredicted == False and c.cells[highestScoredCell].score >= self.minScoreThreshold:
                     buPredicted = True
                     self.activeStateAdd(c,highestScoredCell,timeStep)
                     lcChosen = True
@@ -678,7 +678,7 @@ class HTMLayer:
                     sUpdate = self.getSegmentActiveSynapses(c,highestScoredCell,timeStep-1,-1,True)
                     sUpdate['sequenceSegment']=timeStep
                     c.cells[highestScoredCell].segmentUpdateList.append(sUpdate)
-                if lcChosen == False and c.cells[highestScoredCell].score >= 3:
+                if lcChosen == False and c.cells[highestScoredCell].score >= self.minScoreThreshold:
                     lcChosen = True
                     self.learnStateAdd(c,highestScoredCell,timeStep)
                     # Add a new Segment
@@ -755,7 +755,7 @@ class HTMLayer:
                         self.adaptSegments(c,i,True)
                     # Trying a different method to the CLA white pages
                     if self.activeState(c,i,timeStep) == False and self.predictiveState(c,i,timeStep-1) == True:                        
-                        print "INCORRECT predictive state for x,y,cell = %s,%s,%s"%(c.pos_x,c.pos_y,i)
+                        #print "INCORRECT predictive state for x,y,cell = %s,%s,%s"%(c.pos_x,c.pos_y,i)
                         self.adaptSegments(c,i,False)
                     # After the learning delete any segments that have zero synapses in them.
                     # This must be done after learning since during learning the index of the segment

@@ -87,4 +87,32 @@ def createLinePattern(gridWidth,gridHeight,lineWidth,c,angle):
     return inputGrid
             
 
+def createBallPatternArray(arrayLength,gridWidth,gridHeight,ballRadius):
+    gravity = 2  
+    mid=gridWidth/2
+    y=ballRadius
+    vel=0
+    patternArray=np.array([createBallPattern(gridWidth,gridHeight,ballRadius,mid,y)])
+    #print patternArray
+    # downwards velocity is positive
+    for t in range(1,arrayLength):  # This range is the length minus one since we already added a pattern to the array
+        vel = vel+gravity
+        if y+vel+ballRadius<gridHeight:
+            y=y+vel
+        else:
+            y=gridHeight-ballRadius
+            vel = -vel*0.8  # 90% of original velocity makes the ball stop bouncing.
+        patternArray=np.vstack((patternArray,[createBallPattern(gridWidth,gridHeight,ballRadius,mid,y)]))
+    print patternArray
+    return patternArray
 
+   
+def createBallPattern(gridWidth,gridHeight,ballRadius,ball_x,ball_y):
+    # Creates an input grid with a ball at x,y
+    inputGrid=np.array([[0 for i in range(gridWidth)] for j in range(gridHeight)])
+    for x in range(gridWidth):
+        for y in range(gridHeight):
+            if ballRadius >= math.sqrt(math.pow(x-ball_x,2)+math.pow(y-ball_y,2)):
+                #print (y,x)
+                inputGrid[y][x]=1
+    return inputGrid
