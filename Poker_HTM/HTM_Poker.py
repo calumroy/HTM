@@ -9,6 +9,7 @@ import numpy as np
 import random
 import math
 import pprint
+import copy
 
 ##Struct = {'field1': 'some val', 'field2': 'some val'}
 ##myStruct = { 'num': 1}
@@ -24,26 +25,10 @@ class Synapse:
             self.cell = cellIndex
             self.pos_x=pos_x            # The end of the synapse. The start is at a column or cells position
             self.pos_y=pos_y
-            # sourceInput is 1 if the connected input is active 0 if not active and -1 if it's in predicted state.
-            # The if the synapse is a vertical type then it can only have the vaules 0 or 1 since
-            # it's connected to an input to the HTM layer and not a cell
-            if cellIndex == -1: # If the created synapse is vertical connect to the input
-                self.sourceInput=input[pos_y][pos_x]
-            else:   # If the Synpase is horizontal then just set sourceInput to 0 it's unused 
-                self.sourceInput=0  
-            self.permanence = 0.50
-            self.source_input_index = 0.0
+            self.permanence = 0.5
             #If the permanence value for a synapse is greater than this
             #value, it is said to be connected.
             self.connectPermanence = 0.3
-    def updateInput(self,input):
-        # If Synapse is vertical then self.cell = -1 otherwise the synapse is horizontal
-        # and connects to a cell within the HTM. If it is horizontal then there is no 
-        # self.sourceInput
-        if self.cell == -1:
-            #print input
-            #print (self.pos_y,self.pos_x)
-            self.sourceInput=input[self.pos_y][self.pos_x]
 
 
 class Segment:
@@ -58,17 +43,17 @@ class Segment:
 class Cell:
     def __init__(self):
         # dendrite segments
-        self.numInitSegments = 1    # Must be greater then zero
+        #self.numInitSegments = 1    # Must be greater then zero
         self.score = 0     # The current score for the cell. 
         self.segments = np.array([],dtype=object)
-        for i in range(self.numInitSegments):
-            self.segments = np.hstack((self.segments,[Segment()]))
+        #for i in range(self.numInitSegments):
+        #    self.segments = np.hstack((self.segments,[Segment()]))
         # Create a dictionary to store the segmentUpdate structures
         self.segmentUpdateList = []
         # Segment update stucture holds the updates for the cell. These updates are made later.
         self.segmentUpdate = {'index':-1,'activeSynapses':np.array([],dtype=object),'newSynapses':np.array([],dtype=object),'sequenceSegment':0,'createdAtTime':0}
-        for i in range(self.numInitSegments):
-            self.segmentUpdateList.append(self.segmentUpdate.copy())
+        #for i in range(self.numInitSegments):
+        #    self.segmentUpdateList.append(self.segmentUpdate.copy())
         #print self.segmentUpdateList
 ##        # State of the cell
 ##        self.active = False
@@ -83,12 +68,12 @@ class Column:
         self.pos_x=pos_x
         self.pos_y=pos_y
         self.overlap = 0.0
-        self.minOverlap = 4
+        self.minOverlap = 1
         self.boost = 1
         # The max distance a column can inhibit another column. This parameters value is automatically reset.
         self.inhibitionRadius = 1   
-        self.potentialRadius = 1    # The max distance that Synapses can be made at
-        self.permanenceInc = 0.2
+        self.potentialRadius = 0    # The max distance that Synapses can be made at
+        self.permanenceInc = 0.1
         self.permanenceDec = 0.02
         self.minDutyCycle = 0.01   # The minimum firing rate of the column
         self.activeDutyCycleArray = np.array([0]) # Keeps track of when the column was active. All columns start as active. It stores the numInhibition time when the column was active
@@ -98,7 +83,8 @@ class Column:
         self.overlapDutyCycleArray = np.array([0]) # Keeps track of when the colums overlap was larger then the minoverlap
         self.boostStep = 0.1
         self.historyLength = 2  # This determines how many previous timeSteps are stored in actve predictive and learn state arrays. 
-
+        self.highestScoredCell = None
+        
         self.connectedSynapses=np.array([],dtype=object)
         self.potentialSynapses=np.array([],dtype=object) # the possible feed forward Synapse connections for the column
         #Work out the potential feedforward connections this column could make
@@ -133,9 +119,10 @@ class Column:
         for i in range(len(self.potentialSynapses)):
             if self.potentialSynapses[i].permanence>self.potentialSynapses[i].connectPermanence:
                 self.connectedSynapses = np.append(self.connectedSynapses,self.potentialSynapses[i])
-    def input(self,input):
-        for i in range(len(self.potentialSynapses)):
-            self.potentialSynapses[i].updateInput(input)
+##    def input(self,input):
+##        # Update the selected synapses inputs
+##        for i in range(len(self.potentialSynapses)):
+##            self.potentialSynapses[i].updateInput(input)
     def updateBoost(self):
         if self.activeDutyCycle<self.minDutyCycle:
             self.boost = self.boost+self.boostStep
@@ -153,25 +140,34 @@ class Column:
         #return array
     
 class HTMLayer:
-    def __init__(self, input, column_array_width,column_array_height,cells_per_column):
-        
+    def __init__(self, input, column_array_width,column_array_height,cells_per_column,commandRow):
+        # The Command row is just the row number where the commands start
+        self.commandRow = commandRow
         # The columns are in a 2 dimensional array column_array_width by column_array_height.
         # This might be a crap idea
         self.width = column_array_width
         self.height = column_array_height
-        self.input = input
+        self.Input = input
         # The overlap values are used in determining the active columns. For columns with the same overlap value
         # both columns are active. This is why sometimes more columns then the desiredLocalActivity parameter
         # are observed in the inhibition radius.
-        self.desiredLocalActivity = 1 # How many cells within the inhibition radius are active
+        self.desiredLocalActivity = 5 # How many cells within the inhibition radius are active
         self.cellsPerColumn = cells_per_column
+        # Define the section of the HTM region that is a command section.
+        # The columns that are in a higher row than commandRow are designated command columns.
+        # These columns receive command inputs that affect the inputs.
+        self.commandRow = commandRow
+        self.numCommRows = self.height-self.commandRow
+        # The Feedback command space has the same size of the command row
+        # It is situated above the command space.
+        self.fbCommandSpaceRow = self.commandRow-self.numCommRows
         self.connectPermanence = 0.3
         #This is also defined in the Synapse class!!! Maybe change this
         #self.connectedPerm = 0.3    # The value a connected Synapses must be higher then.
-        self.minThreshold = 4       # Should be smaller than activationThreshold
-        self.minScoreThreshold = 3  # The minimum score needed by a cell to be added to the alternative sequence.
-        self.newSynapseCount = 8    # This limits the activeSynapse array to this length. It should be renamed
-        self.activationThreshold = 6    # More than this many synapses on a segment must be active for the segment to be active
+        self.minThreshold = 18       # Should be smaller than activationThreshold
+        self.minScoreThreshold = 10  # The minimum score needed by a cell to be added to the alternative sequence.
+        self.newSynapseCount = 22    # This limits the activeSynapse array to this length. It should be renamed
+        self.activationThreshold = 20    # More than this many synapses on a segment must be active for the segment to be active
         self.dutyCycleAverageLength = 1000
         self.timeStep = 0
         self.output = np.array([[0 for i in range(self.width)] for j in range(self.height)])
@@ -179,15 +175,22 @@ class HTMLayer:
         self.averageReceptiveFeildSizeArray = np.array([])
         self.columns = np.array([[Column(self.cellsPerColumn,i,j,input) for i in range(column_array_width)]
         for j in range(column_array_height)],dtype=object)      #Create the array storing the columns
+        # The active Columns output from just the input space
+        self.inSpaceOutput = np.array([[0 for i in range(self.width)] for j in range(self.commandRow)])
+        
         
     def updateOutput(self):
         for i in range(len(self.output)):
             for j in range(len(self.output[i])):
                 self.output[i][j] = 0
+                if i<self.commandRow:
+                    self.inSpaceOutput[i][j] = 0
         for i in range(len(self.activeColumns)):
             x = self.activeColumns[i].pos_x
             y = self.activeColumns[i].pos_y
             self.output[y][x] = 1
+            if y<self.commandRow:
+                    self.inSpaceOutput[y][x] = 1
     def potentialSynapses(c):
         pass
     def neighbours(self,c):
@@ -355,7 +358,7 @@ class HTMLayer:
             # return an empty list. This means this segment has too many synapses already
             return np.array([])
         return np.array(random.sample(synapseList,numNewSynapses))
-    def getActiveSegment(self,c,i,t,state):
+    def getActiveSegment(self,c,i,t):
         # Returns a sequence segment if there are none then returns the most active segment 
         highestActivity = 0
         mostActiveSegment = -1
@@ -386,24 +389,26 @@ class HTMLayer:
             
     def segmentActive(self,s,timeStep,state):
         # For Segment s check if the number of synapses with the state "state" is larger then 
-        # the self.activationThreshold
+        # the self.activationThreshold.
         # state is -1 = predictive state, 1 = active, 2 = learn state 
         count = 0
         for i in range(len(s.synapses)):
-            x = s.synapses[i].pos_x
-            y = s.synapses[i].pos_y
-            cell = s.synapses[i].cell
-            if state == 1:  # 1 is active state
-                if self.activeState(self.columns[y][x],cell,timeStep)==True:
-                    count += 1
-            elif state == -1: # -1 is predictive state
-                if self.predictiveState(self.columns[y][x],cell,timeStep)==True:
-                    count += 1
-            elif state == 2:    # 2 is learn state
-                if self.learnState(self.columns[y][x],cell,timeStep)==True:
-                    count += 1
-            else:
-                print "ERROR state is not a -1 predictive or 1 active or 2 learn"
+            # Only check synapses that have a large enough permanence
+            if s.synapses[i].permanence > s.synapses[i].connectPermanence:
+                x = s.synapses[i].pos_x
+                y = s.synapses[i].pos_y
+                cell = s.synapses[i].cell
+                if state == 1:  # 1 is active state
+                    if self.activeState(self.columns[y][x],cell,timeStep)==True:
+                        count += 1
+                elif state == -1: # -1 is predictive state
+                    if self.predictiveState(self.columns[y][x],cell,timeStep)==True:
+                        count += 1
+                elif state == 2:    # 2 is learn state
+                    if self.learnState(self.columns[y][x],cell,timeStep)==True:
+                        count += 1
+                else:
+                    print "ERROR state is not a -1 predictive or 1 active or 2 learn"
         #if state==2:    # Used for printing only
         #    print"lcchosen count = %s avtiveThreshold=%s"%(count,self.activationThreshold)
         if count > self.activationThreshold: 
@@ -570,282 +575,292 @@ class HTMLayer:
                 #    print "         synapse ends at x,y=%s,%s"%(s.pos_x,s.pos_y)
         c.cells[i].segmentUpdateList=[]  # Delete the list as the updates have been added.
         
-    def Input(self,Input):
-        self.input = Input
-        for i in range(len(self.columns)):
-            for c in self.columns[i]:
-                c.input(Input)
-    def Overlap(self):
+    def updateInput(self,input,inSpace):
+        # If inSpace is true only the input to the input Space is updated.
+        # If inSpace is false only the input to the command space is updated.
+        if (inSpace==True):
+            self.Input[0:self.commandRow,:] = input
+        else:
+            self.Input[self.commandRow:,:] = input
+    def Overlap(self,inSpace):
         # Phase one for the spatial pooler
+        # inSpace is used to update just the input space if true.
+        # If this is false then just the command space is updated.
         for i in range(len(self.columns)):
             for c in self.columns[i]:
-                c.overlap = 0.0
-                c.updateConnectedSynapses()
-                for s in c.connectedSynapses:
-                    c.overlap = c.overlap + s.sourceInput
-                if c.overlap<c.minOverlap:
-                    c.overlap=0.0
-                else:
-                    c.overlap=c.overlap*c.boost
-                    self.updateOverlapDutyCycle(c)
-                #print "%d %d %d" %(c.overlap,c.minOverlap,c.boost)
-    def inhibition(self,timeStep):
+                if (inSpace==True and c.pos_y<self.commandRow) or (inSpace==False and c.pos_y>=self.commandRow):
+                    c.overlap = 0.0
+                    c.updateConnectedSynapses()
+                    for s in c.connectedSynapses:
+                        # Check if the input that this synapses is connected to is active.
+                        inputActive = self.Input[s.pos_y][s.pos_x]
+                        c.overlap = c.overlap + inputActive
+                    if c.overlap<c.minOverlap:
+                        c.overlap=0.0
+                    else:
+                        c.overlap=c.overlap*c.boost
+                        self.updateOverlapDutyCycle(c)
+                    #print "%d %d %d" %(c.overlap,c.minOverlap,c.boost)
+    def inhibition(self,timeStep,inSpace):
         # Phase two for the spatial pooler
         self.activeColumns=np.array([],dtype=object)
         #print "actve cols before %s" %self.activeColumns
         for i in range(len(self.columns)):
             for c in self.columns[i]:
-                c.activeState = False
-                if c.overlap>0:
-                    minLocalActivity = self.kthScore(self.neighbours(c),self.desiredLocalActivity)  
-                    #print "current column = (%s,%s)"%(c.pos_x,c.pos_y)
-                    if c.overlap>=minLocalActivity:
-                        self.activeColumns=np.append(self.activeColumns,c)
-                        c.activeState = True
-                        self.columnActiveAdd(c,timeStep)
-                        #print "ACTIVE COLUMN x,y = %s,%s overlap = %d min = %d" %(c.pos_x,c.pos_y,c.overlap,minLocalActivity)
-                self.updateActiveDutyCycle(c)       # Update the active duty cycle variable of every column
-    def learning(self):
+                if (inSpace==True and c.pos_y<self.commandRow) or (inSpace==False and c.pos_y>=self.commandRow):
+                    c.activeState = False
+                    if c.overlap>0:
+                        minLocalActivity = self.kthScore(self.neighbours(c),self.desiredLocalActivity)  
+                        #print "current column = (%s,%s)"%(c.pos_x,c.pos_y)
+                        if c.overlap>=minLocalActivity:
+                            self.activeColumns=np.append(self.activeColumns,c)
+                            c.activeState = True
+                            self.columnActiveAdd(c,timeStep)
+                            #print "ACTIVE COLUMN x,y = %s,%s overlap = %d min = %d" %(c.pos_x,c.pos_y,c.overlap,minLocalActivity)
+                    self.updateActiveDutyCycle(c)       # Update the active duty cycle variable of every column
+    def learning(self,inSpace):
         # Phase three for the spatial pooler
+        # inSpace is true if only the input space is updated.
         for c in self.activeColumns:
-            for s in c.potentialSynapses:
-                if s.sourceInput==1: #Only handles binary input sources
-                    s.permanence += c.permanenceInc
-                    s.permanence = min(1.0,s.permanence)
-                else:
-                    s.permanence -= c.permanenceDec
-                    s.permanence = max(0.0,s.permanence)
+            if (inSpace==True and c.pos_y<self.commandRow) or (inSpace==False and c.pos_y>=self.commandRow):
+                for s in c.potentialSynapses:
+                    # Check if the input that this synapses is connected to is active.
+                    inputActive = self.Input[s.pos_y][s.pos_x]
+                    if inputActive==1: #Only handles binary input sources
+                        s.permanence += c.permanenceInc
+                        s.permanence = min(1.0,s.permanence)
+                    else:
+                        s.permanence -= c.permanenceDec
+                        s.permanence = max(0.0,s.permanence)
         average = self.averageReceptiveFeildSize() #Find the average of the receptive feild sizes just once
         #print "inhibition radius = %s" %average
         for i in range(len(self.columns)):
             for c in self.columns[i]:
-                c.minDutyCycle = 0.01*self.maxDutyCycle(self.neighbours(c))
-                c.updateBoost()
-                c.inhibitionRadius = average # Set to the average of the receptive feild sizes. All columns have the same inhibition radius
-                if c.overlapDutyCycle<c.minDutyCycle:
-                    self.increasePermanence(c,0.1*self.connectPermanence)
+                if (inSpace==True and c.pos_y<self.commandRow) or (inSpace==False and c.pos_y>=self.commandRow):
+                    c.minDutyCycle = 0.01*self.maxDutyCycle(self.neighbours(c))
+                    c.updateBoost()
+                    c.inhibitionRadius = average # Set to the average of the receptive feild sizes. All columns have the same inhibition radius
+                    if c.overlapDutyCycle<c.minDutyCycle:
+                        self.increasePermanence(c,0.1*self.connectPermanence)
         self.updateOutput()
-    def updateActiveState(self,timeStep):
+    def updateActiveState(self,timeStep,inSpace):
         # First function called to update the temporal pooler.
         # First reset the active cells calculated from the previous time step. 
+        print "       1st TEMPORAL FUNCTION"
+        # Different to CLA paper.
+        # First we calculate the score for each cell in the active column
         for c in self.activeColumns:
-            buPredicted = False
-            lcChosen = False
-            print "\n ACTIVE COLUMN x,y = %s,%s time = %s"%(c.pos_x,c.pos_y,timeStep)
-            print "columnActive =",c.columnActive
-            highestScore = 0        # Remember the highest score in the column
-            highestScoredCell=None  # Remember the index of the cell with the highest score in the column
-            for i in range(self.cellsPerColumn):
-                # Different to CLA paper.
-                # First we calculate the score for each cell in the active column.
-                # Check the cell to find a best matching segment active due to active columns.
-                bestMatchSeg = self.getBestMatchingSegment(c,i,timeStep-1,False)
-                if  bestMatchSeg != -1:
-                    c.cells[i].score = 1 + self.segmentHighestScore(c.cells[i].segments[bestMatchSeg],timeStep-1)
-                    #print"Cell x,y,i = %s,%s,%s bestSeg = %s score = %s"%(c.pos_x,c.pos_y,i,bestMatchSeg,c.cells[i].score)
-                    if c.cells[i].score > highestScore:
-                        highestScore = c.cells[i].score
-                        highestScoredCell = i
-                else:
-                    c.cells[i].score = 0
-                
-                # Update the cells according to the CLA paper
-                if self.predictiveState(c,i,timeStep-1) == True:
-                    activeState = 1
-                    s = self.getActiveSegment(c,i,timeStep-1,activeState)
-                    # If a segment was found then continue
-                    if s!=-1:
-                        # Since we get the active segments from 1 time step ago then we need to 
-                        # find which of these where sequence segments 1 time step ago. This means they
-                        # were predicting that the cell would be active now.
-                        if s.sequenceSegment == timeStep-1:
-                            buPredicted = True
-                            self.activeStateAdd(c,i,timeStep)
-                            learnState = 2
-                            if self.segmentActive(s,timeStep-1,learnState) > 0:
-                                lcChosen = True
-                                self.learnStateAdd(c,i,timeStep)
-            # Different to CLA paper
-            # If the column is about to burst because no cell was predicting 
-            # check the cell with the highest score.  
-            if highestScoredCell != None:
-                if buPredicted == False and c.cells[highestScoredCell].score >= self.minScoreThreshold:
-                    buPredicted = True
-                    self.activeStateAdd(c,highestScoredCell,timeStep)
-                    lcChosen = True
-                    self.learnStateAdd(c,highestScoredCell,timeStep)
-                    # Add a new Segment
-                    sUpdate = self.getSegmentActiveSynapses(c,highestScoredCell,timeStep-1,-1,True)
-                    sUpdate['sequenceSegment']=timeStep
-                    c.cells[highestScoredCell].segmentUpdateList.append(sUpdate)
-                if lcChosen == False and c.cells[highestScoredCell].score >= self.minScoreThreshold:
-                    lcChosen = True
-                    self.learnStateAdd(c,highestScoredCell,timeStep)
-                    # Add a new Segment
-                    sUpdate = self.getSegmentActiveSynapses(c,highestScoredCell,timeStep-1,-1,True)
-                    sUpdate['sequenceSegment']=timeStep
-                    c.cells[highestScoredCell].segmentUpdateList.append(sUpdate)
-                
-            # According to the CLA paper 
-            if buPredicted == False:
-                #print "No cell in this column predicted"
+##            if (inSpace==True and c.pos_y<self.commandRow) or (inSpace==False and c.pos_y>=self.commandRow):
+            ## Only perform learning for commands
+            ##if c.pos_y>=self.commandRow:
+            if (inSpace==False and c.pos_y>=self.commandRow):
+                #print "\n ACTIVE COLUMN x,y = %s,%s time = %s"%(c.pos_x,c.pos_y,timeStep)
+                #print "columnActive =",c.columnActive
+                highestScore = 0        # Remember the highest score in the column
+                highestScoredCell=None  # Remember the index of the cell with the highest score in the column
                 for i in range(self.cellsPerColumn):
-                    self.activeStateAdd(c,i,timeStep)
-            if lcChosen == False:
-                #print "lcChosen Getting the best matching cell to set as learning cell"
-                # The best matching cell for timeStep-1 is found since we want to find the
-                # cell whose segment was most active one timestep ago and hence was most predicting. 
-                (cell,s) = self.getBestMatchingCell(c,timeStep-1)
-                self.learnStateAdd(c,cell,timeStep)
-                sUpdate = self.getSegmentActiveSynapses(c,cell,timeStep-1,s,True)
-                sUpdate['sequenceSegment']=timeStep
-                c.cells[cell].segmentUpdateList.append(sUpdate)
-                #print "Length of cells updatelist = %s"%len(c.cells[cell].segmentUpdateList)
-    def updatePredictiveState(self,timeStep):
+                    # Check the cell to find a best matching segment active due to active columns.
+                    bestMatchSeg = self.getBestMatchingSegment(c,i,timeStep-1,False)
+                    if  bestMatchSeg != -1:
+                        c.cells[i].score = 1 + self.segmentHighestScore(c.cells[i].segments[bestMatchSeg],timeStep-1)
+                        #print"Cell x,y,i = %s,%s,%s bestSeg = %s score = %s"%(c.pos_x,c.pos_y,i,bestMatchSeg,c.cells[i].score)
+                        if c.cells[i].score > highestScore:
+                            highestScore = c.cells[i].score
+                            c.highestScoredCell = i
+                    else:
+                        c.cells[i].score = 0
+        for c in self.activeColumns:
+##            if (inSpace==True and c.pos_y<self.commandRow) or (inSpace==False and c.pos_y>=self.commandRow):
+            ## Only perform learning for commands
+            ##if c.pos_y>=self.commandRow:
+            if (inSpace==False and c.pos_y>=self.commandRow):
+                buPredicted = False
+                lcChosen = False
+                for i in range(self.cellsPerColumn):        
+                    # Update the cells according to the CLA paper
+                    if self.predictiveState(c,i,timeStep-1) == True:
+                        s = self.getActiveSegment(c,i,timeStep-1)
+                        # If a segment was found then continue
+                        if s!=-1:
+                            # Since we get the active segments from 1 time step ago then we need to 
+                            # find which of these where sequence segments 1 time step ago. This means they
+                            # were predicting that the cell would be active now.
+                            if s.sequenceSegment == timeStep-1:
+                                buPredicted = True
+                                self.activeStateAdd(c,i,timeStep)
+                                learnState = 2
+                                if self.segmentActive(s,timeStep-1,learnState) > 0:
+                                    lcChosen = True
+                                    self.learnStateAdd(c,i,timeStep)
+                # Different to CLA paper
+                # If the column is about to burst because no cell was predicting 
+                # check the cell with the highest score.  
+                if highestScoredCell != None:
+                    if buPredicted == False and c.cells[highestScoredCell].score >= self.minScoreThreshold:
+                        print"best SCORE active x,y,i = %s,%s,%s score = %s"%(c.pos_x,c.pos_y,highestScoredCell,c.cells[highestScoredCell].score)
+                        buPredicted = True
+                        self.activeStateAdd(c,highestScoredCell,timeStep)
+                        lcChosen = True
+                        self.learnStateAdd(c,highestScoredCell,timeStep)
+                        # Add a new Segment
+                        sUpdate = self.getSegmentActiveSynapses(c,highestScoredCell,timeStep-1,-1,True)
+                        sUpdate['sequenceSegment']=timeStep
+                        c.cells[highestScoredCell].segmentUpdateList.append(sUpdate)
+                    if lcChosen == False and c.cells[highestScoredCell].score >= self.minScoreThreshold:
+                        print"best SCORE learn x,y,i = %s,%s,%s score = %s"%(c.pos_x,c.pos_y,highestScoredCell,c.cells[highestScoredCell].score)
+                        lcChosen = True
+                        self.learnStateAdd(c,highestScoredCell,timeStep)
+                        # Add a new Segment
+                        sUpdate = self.getSegmentActiveSynapses(c,highestScoredCell,timeStep-1,-1,True)
+                        sUpdate['sequenceSegment']=timeStep
+                        c.cells[highestScoredCell].segmentUpdateList.append(sUpdate)
+                    
+                # According to the CLA paper 
+                if buPredicted == False:
+                    #print "No cell in this column predicted"
+                    for i in range(self.cellsPerColumn):
+                        self.activeStateAdd(c,i,timeStep)
+                if lcChosen == False:
+                    #print "lcChosen Getting the best matching cell to set as learning cell"
+                    # The best matching cell for timeStep-1 is found since we want to find the
+                    # cell whose segment was most active one timestep ago and hence was most predicting. 
+                    (cell,s) = self.getBestMatchingCell(c,timeStep-1)
+                    self.learnStateAdd(c,cell,timeStep)
+                    sUpdate = self.getSegmentActiveSynapses(c,cell,timeStep-1,s,True)
+                    sUpdate['sequenceSegment']=timeStep
+                    c.cells[cell].segmentUpdateList.append(sUpdate)
+                    #print "Length of cells updatelist = %s"%len(c.cells[cell].segmentUpdateList)
+            elif (inSpace==True and c.pos_y<self.commandRow):
+                ## If not in the command space just choose the first cell
+                buPredicted = False
+                lcChosen = False
+                self.activeStateAdd(c,0,timeStep)
+                self.learnStateAdd(c,0,timeStep)
+    def updatePredictiveState(self,timeStep,inSpace):
         # The second function call for the temporal pooler. 
         # Updates the predictive state of cells.
-        print "\n SECOND FUNCTION "
+        print "\n       2nd TEMPORAL FUNCTION "
         for k in range(len(self.columns)):
             for c in self.columns[k]:
-                mostPredCellSynCount=0  # This is a count of the largest number of synapses active on any segment on any cell in the column
-                mostPredCell=0      # This is the cellIndex with the most mostPredCellSynCount. This cell is the highest predictor in the column.
-                mostPredSegment=0
-                columnPredicting=False
-                for i in range(len(c.cells)):
-                    segIndex=0   
-                    for s in c.cells[i].segments:
-                        # This differs to the CLA. The segmentActiveChecks that 
-                        # the cell was in a learn state. learn state means the cell is also active.
-                        # When all cells are active in a column this stops them from all causing predictions.
-                        # lcchosen will be correctly set when a cell predicts and is activated by a group of 
-                        # learning cells.
-                        #activeState = 1
-                        #if self.segmentActive(s,timeStep,activeState) > 0:
-                        learnState = 2
-                        activeState = 1
-                        predictionLevel=self.segmentActive(s,timeStep,activeState)
-                        # Check that this cell is the highest predictor so far for the column.
-                        if predictionLevel > mostPredCellSynCount:
-                            mostPredCellSynCount=predictionLevel
-                            mostPredCell=i
-                            mostPredSegment=segIndex
-                            columnPredicting=True
-                        segIndex=segIndex+1  # Need this to hand to getSegmentActiveSynapses\
-                if columnPredicting==True:
-                    # Set the most predicting cell in the column as the predicting cell.
-                    #print "time = %s segment x,y,cell,segindex = %s,%s,%s,%s is active and NOW PREDICTING"%(timeStep,c.pos_x,c.pos_y,mostPredCell,mostPredSegment)
-                    self.predictiveStateAdd(c,mostPredCell,timeStep)
-                    activeUpdate=self.getSegmentActiveSynapses(c,mostPredCell,timeStep,mostPredSegment,False)
-                    c.cells[mostPredCell].segmentUpdateList.append(activeUpdate)
-                    # This differs to the CLA. All our segments are only active
-                    # when in a predicting state so we don't need predSegment.
-                    #predSegment=self.getBestMatchingSegment(c,i,timeStep-1)
-                    #predUpdate=self.getSegmentActiveSynapses(c,i,timeStep-1,predSegment,True)
-                    #c.cells[i].segmentUpdateList.append(predUpdate)
-    def temporalLearning(self,timeStep):
+                ##  if (inSpace==True and c.pos_y<self.commandRow) or (inSpace==False and c.pos_y>=self.commandRow):
+                ## Only perform learning for commands
+                ##if c.pos_y>=self.commandRow:
+                if (inSpace==False and c.pos_y>=self.commandRow):
+                    mostPredCellSynCount=0  # This is a count of the largest number of synapses active on any segment on any cell in the column
+                    mostPredCell=0      # This is the cellIndex with the most mostPredCellSynCount. This cell is the highest predictor in the column.
+                    mostPredSegment=0
+                    columnPredicting=False
+                    for i in range(len(c.cells)):
+                        segIndex=0   
+                        for s in c.cells[i].segments:
+                            # This differs to the CLA. 
+                            # When all cells are active in a column this stops them from all causing predictions.
+                            # lcchosen will be correctly set when a cell predicts and is activated by a group of 
+                            # learning cells.
+                            #activeState = 1
+                            #if self.segmentActive(s,timeStep,activeState) > 0:
+                            learnState = 2
+                            activeState = 1
+                            predictionLevel=self.segmentActive(s,timeStep,activeState)
+                            # Check that this cell is the highest predictor so far for the column.
+                            if predictionLevel > mostPredCellSynCount:
+                                mostPredCellSynCount=predictionLevel
+                                mostPredCell=i
+                                mostPredSegment=segIndex
+                                columnPredicting=True
+                            segIndex=segIndex+1  # Need this to hand to getSegmentActiveSynapses\
+                    if columnPredicting==True:
+                        # Set the most predicting cell in the column as the predicting cell.
+                        #print "time = %s segment x,y,cell,segindex = %s,%s,%s,%s is active and NOW PREDICTING"%(timeStep,c.pos_x,c.pos_y,mostPredCell,mostPredSegment)
+                        self.predictiveStateAdd(c,mostPredCell,timeStep)
+                        activeUpdate=self.getSegmentActiveSynapses(c,mostPredCell,timeStep,mostPredSegment,False)
+                        c.cells[mostPredCell].segmentUpdateList.append(activeUpdate)
+                        # This differs to the CLA. All our segments are only active
+                        # when in a predicting state so we don't need predSegment.
+                        #predSegment=self.getBestMatchingSegment(c,i,timeStep-1)
+                        #predUpdate=self.getSegmentActiveSynapses(c,i,timeStep-1,predSegment,True)
+                        #c.cells[i].segmentUpdateList.append(predUpdate)
+    def temporalLearning(self,timeStep,inSpace):
         # Third function called for the temporal pooler.
         # The update structures are implemented on the cells
-        print "\n    THIRD FUNCTION "
+        print "\n       3rd TEMPORAL FUNCTION "
         for k in range(len(self.columns)):
             for c in self.columns[k]:
-                for i in range(len(c.cells)):
-                    #print "predictiveStateArray for x,y,i = %s,%s,%s is latest time = %s"%(c.pos_x,c.pos_y,i,c.predictiveStateArray[i,0])
-                    if self.learnState(c,i,timeStep)==True:
-                        #print "learn state for x,y,cell = %s,%s,%s"%(c.pos_x,c.pos_y,i)
-                        self.adaptSegments(c,i,True)
-                    # Trying a different method to the CLA white pages
-                    if self.activeState(c,i,timeStep) == False and self.predictiveState(c,i,timeStep-1) == True:                        
-                        #print "INCORRECT predictive state for x,y,cell = %s,%s,%s"%(c.pos_x,c.pos_y,i)
-                        self.adaptSegments(c,i,False)
-                    # After the learning delete any segments that have zero synapses in them.
-                    # This must be done after learning since during learning the index of the segment
-                    # is used to identify each segment and this changes when segments are deleted.
-                    self.deleteEmptySegments(c,i)
-                    
+                ##if (inSpace==True and c.pos_y<self.commandRow) or (inSpace==False and c.pos_y>=self.commandRow):
+                ## Only perform learning for commands
+                if (inSpace==False and c.pos_y>=self.commandRow):
+                    for i in range(len(c.cells)):
+                        #print "predictiveStateArray for x,y,i = %s,%s,%s is latest time = %s"%(c.pos_x,c.pos_y,i,c.predictiveStateArray[i,0])
+                        if self.learnState(c,i,timeStep)==True:
+                            #print "learn state for x,y,cell = %s,%s,%s"%(c.pos_x,c.pos_y,i)
+                            self.adaptSegments(c,i,True)
+                        # Trying a different method to the CLA white pages
+                        if self.activeState(c,i,timeStep) == False and self.predictiveState(c,i,timeStep-1) == True:                        
+                            #print "INCORRECT predictive state for x,y,cell = %s,%s,%s"%(c.pos_x,c.pos_y,i)
+                            self.adaptSegments(c,i,False)
+                        # After the learning delete any segments that have zero synapses in them.
+                        # This must be done after learning since during learning the index of the segment
+                        # is used to identify each segment and this changes when segments are deleted.
+                        self.deleteEmptySegments(c,i)
         
-
-        
+            
 class HTM:
-    def __init__(self, numLayers,input, column_array_width,column_array_height,cells_per_column):
+    def __init__(self, numLevels,input, column_array_width,column_array_height,cells_per_column,commandRow):
         self.quit = False
         # The class contains multiple HTM layers stacked on one another
-        self.numberLayers = numLayers   # The number of layers in the HTM network
+        self.numLevels = numLevels   # The number of levels in the HTM network
         self.width = column_array_width
         self.height = column_array_height
         self.cellsPerColumn = cells_per_column
+        
+        # Define the section of the HTM region that is a command section.
+        # The columns that are in a higher row than commandRow are designated command columns.
+        # These columns receive command inputs that affect the input.
+        # Half the command space is for the higher regions feedback commands (the right half).
+        # The left half is for the current levels commands.
+        self.commandRow = commandRow
+        
         self.HTMLayerArray = np.array([],dtype = object)
-        for i in range(numLayers):
-            self.HTMLayerArray = np.append(self.HTMLayerArray,HTMLayer(input,self.width,self.height,self.cellsPerColumn))
-    def spatial_temporal(self,input):
+        for i in range(numLevels):
+            self.HTMLayerArray = np.append(self.HTMLayerArray,HTMLayer(input,self.width,self.height,self.cellsPerColumn,self.commandRow))
+        # create a place to store layers so they can be reverted.
+        self.HTMOriginal = copy.deepcopy(self.HTMLayerArray)
+        
+    def saveLayers(self):
+        # Save the HTM so it can be reloaded.
+        print "\n    SAVE COMMAND SYN "
+        self.HTMOriginal = copy.deepcopy(self.HTMLayerArray)
+    def loadLayers(self):
+        # Save the synases for the command area so they can be reloaded.
+        print "\n    LOAD COMMAND SYN "
+        self.HTMLayerArray = self.HTMOriginal
+        # Need create a new deepcopy of the original
+        self.HTMOriginal = copy.deepcopy(self.HTMLayerArray)
+        # return the pointer to the HTM so the GUI can use it to point
+        # to the correct object.
+        return self.HTMLayerArray
+    
+    def spatialTemporal(self,input,level,inSpace):
         # Update the spatial and temporal pooler. Find spatial and temporal patterns from the input.
         # This updates the columns and all there vertical synapses as well as the cells and the horizontal Synapses.
-        for i in range(len(self.HTMLayerArray)):
-            self.HTMLayerArray[i].timeStep = self.HTMLayerArray[i].timeStep+1
-            if i == 0:
-                self.HTMLayerArray[i].Input(input)
-            else:
-                output = self.HTMLayerArray[i-1].output
-                self.HTMLayerArray[i].Input(output)
-            # This updates the spatial pooler
-            self.HTMLayerArray[i].Overlap()
-            self.HTMLayerArray[i].inhibition(self.HTMLayerArray[i].timeStep)
-            self.HTMLayerArray[i].learning()
-            #This Updates the temporal pooler
-            self.HTMLayerArray[i].updateActiveState(self.HTMLayerArray[i].timeStep)
-            self.HTMLayerArray[i].updatePredictiveState(self.HTMLayerArray[i].timeStep)
-            self.HTMLayerArray[i].temporalLearning(self.HTMLayerArray[i].timeStep)
-            
+        # The level selects which level to update.
+        # If inSpace is true only the input space is updated. 
+        # If inSpace is false only the command space is updated.
+        # The timeStep is incremented once when the input space is updated 
+        # and not when the command space is updated.
+        if inSpace==True:
+            self.HTMLayerArray[level].timeStep = self.HTMLayerArray[level].timeStep+1
+        # Update the current levels input with the new input
+        self.HTMLayerArray[level].updateInput(input,inSpace)
+        # This updates the spatial pooler
+        self.HTMLayerArray[level].Overlap(inSpace)
+        self.HTMLayerArray[level].inhibition(self.HTMLayerArray[level].timeStep,inSpace)
+        self.HTMLayerArray[level].learning(inSpace)
+        #This Updates the temporal pooler
+        self.HTMLayerArray[level].updateActiveState(self.HTMLayerArray[level].timeStep,inSpace)
+        self.HTMLayerArray[level].updatePredictiveState(self.HTMLayerArray[level].timeStep,inSpace)
+        self.HTMLayerArray[level].temporalLearning(self.HTMLayerArray[level].timeStep,inSpace)
+           
             
 
-# NOT CURRENTLY USED WITH THE VIEWER
-def runLoop(HTM,input,iteration):
-    #HTM_draw.initialize_drawing()
-    print "NEW learning stage\n"
-    # Created an alternating pattern to learn with noise for testing
-    # Zero all inputs
-    for k in range(len(input)):
-        for l in range(len(input[k])):
-            input[k][l] = 0
-            # Add some noise
-            some_number = round(random.uniform(0,10))
-            if some_number>8:
-                input[k][l] = 1
-    if iteration % 2 == 0:
-        print "pattern1"
-        input[2][3:8] = 1
-        input[3][7] = 1 
-        input[4][7] = 1 
-        input[5][7] = 1 
-        input[6][3:8] = 1
-        input[3][3] = 1 
-        input[4][3] = 1 
-        input[5][3] = 1
-        input[6][3] = 1 
-    else:
-        if iteration<80 or iteration>150:
-            print "pattern2"
-            input[8][7:9] = 1
-            input[7][7:9] = 1
-        else:
-            print "pattern3"
-            input[9][4:9] = 1
-            input[8][8] = 1 
-            input[7][8] = 1 
-            input[6][8] = 1 
-            input[5][4:9] = 1
-            input[6][4] = 1 
-            input[7][4] = 1 
-            input[8][4] = 1
-            input[9][4] = 1 
-    #Learning and updating
-    #HTM.spatial_temporal()
-    #HTM_draw.draw_HTM(HTM,input)   # For drawing using the old 2D HTM_draw.py
-    #HTM_draw.quit_drawing()
 
-#if __name__ == "__main__":
-#    sizew = 12
-#    sizeh = 10
-#    numLayers = 3
-#    input = np.array([[round(random.uniform(0,1)) for i in range(sizew)] for j in range(sizeh)])
-#    HTMNetwork = HTM(numLayers,input,sizew,sizeh)
-#    run_loop(HTMNetwork,input)

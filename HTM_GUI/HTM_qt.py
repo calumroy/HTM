@@ -197,8 +197,8 @@ class HTMGridViewer(QtGui.QGraphicsView):
         # Used to initialise the graphics scene with columns and cells
         pen   = QtGui.QPen(QtGui.QColor(QtCore.Qt.black))
         brush = QtGui.QBrush(pen.color().darker(150))
-        for x in range(rows):
-                for y in range(cols):
+        for x in range(cols):
+                for y in range(rows):
                     value = self.htm.HTMLayerArray[0].columns[y][x].activeState
                     if value == False:
                             brush.setColor(QtCore.Qt.red)
@@ -383,7 +383,7 @@ class HTMNetwork(QtGui.QWidget):
         height=20
         self.scaleFactor=0.2    # How much to scale the grids by
         self.input = self.setInput(width,height)
-        self.numPatterns = 20
+        self.numPatterns = 10
         self.patternsArray = HTM_lineInput.createBallPatternArray(self.numPatterns,width,height,3)
         self.HTMNetworkGrid = HTMGridViewer(width,height)
         self.inputGrid = HTMInput(width,height)
