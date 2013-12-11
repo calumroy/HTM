@@ -313,7 +313,6 @@ class HTMGridViewer(QtGui.QGraphicsView):
         blue = QtGui.QColor(0x40, 0x30, 0xFF, 0xFF)
         # Go through each cell. If it is in the synapse list draw it otherwise don't
         for i in range(len(self.cellItems)):
-            #print"HEYEHEYEHHYE"
             cell_pos_x=self.cellItems[i].pos_x
             cell_pos_y=self.cellItems[i].pos_y
             cell_cell=self.cellItems[i].cell
@@ -404,11 +403,11 @@ class HTMGridViewer(QtGui.QGraphicsView):
                 # Create and connect a Slot to the signal from the check box
                 self.segmentSelect.segmentSelectedSignal.connect(self.selectedSegmentIndex)
                 self.segmentSelect.show()
-                if item.__class__.__name__ == "HTMColumn":
-                    print"column"
-                    print "pos_x,pos_y = %s,%s"%(item.pos_x,item.pos_y)
-                    # Draw the columns synapses.
-                    self.drawSingleColumn(item.pos_x,item.pos_y)      
+            if item.__class__.__name__ == "HTMColumn":
+                print"column"
+                print "pos_x,pos_y = %s,%s"%(item.pos_x,item.pos_y)
+                # Draw the columns synapses.
+                self.drawSingleColumn(item.pos_x,item.pos_y)      
 
     def mouseMoveEvent(self, event):
         if self._mousePressed:
@@ -552,7 +551,7 @@ class HTMNetwork(QtGui.QWidget):
         self.origIteration = 0  # Stores the iteration for the previous saved HTM
         self.numLevels = 2 # The number of levels.
         self.angleInputHeight = 3   # How many rows will make up the angle input space.
-        self.width = 20  # The number of columns making up the input spaces
+        self.width = 40  # The number of columns making up the input spaces
         self.numCommRows = 3   # The number of rows that are command rows
         
         # Create the physics simualtion class
@@ -802,7 +801,7 @@ class HTMNetwork(QtGui.QWidget):
         self.iteration += 1 # Increase the time
         for lev in range(0,self.numLevels):
             # If the iteration is a power of 2 update the higher levels as well
-            twoPowLev = math.pow(2,100*lev)
+            twoPowLev = math.pow(2,10*lev)
             if self.iteration%twoPowLev==0:
                 print " LEVEL %s"%lev
 
@@ -862,7 +861,7 @@ class HTMNetwork(QtGui.QWidget):
         # Calculate the command space of the highest level first
         for lev in xrange(self.numLevels):
             # If the iteration is a power of 2 update the higher levels as well
-            twoPowLev = math.pow(2,100*lev)
+            twoPowLev = math.pow(2,10*lev)
             if self.iteration%twoPowLev==0:
                 print " LEVEL %s"%lev
                 # If the angle is further from 90 degs then don't set the command as active. 

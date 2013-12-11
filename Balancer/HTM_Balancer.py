@@ -650,10 +650,10 @@ class HTMLayer:
         # Different to CLA paper.
         # First we calculate the score for each cell in the active column
         for c in self.activeColumns:
-##            if (inSpace==True and c.pos_y<self.commandRow) or (inSpace==False and c.pos_y>=self.commandRow):
+            if (inSpace==True and c.pos_y<self.commandRow) or (inSpace==False and c.pos_y>=self.commandRow):
             ## Only perform learning for commands
             ##if c.pos_y>=self.commandRow:
-            if (inSpace==False and c.pos_y>=self.commandRow):
+            ##if (inSpace==False and c.pos_y>=self.commandRow):
                 #print "\n ACTIVE COLUMN x,y = %s,%s time = %s"%(c.pos_x,c.pos_y,timeStep)
                 #print "columnActive =",c.columnActive
                 highestScore = 0        # Remember the highest score in the column
@@ -670,10 +670,10 @@ class HTMLayer:
                     else:
                         c.cells[i].score = 0
         for c in self.activeColumns:
-##            if (inSpace==True and c.pos_y<self.commandRow) or (inSpace==False and c.pos_y>=self.commandRow):
+            if (inSpace==True and c.pos_y<self.commandRow) or (inSpace==False and c.pos_y>=self.commandRow):
             ## Only perform learning for commands
             ##if c.pos_y>=self.commandRow:
-            if (inSpace==False and c.pos_y>=self.commandRow):
+            ##if (inSpace==False and c.pos_y>=self.commandRow) or (inSpace==True and c.pos_y<self.commandRow):
                 buPredicted = False
                 lcChosen = False
                 for i in range(self.cellsPerColumn):        
@@ -730,22 +730,22 @@ class HTMLayer:
                     sUpdate['sequenceSegment']=timeStep
                     c.cells[cell].segmentUpdateList.append(sUpdate)
                     #print "Length of cells updatelist = %s"%len(c.cells[cell].segmentUpdateList)
-            elif (inSpace==True and c.pos_y<self.commandRow):
-                ## If not in the command space just choose the first cell
-                buPredicted = False
-                lcChosen = False
-                self.activeStateAdd(c,0,timeStep)
-                self.learnStateAdd(c,0,timeStep)
+            # elif (inSpace==True and c.pos_y<self.commandRow):
+            #     ## If not in the command space just choose the first cell
+            #     buPredicted = False
+            #     lcChosen = False
+            #     self.activeStateAdd(c,0,timeStep)
+            #     self.learnStateAdd(c,0,timeStep)
     def updatePredictiveState(self,timeStep,inSpace):
         # The second function call for the temporal pooler. 
         # Updates the predictive state of cells.
         print "\n       2nd TEMPORAL FUNCTION "
         for k in range(len(self.columns)):
             for c in self.columns[k]:
-                ##  if (inSpace==True and c.pos_y<self.commandRow) or (inSpace==False and c.pos_y>=self.commandRow):
+                if (inSpace==True and c.pos_y<self.commandRow) or (inSpace==False and c.pos_y>=self.commandRow):
                 ## Only perform learning for commands
                 ##if c.pos_y>=self.commandRow:
-                if (inSpace==False and c.pos_y>=self.commandRow):
+                ##if (inSpace==False and c.pos_y>=self.commandRow):
                     mostPredCellSynCount=0  # This is a count of the largest number of synapses active on any segment on any cell in the column
                     mostPredCell=0      # This is the cellIndex with the most mostPredCellSynCount. This cell is the highest predictor in the column.
                     mostPredSegment=0
@@ -786,9 +786,9 @@ class HTMLayer:
         print "\n       3rd TEMPORAL FUNCTION "
         for k in range(len(self.columns)):
             for c in self.columns[k]:
-                ##if (inSpace==True and c.pos_y<self.commandRow) or (inSpace==False and c.pos_y>=self.commandRow):
+                if (inSpace==True and c.pos_y<self.commandRow) or (inSpace==False and c.pos_y>=self.commandRow):
                 ## Only perform learning for commands
-                if (inSpace==False and c.pos_y>=self.commandRow):
+                ##if (inSpace==False and c.pos_y>=self.commandRow):
                     for i in range(len(c.cells)):
                         #print "predictiveStateArray for x,y,i = %s,%s,%s is latest time = %s"%(c.pos_x,c.pos_y,i,c.predictiveStateArray[i,0])
                         if self.learnState(c,i,timeStep)==True:
