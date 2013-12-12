@@ -28,7 +28,7 @@ def createInput(angle, gridWidth, gridHeight, angleOverlap, minAcc, maxAcc):
         #angleCol = int(round(anglePos))
         for row in range(len(angleInput)):
             for col in range(len(angleInput[0])):
-                if col > (anglePos-angleOverlap) and col < (anglePos+angleOverlap):
+                if col > (anglePos-angleOverlap) and col < (anglePos+angleOverlap): 
                     angleInput[row][col] = 1
         #print "grid = ",angleInput
         return angleInput
@@ -45,12 +45,24 @@ class InvertedPendulum():
         self.x = 0.0
         self.y = self.length
         self.angle = 90      # 90 deg is upright
+        self.vel = 0
 
     def step(self, acc, time):
         # Calculate the new position of the pendulum after the time while applying the specified acceleration.
         # Simple pendulum for now! ]
-        print "self.angle = %s, time = %s, acc = %s"%(self.angle,time,acc)
-        self.angle = self.angle+time*acc
+        print "self.angle = %s, vel = %s, time = %s, acc = %s"%(self.angle,self.vel,time,acc)
+        self.vel = self.vel+time*acc
+        # Limit the velocity
+        if self.vel > 10:
+            self.vel = 10
+        if self.vel < -10:
+            self.vel = -10
+        self.angle = self.angle+self.vel
+        # Limit the angle
+        if self.angle > 180:
+            self.angle = 180
+        if self.angle < 0:
+            self.angle = 0
         return self.angle
 
 

@@ -192,7 +192,7 @@ class HTMGridViewer(QtGui.QGraphicsView):
         self.rows = height
         self.pos_x = 0
         self.pos_y = 0
-        self.numCells = 10
+        self.numCells = 3
         self.numLevels = numLevels
         self.level = 0  # Draw this level of the HTMNetwork
         self.commandRow = commandRow # The row where the command space starts.
@@ -819,15 +819,15 @@ class HTMNetwork(QtGui.QWidget):
                     else:
                         self.command[lev] = pred_command
                 # Get the feed back from the upper level.
-                if lev<(self.numLevels-1):
-                    higherLevel=lev+1
-                    #fbComm = self.HTMNetworkGrid.predictedCommand(higherLevel)
-                    fbComm = self.command[higherLevel]
-                    print "     fbComm is %s"%fbComm
-                    # This fuction is not called for the highest level.
-                    upperCommInput = invertPen.createInput(fbComm, self.width, self.numCommRows, self.angleOverlap, -self.maxAcc, self.maxAcc)
-                else:
-                    upperCommInput = np.array([[0 for i in range(self.width)] for j in range(self.numCommRows)])
+                # if lev<(self.numLevels-1):
+                #     higherLevel=lev+1
+                #     #fbComm = self.HTMNetworkGrid.predictedCommand(higherLevel)
+                #     fbComm = self.command[higherLevel]
+                #     print "     fbComm is %s"%fbComm
+                #     # This fuction is not called for the highest level.
+                #     upperCommInput = invertPen.createInput(fbComm, self.width, self.numCommRows, self.angleOverlap, -self.maxAcc, self.maxAcc)
+                # else:
+                upperCommInput = np.array([[0 for i in range(self.width)] for j in range(self.numCommRows)])
                 #print "     FB COMMAND=",upperCommInput
                 # For level 0 update the input space for level 0 and the display widget. 
                 if lev==0:

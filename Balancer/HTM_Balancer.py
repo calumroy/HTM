@@ -144,7 +144,6 @@ class HTMLayer:
         # The Command row is just the row number where the commands start
         self.commandRow = commandRow
         # The columns are in a 2 dimensional array column_array_width by column_array_height.
-        # This might be a crap idea
         self.width = column_array_width
         self.height = column_array_height
         self.Input = input
@@ -164,10 +163,10 @@ class HTMLayer:
         self.connectPermanence = 0.3
         #This is also defined in the Synapse class!!! Maybe change this
         #self.connectedPerm = 0.3    # The value a connected Synapses must be higher then.
-        self.minThreshold = 18       # Should be smaller than activationThreshold
+        self.minThreshold = 5       # Should be smaller than activationThreshold
         self.minScoreThreshold = 10  # The minimum score needed by a cell to be added to the alternative sequence.
-        self.newSynapseCount = 22    # This limits the activeSynapse array to this length. It should be renamed
-        self.activationThreshold = 20    # More than this many synapses on a segment must be active for the segment to be active
+        self.newSynapseCount = 9    # This limits the activeSynapse array to this length. It should be renamed
+        self.activationThreshold = 7    # More than this many synapses on a segment must be active for the segment to be active
         self.dutyCycleAverageLength = 1000
         self.timeStep = 0
         self.output = np.array([[0 for i in range(self.width)] for j in range(self.height)])
@@ -495,7 +494,7 @@ class HTMLayer:
             #print "returned from getBestMatchingCell cell i=%s with the fewest number of segments num=%s"%(fewestSegments,len(c.cells[fewestSegments].segments))
             return (fewestSegments,-1)
     def getSegmentActiveSynapses(self,c,i,timeStep,s,newSynapses=False):
-        # Returns an segmentUpdate structure. This is used to update the segments and there
+        # Returns an segmentUpdate structure. This is used to update the segments and their
         # synapses during learning. It adds the synapses from the segments synapse list
         # that have an active end, to the segmentUpdate structure so these synapses can be updated
         # appropriately (either inc or dec) later during learning.
