@@ -12,18 +12,18 @@ import numpy as np
 import math
 import random
 
-def createInput(angle, gridWidth, gridHeight, angleOverlap, minAcc, maxAcc):
+def createInput(angle, gridWidth, gridHeight, angleOverlap, minAngle, maxAngle):
     # Create the angle input matrix
     # angle = The current angle of the inverted pendulum
     # gridWidth = The width of the matrix
     # gridHeight = The height of the matrix
     # angleOverlap = The number of columns the active angle cells take up. This affects the overlap between angle readings.
-    # minAcc = The minimum acceleration. This is the acceleration value that the first column represents. 
-    # maxAcc = The maximum acceleration. This is the acceleration value that the last column represents. 
+    # minAngle = The minimum angle. This is the angle value that the first column represents. 
+    # maxAngle = The maximum angle. This is the angle value that the last column represents. 
     if angle=='none':
         return np.array([[0 for i in range(gridWidth)] for j in range(gridHeight)])
     angleInput = np.array([[0 for i in range(gridWidth)] for j in range(gridHeight)])
-    anglePos = float(gridWidth)/float(abs(minAcc)+abs(maxAcc))*float(abs(angle-minAcc))
+    anglePos = round(float(gridWidth)/float(abs(minAngle)+abs(maxAngle))*float(abs(angle-minAngle)))
     #print"anglePos = %s, angleOverlap = %s"%(anglePos,angleOverlap)
     #angleCol = int(round(anglePos))
     for row in range(len(angleInput)):
@@ -40,13 +40,17 @@ def averageAcc(accGrid):
     numberCols = len(accGrid[0])
     for k in range(len(accGrid)):
         for m in range(len(accGrid[k])):
-            avgAcc += k
-            numPredCells += 1
-    avgAcc = round(avgAcc/numPredCells)
-    # Convert the column number into an acceleration. Left is neg right is pos
-    avgAcc = -round(numberCols/2)+avgAcc
-    print "     Average Acceleration = %s"%avgAcc
-    return avgAcc
+            if accGrid[k][m]==1:
+                avgAcc += m
+                numPredCells += 1
+    if numPredCells>0:  # Avoid divide by zero
+        avgAcc = round(avgAcc/numPredCells)
+        # Convert the column number into an acceleration. Left is neg right is pos
+        avgAcc = -round(numberCols/2)+avgAcc
+        print "     Average Acceleration = %s"%avgAcc
+        return avgAcc
+    else:
+        return 'none'
         
         
 
@@ -61,22 +65,22 @@ class InvertedPendulum():
         self.angle = 90      # 90 deg is upright
         self.vel = 0
 
-    def step(self, acc, time):
+    def step(self, acc, minAngle, maxAngle, maxAcc, time):
         # Calculate the new position of the pendulum after the time while applying the specified acceleration.
-        # Simple pendulum for now! ]
-        print "self.angle = %s, vel = %s, time = %s, acc = %s"%(self.angle,self.vel,time,acc)
-        self.vel = self.vel+int(time*acc/4)
+        # Simple pendulum for now! 
+        print " self.angle = %s, vel = %s, acc = %s, time = %s"%(self.angle,self.vel,acc,time)
+        self.vel = self.vel+int(time*acc)
         # Limit the velocity
-        if self.vel > 10:
-            self.vel = 10
-        if self.vel < -10:
-            self.vel = -10
+        if self.vel > maxAcc:
+            self.vel = maxAcc
+        if self.vel < -maxAcc:
+            self.vel = -maxAcc
         self.angle = self.angle+self.vel
         # Limit the angle
-        if self.angle > 180:
-            self.angle = 180
-        if self.angle < 0:
-            self.angle = 0
+        if self.angle > maxAngle:
+            self.angle = maxAngle
+        if self.angle < minAngle:
+            self.angle = minAngle
         return self.angle
 
 

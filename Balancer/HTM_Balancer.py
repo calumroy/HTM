@@ -163,10 +163,10 @@ class HTMLayer:
         self.connectPermanence = 0.3
         #This is also defined in the Synapse class!!! Maybe change this
         #self.connectedPerm = 0.3    # The value a connected Synapses must be higher then.
-        self.minThreshold = 8       # Should be smaller than activationThreshold
-        self.minScoreThreshold = 2  # The minimum score needed by a cell to be added to the alternative sequence.
-        self.newSynapseCount = 13    # This limits the activeSynapse array to this length. It should be renamed
-        self.activationThreshold = 9    # More than this many synapses on a segment must be active for the segment to be active
+        self.minThreshold = 4       # Should be smaller than activationThreshold
+        self.minScoreThreshold = 3  # The minimum score needed by a cell to be added to the alternative sequence.
+        self.newSynapseCount = 8    # This limits the activeSynapse array to this length. It should be renamed
+        self.activationThreshold = 7    # More than this many synapses on a segment must be active for the segment to be active
         self.dutyCycleAverageLength = 1000
         self.timeStep = 0
         self.output = np.array([[0 for i in range(self.width)] for j in range(self.height)])

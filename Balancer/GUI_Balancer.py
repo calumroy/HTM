@@ -323,7 +323,7 @@ class HTMGridViewer(QtGui.QGraphicsView):
             # Check each synapse and draw the connected cells
             for syn in column.cells[cell].segments[segment].synapses:
                 if syn.pos_x==cell_pos_x and syn.pos_y==cell_pos_y and syn.cell==cell_cell:
-                    print "     syn x,y,cell= %s,%s,%s Permanence = %s, cell active at = %s"%(cell_pos_x,cell_pos_y,cell_cell,syn.permanence,column.activeStateArray[syn.cell])
+                    print "     syn x,y,cell= %s,%s,%s Permanence = %s, active times = %s"%(cell_pos_x,cell_pos_y,cell_cell,syn.permanence,column.activeStateArray[syn.cell])
                     brush.setColor(blue);
             self.cellItems[i].setBrush(brush)
             self.cellItems[i].setPen(pen)
@@ -469,7 +469,7 @@ class HTMGridViewer(QtGui.QGraphicsView):
             for m in range(len(self.htm.HTMLayerArray[level].columns[k])):
                 c = htmLevel.columns[k][m]
                 for i in range(len(c.cells)):
-                    # If the cell is in predictive state for the current timeStep
+                    # Set the output to true if a cell is in predictive stat for a particular column for the current timeStep
                     if htmLevel.predictiveState(c,i,currentTime)==True:
                         commandGrid[k][m] = 1
         return commandGrid    
@@ -579,19 +579,20 @@ class HTMNetwork(QtGui.QWidget):
         self.iteration = 0
         self.origIteration = 0  # Stores the iteration for the previous saved HTM
         self.numLevels = 2 # The number of levels.
-        self.angleInputHeight = 3   # How many rows will make up the angle input space.
-        self.width = 40  # The number of columns making up the input spaces
-        self.numCommRows = 3   # The number of rows that are command rows
+        self.angleInputHeight = 4   # How many rows will make up the angle input space.
+        self.width = 6  # The number of columns making up the input spaces
+        self.numCommRows = 4   # The number of rows that are command rows
         
         # Create the physics simualtion class
         self.invPen = invertPen.InvertedPendulum()
-        self.angle = 90     # The angle that the inverted pendulum is at.
-        self.angleOverlap = 2 # The number of columns that an angle position can overlap either side.
-        self.minAngle = 0 # The angle that a cell in the first column represents.
-        self.maxAngle = 180 # The angle that a cell in the last column represents.
+        self.angle = 3     # The angle that the inverted pendulum is at.
+        self.angleOverlap = 1 # The number of columns that an angle position can overlap either side.
+        self.minAngle = 1 # The angle that a cell in the first column represents.
+        self.maxAngle = 6 # The angle that a cell in the last column represents.
+        self.desAngle = 3 # The desired angle that the system should aim to acheive.
         self.oldAngle = np.array([self.angle for i in range(self.numLevels)])   # An array to store the previous angle value for each level
         #self.acceleration = 0.0   # The acceleration commanded by the HTM
-        self.maxAcc = self.width/2  # The maximum acceleration is half the width since right side is poitive left is negative.
+        self.maxAcc = round((self.maxAngle-self.minAngle)/2)  # The maximum acceleration is half the max angle - min angle, right side is positive left is negative.
 
         # Store the commands from each level.
         self.command = np.array([0 for i in range(self.numLevels)])
@@ -607,6 +608,9 @@ class HTMNetwork(QtGui.QWidget):
         self.commandSpace = self.setInput(self.width,(self.height-self.commandRow))
         self.HTMNetworkGrid = HTMGridViewer(self.width,self.height,self.commandRow,self.numLevels)
         self.inputGrid = HTMInput(self.width,self.height)
+
+        # Used to create and save new views
+        self.markedHTMViews = []
         
         self.scaleFactor=0.2    # How much to scale the grids by
         self.grid = None    # This is the layout holding the frames.
@@ -627,6 +631,7 @@ class HTMNetwork(QtGui.QWidget):
         self.btn11=None # Save
         self.btn12=None # Load
         self.btn13=None # Level select
+        self.btn14=None # Mark state
         self.makeFrames()
         self.makeButtons()
 
@@ -664,6 +669,8 @@ class HTMNetwork(QtGui.QWidget):
         self.btn11.clicked.connect(self.saveHTM)
         self.btn12 = QtGui.QPushButton("load", self)
         self.btn12.clicked.connect(self.loadHTM)
+        self.btn14 = QtGui.QPushButton("mark", self)
+        self.btn14.clicked.connect(self.markHTM)
         
         # Create the level dropDown
         self.levelDropDown()
@@ -683,6 +690,7 @@ class HTMNetwork(QtGui.QWidget):
         self.grid.addWidget(self.btn7, 3, 2, 1, 1)
         self.grid.addWidget(self.btn1, 3, 5, 1, 1)
         self.grid.addWidget(self.btn2, 3, 6, 1, 1)
+        self.grid.addWidget(self.btn14, 2, 6, 1, 1)
         
     def levelDropDown(self):
         # Create a drop down button to select the level in the HTM to draw.
@@ -702,7 +710,20 @@ class HTMNetwork(QtGui.QWidget):
         # single cells segment connection was being shown
         self.HTMNetworkGrid.showAllHTM = True
         self.HTMNetworkGrid.updateHTMGrid()
+    
+    def markHTM(self):
+        # Mark the current state of the HTM by creatng an new view to view the current state.
+        self.markedHTMViews.append(HTMGridViewer(self.width,self.height,self.commandRow,self.numLevels))
+        # Use the HTMGridVeiw object that has been appended to the end of the list
+        self.markedHTMViews[-1].htm = self.HTMNetworkGrid.htm
+        # Update the view settings
+        self.markedHTMViews[-1].showActiveCells = self.HTMNetworkGrid.showActiveCells
+        self.markedHTMViews[-1].showLearnCells = self.HTMNetworkGrid.showLearnCells
+        self.markedHTMViews[-1].showPredictCells = self.HTMNetworkGrid.showPredictCells
+        # Redraw the new view 
+        self.markedHTMViews[-1].updateHTMGrid()
         
+
     def showActiveCells(self):
         # Toggle between showing the active cells or not
         if self.HTMNetworkGrid.showActiveCells==True:
@@ -811,8 +832,9 @@ class HTMNetwork(QtGui.QWidget):
         # PART 1 MAKE NEW INPUT FOR LEVEL 0
         ############################################
         print "PART 1"
-        # Return an average acceleraltion output to pass to the simulated inverted pendulum
+        # Return an average acceleration output to pass to the simulated inverted pendulum
         command = invertPen.averageAcc(self.HTMNetworkGrid.predictedCommand(0))
+        #print " CommandSpace = %s"%self.HTMNetworkGrid.predictedCommand(0)
 
         print " Predicted command is %s"%command
         if command=='none':
@@ -823,13 +845,9 @@ class HTMNetwork(QtGui.QWidget):
         self.command[0]=command
         # update the inverted pendulum with the new acceleration command.
         self.oldAngle[0] = self.angle
-        self.angle = self.invPen.step(command,1)  # Use 1 second for the step size.
+        self.angle = self.invPen.step(command,self.minAngle, self.maxAngle, self.maxAcc ,1)  # Use 1 second for the step size.
         angleInput = invertPen.createInput(self.angle, self.width, self.angleInputHeight, self.angleOverlap, self.minAngle, self.maxAngle)
-        
-        # if abs(90-self.angle) < abs(90-self.oldAngle[0]):
-        #     print "     WON"
-        # else:
-        #     print "     LOST"
+
         print " New angle = %s Old angle = %s"%(self.angle,self.oldAngle[0])
         
         # PART 2 ADD THE INPUT PARTS TOGETHER AND RUN THROUGH THE HTM LEVELS
@@ -843,14 +861,25 @@ class HTMNetwork(QtGui.QWidget):
                 print " Level %s"%lev
 
                 # Check the last input and work out if the previous command was successful or not.
-                print "     New angle = %s Old angle = %s"%(self.angle,self.oldAngle[0])
-                commSuccessful = self.HTMNetworkGrid.commandSuccessful(lev)
-                if commSuccessful == True:
-                    print "     level %s WON"%lev
-                    newCommInput=invertPen.createInput(self.command[lev], self.width, self.angleInputHeight, self.angleOverlap, -self.maxAcc, self.maxAcc)
-                else:
-                    print "     level %s LOST"%lev
-                    newCommInput=invertPen.createInput('none', self.width, self.angleInputHeight, self.angleOverlap, -self.maxAcc, self.maxAcc)
+                print "     New angle = %s Old angle = %s"%(self.angle,self.oldAngle[lev])
+                # This fuction is not called for the highest level.
+                if lev<(self.numLevels-1):
+                    commSuccessful = self.HTMNetworkGrid.commandSuccessful(lev)
+                    if commSuccessful == True:
+                        print "     level %s WON"%lev
+                        newCommInput=invertPen.createInput(self.command[lev], self.width, self.angleInputHeight, self.angleOverlap, -self.maxAcc, self.maxAcc)
+                    else:
+                        print "     level %s LOST"%lev
+                        newCommInput=invertPen.createInput('none', self.width, self.angleInputHeight, self.angleOverlap, -self.maxAcc, self.maxAcc)
+                # The highest level checks if the pendulum has moved closer to the middle.
+                if lev==(self.numLevels-1):
+                    if (abs(self.desAngle-self.angle) < abs(self.desAngle-self.oldAngle[lev])):
+                        newCommInput=invertPen.createInput(self.command[lev], self.width, self.angleInputHeight, self.angleOverlap, -self.maxAcc, self.maxAcc)
+                        print "     level %s WON"%lev
+                    else:
+                        newCommInput=invertPen.createInput('none', self.width, self.angleInputHeight, self.angleOverlap, -self.maxAcc, self.maxAcc)
+                        print "     level %s LOST"%lev
+
 
                 # Get the command of the current level except for level 0
                 # Level zero has already been done.
@@ -859,11 +888,11 @@ class HTMNetwork(QtGui.QWidget):
                 if lev!=0:
                     pred_command=invertPen.averageAcc(self.HTMNetworkGrid.predictedCommand(lev))
                     print "     current levels pred command=%s"%(pred_command)
-                    # If no command is predicted a random command is chosen.
+                    # If no command is predicted then use the last command.
                     # This command is sent down a level and used to learn against. 
                     if pred_command=='none':
-                        self.command[lev]=random.randint(-self.maxAcc,self.maxAcc)
-                    else:
+                        self.command[lev] = random.randint(-self.maxAcc,self.maxAcc)
+                    else:    
                         self.command[lev] = pred_command
 
                 # Get the feed back from the upper level.
@@ -875,7 +904,8 @@ class HTMNetwork(QtGui.QWidget):
                     print "     fbComm is %s"%fbComm
                     upperCommInput = invertPen.createInput(fbComm, self.width, self.numCommRows, self.angleOverlap, -self.maxAcc, self.maxAcc)
                 else:
-                    upperCommInput = np.array([[0 for i in range(self.width)] for j in range(self.numCommRows)])
+                    # upperCommInput = np.array([[0 for i in range(self.width)] for j in range(self.numCommRows)])
+                    upperCommInput = invertPen.createInput(0, self.width, self.numCommRows, self.angleOverlap, -self.maxAcc, self.maxAcc)
                 #print "     FB COMMAND=",upperCommInput
 
                 # For level 0 update the input space for level 0 and the display widget. 
