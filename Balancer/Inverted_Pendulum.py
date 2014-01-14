@@ -23,32 +23,43 @@ def createInput(angle, gridWidth, gridHeight, angleOverlap, minAngle, maxAngle):
     if angle=='none':
         return np.array([[0 for i in range(gridWidth)] for j in range(gridHeight)])
     angleInput = np.array([[0 for i in range(gridWidth)] for j in range(gridHeight)])
-    anglePos = round(float(gridWidth)/float(abs(minAngle)+abs(maxAngle))*float(abs(angle-minAngle)))
-    #print"anglePos = %s, angleOverlap = %s"%(anglePos,angleOverlap)
+    anglePos = float(float(gridWidth)/float(1.0+(abs(maxAngle-minAngle))))*float(abs(angle-minAngle))
+    #print"anglePos,angleOverlap = %s,%s "%(anglePos,angleOverlap)
     #angleCol = int(round(anglePos))
     for row in range(len(angleInput)):
         for col in range(len(angleInput[0])):
-            if col > (anglePos-angleOverlap) and col < (anglePos+angleOverlap): 
+            if col >= (round(anglePos-angleOverlap)) and col <= (round(anglePos+angleOverlap)): 
                 angleInput[row][col] = 1
     #print "grid = ",angleInput
     return angleInput
 
-def averageAcc(accGrid):
+def medianAcc(accGrid, minAcc, maxAcc):
     # Take a command grid input and output an average acceleration value
-    avgAcc = 0 
+    # The minimum acceleration is the acceleration represented by column 0 the 
+    # maximum acceleration is from the most right column; linearly scaled between this.
     numPredCells = 0 # This is the number of predicting cells
-    numberCols = len(accGrid[0])
+    numAccLevels = 1+abs(maxAcc-minAcc) # The number of accleration levels
+    gridWidth = len(accGrid[0])
+    accArray = np.array([0 for i in range(numAccLevels)])
+    # The acceleration represented per column. Plus one since -1 to 1 is 3 columns as 0 must be represented.
+    accPerCol = float((1+abs(maxAcc-minAcc))/float(gridWidth))
     for k in range(len(accGrid)):
         for m in range(len(accGrid[k])):
             if accGrid[k][m]==1:
-                avgAcc += m
+                #avgAcc += m*accPerCol 
+                accArray[int(m*accPerCol)] += 1;
                 numPredCells += 1
     if numPredCells>0:  # Avoid divide by zero
-        avgAcc = round(avgAcc/numPredCells)
-        # Convert the column number into an acceleration. Left is neg right is pos
-        avgAcc = -round(numberCols/2)+avgAcc
-        print "     Average Acceleration = %s"%avgAcc
-        return avgAcc
+        #avgAcc = int(avgAcc/numPredCells) + minAcc
+        mostPredAcc = 0
+        medianAcc = 0
+        for i in range(len(accArray)):
+            if accArray[i] > mostPredAcc:
+                mostPredAcc = accArray[i]
+                medianAcc = i
+        medianAcc = medianAcc + minAcc
+        #print "     Median Acceleration = %s accPerCol = %s numPredCells = %s"%(medianAcc,accPerCol,numPredCells)
+        return medianAcc
     else:
         return 'none'
         
