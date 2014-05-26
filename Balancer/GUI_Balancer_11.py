@@ -8,38 +8,8 @@ last edited: June 2013
 
 This code draws the input and a HTM network in a grid using PyQt
 
-It sets up a simple version of poker.
-Cards are 1 to 5. HTM's cards (your cards) on the left money level on the right.
-your commands are in the bottom left the higher level commands are bottom right.
-
-example of 1 HTM level
-cardSize = 2
- your cards
- |       money
-_|_______|________  Cards
-** ** | ** **
-** ** | ** **
-
-** ** | ** **
-** ** | ** **
-
-** ** | ** **
-** ** | ** **
-
-** ** | ** **
-** ** | ** **
-
-** ** | ** **
-** ** | ** **
-__________________  Commands
-** ** | ** **
-** ** | ** **-------- These commands are from a higher level
-|  |    
-|  |    
-|  |    
-|  |
-|  Check
-Raise
+It creates a simplified version of an Inverted_Pendulumn and 
+attempts to learn and control the system using the HTM network.
 
 """
 import sys
@@ -49,10 +19,11 @@ import random
 import sys
 from PyQt4 import QtGui, QtCore
 from PyQt4.QtCore import QObject, pyqtSlot
-import HTM_Poker as HTM_V
+import HTM_Balancer as HTM_V
 import math
+import copy
 
-import pokerCardInput as pkcd
+import Inverted_Pendulum as invertPen
 
 class levelPopup(QtGui.QWidget):
     
@@ -109,6 +80,7 @@ class popup(QtGui.QWidget):
 
     def paintEvent(self, event):
         dc = QtGui.QPainter(self)
+
 
 class HTMColumn(QtGui.QGraphicsRectItem):
     def __init__(self,HTM_x,HTM_y,squareSize,pen,brush):
@@ -210,6 +182,7 @@ class HTMGridViewer(QtGui.QGraphicsView):
     def __init__(self,width,height,commandRow,numLevels):
         super(HTMGridViewer, self).__init__()
         self.initUI(width,height,commandRow,numLevels)
+
         
     def initUI(self,width,height,commandRow,numLevels):
         self.scene=QtGui.QGraphicsScene(self)
@@ -220,14 +193,21 @@ class HTMGridViewer(QtGui.QGraphicsView):
         self.rows = height
         self.pos_x = 0
         self.pos_y = 0
-        self.numCells = 10
+        self.numCells = 3
         self.numLevels = numLevels
-        self.level = 0  # Draw this level of the HTMNetwork
+        self.level = 0  # Draw this level (Region) of the HTMNetwork
+        self.layer = 0 # Draw this HTN layer in the level.
         self.commandRow = commandRow # The row where the command space starts.
         self.numCommRows = self.rows-self.commandRow 
+        # The minimum number of cells that are active and where predicted for the command to be considered successful
+        self.minNumberPredCells = 3 
         # For the popup segment selection box
         self.segmentSelect = None
         self.selectedItem = None
+        # Keep track of the right mouse button to move the view
+        self.setDragMode(QtGui.QGraphicsView.RubberBandDrag)
+        self._mousePressed = False
+        self._dragPos = None
         
         # Create HTM network with an empty input
         input = np.array([[0 for i in range(width)] for j in range(height)])
@@ -241,6 +221,7 @@ class HTMGridViewer(QtGui.QGraphicsView):
         self.scaleGridSize()
         self.cellItems = []   # Stores all the cell items in the scene
         self.columnItems = [] # Stores all the column items in the scene
+
         self.drawGrid(self.rows,self.cols,self.size)
         self.show()
 
@@ -259,7 +240,7 @@ class HTMGridViewer(QtGui.QGraphicsView):
         brush = QtGui.QBrush(pen.color().darker(150))
         for x in range(cols):
                 for y in range(rows):
-                    value = self.htm.HTMLayerArray[self.level].columns[y][x].activeState
+                    value = self.htm.HTMRegionArray[self.level].layerArray[self.layer].columns[y][x].activeState
                     if value == False:
                             brush.setColor(QtCore.Qt.red)
                     if value == True:
@@ -315,7 +296,7 @@ class HTMGridViewer(QtGui.QGraphicsView):
             column_pos_y=self.columnItems[i].pos_y
             brush = QtGui.QBrush(transpBlue)   # Have to create a brush with a color
             # Check each synapse and draw the connected columns
-            for syn in self.htm.HTMLayerArray[self.level].columns[pos_y][pos_x].connectedSynapses:
+            for syn in self.htm.HTMRegionArray[self.level].layerArray[self.layer].columns[pos_y][pos_x].connectedSynapses:
                 if syn.pos_x==column_pos_x and syn.pos_y==column_pos_y:
                     print "     syn x,y= %s,%s Permanence = %s"%(column_pos_x,column_pos_y,syn.permanence)
                     brush.setColor(darkGreen);
@@ -336,15 +317,15 @@ class HTMGridViewer(QtGui.QGraphicsView):
         blue = QtGui.QColor(0x40, 0x30, 0xFF, 0xFF)
         # Go through each cell. If it is in the synapse list draw it otherwise don't
         for i in range(len(self.cellItems)):
-            #print"HEYEHEYEHHYE"
             cell_pos_x=self.cellItems[i].pos_x
             cell_pos_y=self.cellItems[i].pos_y
             cell_cell=self.cellItems[i].cell
+            column = self.htm.HTMRegionArray[self.level].layerArray[self.layer].columns[pos_y][pos_x]
             brush = QtGui.QBrush(transpBlue)   # Have to create a brush with a color
             # Check each synapse and draw the connected cells
-            for syn in self.htm.HTMLayerArray[self.level].columns[pos_y][pos_x].cells[cell].segments[segment].synapses:
+            for syn in column.cells[cell].segments[segment].synapses:
                 if syn.pos_x==cell_pos_x and syn.pos_y==cell_pos_y and syn.cell==cell_cell:
-                    print "     syn x,y,cell= %s,%s,%s Permanence = %s"%(cell_pos_x,cell_pos_y,cell_cell,syn.permanence)
+                    print "     syn x,y,cell= %s,%s,%s Permanence = %s, active times = %s"%(cell_pos_x,cell_pos_y,cell_cell,syn.permanence,column.activeStateArray[syn.cell])
                     brush.setColor(blue);
             self.cellItems[i].setBrush(brush)
             self.cellItems[i].setPen(pen)
@@ -356,7 +337,7 @@ class HTMGridViewer(QtGui.QGraphicsView):
             brush.setStyle(QtCore.Qt.SolidPattern)
             pos_x=self.columnItems[i].pos_x
             pos_y=self.columnItems[i].pos_y
-            value = self.htm.HTMLayerArray[self.level].columns[pos_y][pos_x].activeState
+            value = self.htm.HTMRegionArray[self.level].layerArray[self.layer].columns[pos_y][pos_x].activeState
             if value == 0:
                     brush.setColor(QtCore.Qt.red)
                     self.columnItems[i].setBrush(brush)
@@ -368,7 +349,7 @@ class HTMGridViewer(QtGui.QGraphicsView):
                     
     def updateCells(self):
         # Redraw the cells.
-        timeStep=self.htm.HTMLayerArray[self.level].timeStep
+        timeStep=self.htm.HTMRegionArray[self.level].layerArray[self.layer].timeStep
         print " current levels TimeStep=%s"%(timeStep)
         transp = QtGui.QColor(0, 0, 0, 0)
         pen = QtGui.QPen(transp, 0, QtCore.Qt.SolidLine)
@@ -385,17 +366,17 @@ class HTMGridViewer(QtGui.QGraphicsView):
             cell=self.cellItems[i].cell
             brush = QtGui.QBrush(transp) # Make the non existent cells faint
             if self.showActiveCells==True:
-                if int(self.htm.HTMLayerArray[self.level].columns[pos_y][pos_x].activeStateArray[cell,0]) == timeStep:
+                if int(self.htm.HTMRegionArray[self.level].layerArray[self.layer].columns[pos_y][pos_x].activeStateArray[cell,0]) == timeStep:
                     brush.setColor(blue);
                 else:
                     brush.setColor(transpBlue);
             if self.showPredictCells==True:
-                if int(self.htm.HTMLayerArray[self.level].columns[pos_y][pos_x].predictiveStateArray[cell,0]) == timeStep:
+                if int(self.htm.HTMRegionArray[self.level].layerArray[self.layer].columns[pos_y][pos_x].predictiveStateArray[cell,0]) == timeStep:
                     brush.setColor(black);
                 else:
                     brush.setColor(transpBlue);
             if self.showLearnCells==True:
-                if int(self.htm.HTMLayerArray[self.level].columns[pos_y][pos_x].learnStateArray[cell,0]) == timeStep:
+                if int(self.htm.HTMRegionArray[self.level].layerArray[self.layer].columns[pos_y][pos_x].learnStateArray[cell,0]) == timeStep:
                     brush.setColor(darkGreen);
                 else:
                     brush.setColor(transpBlue);
@@ -407,84 +388,180 @@ class HTMGridViewer(QtGui.QGraphicsView):
         self.scale(scaleSize, scaleSize)
         
     def mousePressEvent(self,event):
-        item=self.itemAt(event.x(),event.y())
-        if item.__class__.__name__ == "HTMCell":
-            print"cell"
-            print "pos_x,pos_y,cell = %s,%s,%s"%(item.pos_x,item.pos_y,item.cell)
-            numSegments = len(self.htm.HTMLayerArray[self.level].columns[item.pos_y][item.pos_x].cells[item.cell].segments)
-            self.selectedItem = item
-            item_pos=item.pos()
-            popup_pos_x=item_pos.x()+self.x()
-            popup_pos_y=item_pos.y()+self.y()
-            # Create the popup window at a certain position
-            self.segmentSelect = popup(event.x(),event.y(),item.cell,numSegments)
-            self.segmentSelect.setGeometry(QtCore.QRect(popup_pos_x, popup_pos_y, 200, 200))
-            # Create and connect a Slot to the signal from the check box
-            self.segmentSelect.segmentSelectedSignal.connect(self.selectedSegmentIndex)
-            self.segmentSelect.show()
-        if item.__class__.__name__ == "HTMColumn":
-            print"column"
-            print "pos_x,pos_y = %s,%s"%(item.pos_x,item.pos_y)
-            # Draw the columns synapses.
-            self.drawSingleColumn(item.pos_x,item.pos_y)
-            
-        
-        
-    def step(self,input,level,inSpace):
-        self.htm.spatialTemporal(input,level,inSpace)
-        
-        
-    def predictedCommand(self,level):
-        # HTM poker function
-        # Return the predicted command.
-        # It is raise if the left cells in the command space are 
-        # predicting or check if the cells in the middle  command space are predicting.
-        # Fold if the cells in the right of the command space are predicting.
-        # The command space is split in three. 
-        raiseScore = 0
-        checkScore = 0
-        foldScore = 0
-        htmLevel = self.htm.HTMLayerArray[level]
-        currentTime=htmLevel.timeStep
-        for k in range(self.htm.commandRow,len(self.htm.HTMLayerArray[level].columns)):
-            for m in range(len(self.htm.HTMLayerArray[level].columns[k])):
-                c = htmLevel.columns[k][m]
-                for i in range(len(c.cells)):
-                    if m < round(self.cols/3):
-                        # If the cell is in predictive state for the current timeStep
-                        if htmLevel.predictiveState(c,i,currentTime)==True:
-                            raiseScore += 1
-                    if m >= round(self.cols/3) and m<round(2*self.cols/3):
-                        # If the cell is in predictive state for the current timeStep
-                        if htmLevel.predictiveState(c,i,currentTime)==True:
-                            checkScore += 1
-                    if m >= round(2*self.cols/3) and m<self.cols:
-                        # If the cell is in predictive state for the current timeStep
-                        if htmLevel.predictiveState(c,i,currentTime)==True:
-                            foldScore += 1
-        # LikelyCommand list is larger than one if there is duplicated scores.
-        likelyCommands=[]
-        highest=0
-        if raiseScore>highest:
-            highest=raiseScore
-            likelyCommands.append('raise')
-        if checkScore>highest:
-            highest=checkScore
-            likelyCommands.append('check')
-        if foldScore>highest:
-            highest=foldScore
-            likelyCommands.append('fold')
-        if len(likelyCommands)>0:
-            # Choose the last command as it has the largest score.
-            randomCommand=likelyCommands[-1]
-            return randomCommand
+        if event.buttons() == QtCore.Qt.LeftButton:
+            self._mousePressed = True
+            self.setCursor(QtCore.Qt.ClosedHandCursor)
+            self._dragPos = event.pos()
+            event.accept()
+            item=self.itemAt(event.x(),event.y())
+            if item.__class__.__name__ == "HTMCell":
+                print "cell"
+                print "pos_x,pos_y,cell = %s,%s,%s"%(item.pos_x,item.pos_y,item.cell)
+                numSegments = len(self.htm.HTMRegionArray[self.level].layerArray[self.layer].columns[item.pos_y][item.pos_x].cells[item.cell].segments)
+                self.selectedItem = item
+                item_pos=item.pos()
+                popup_pos_x=item_pos.x()+self.x()
+                popup_pos_y=item_pos.y()+self.y()
+                # Create the popup window at a certain position
+                self.segmentSelect = popup(event.x(),event.y(),item.cell,numSegments)
+                self.segmentSelect.setGeometry(QtCore.QRect(popup_pos_x, popup_pos_y, 200, 200))
+                # Create and connect a Slot to the signal from the check box
+                self.segmentSelect.segmentSelectedSignal.connect(self.selectedSegmentIndex)
+                self.segmentSelect.show()
+            if item.__class__.__name__ == "HTMColumn":
+                print"column"
+                print "pos_x,pos_y = %s,%s"%(item.pos_x,item.pos_y)
+                # Draw the columns synapses.
+                self.drawSingleColumn(item.pos_x,item.pos_y)      
+        if event.buttons() == QtCore.Qt.RightButton:
+            # Toggle the view from predicted, learn and active cells.
+            if self.showActiveCells==True:
+                self.showActiveCells = False
+                self.showPredictCells = True
+                self.showLearnCells = False
+            elif self.showPredictCells==True:
+                self.showActiveCells = False
+                self.showPredictCells = False
+                self.showLearnCells = True
+            elif self.showLearnCells==True:
+                self.showActiveCells = False
+                self.showPredictCells = False
+                self.showLearnCells = False
+            else:
+                self.showActiveCells = True
+            self.updateHTMGrid()
+
+               
+    def mouseMoveEvent(self, event):
+        if self._mousePressed:
+            newPos = event.pos()
+            diff = newPos - self._dragPos
+            self._dragPos = newPos
+            self.horizontalScrollBar().setValue(self.horizontalScrollBar().value() - diff.x())
+            self.verticalScrollBar().setValue(self.verticalScrollBar().value() - diff.y())
+            event.accept()
         else:
-            return 'none'
-        
+            super(HTMGridViewer, self).mouseMoveEvent(event)        
+
+    def mouseReleaseEvent(self, event):
+        if event.button() == QtCore.Qt.LeftButton:
+            if event.modifiers() & QtCore.Qt.ControlModifier:
+                self.setCursor(QtCore.Qt.OpenHandCursor)
+            else:
+                self.setCursor(QtCore.Qt.ArrowCursor)
+            #self._mousePressed = False
+        #if event.button() == QtCore.Qt.RightButton:
+        #        super(HTMGridViewer, self).mouseReleaseEvent(event)
+        super(HTMGridViewer, self).mouseReleaseEvent(event)
+
+    def mouseDoubleClickEvent(self, event): pass
+
+    def keyPressEvent(self, event):
+        if event.key() == QtCore.Qt.Key_Control and not self._mousePressed:
+            self.setCursor(QtCore.Qt.OpenHandCursor)
+        else:
+            super(HTMGridViewer, self).keyPressEvent(event)
+
+    def keyReleaseEvent(self, event):
+        if event.key() == QtCore.Qt.Key_Control:
+            if not self._mousePressed:
+                self.setCursor(QtCore.Qt.ArrowCursor)
+        else:
+            super(HTMGridViewer, self).keyPressEvent(event)
+
+
+    def wheelEvent(self,  event):
+        factor = 1.2;
+        if event.delta() < 0:
+            factor = 1.0 / factor
+        self.scale(factor, factor)
+
+    def step(self,input,level):
+        self.htm.HTMRegionArray[level].spatialTemporal(input,self.layer)   
+      
+    def predictedCommand(self,level):
+        # Return the predicted command as an array input.
+        numberCols = len(self.htm.HTMRegionArray[level].layerArray[self.layer].columns[0])
+        numberRows = len(self.htm.HTMRegionArray[level].layerArray[self.layer].columns)
+        commandGrid = np.array([[0 for c in range(numberCols)] for r in range(numberRows)])
+        htmLevel = self.htm.HTMRegionArray[level]
+        currentTime=htmLevel.layerArray[self.layer].timeStep
+        # only look at the cells in the command space.
+        for k in range(self.htm.commandRow,len(self.htm.HTMRegionArray[level].layerArray[self.layer].columns)):
+            for m in range(len(self.htm.HTMRegionArray[level].layerArray[self.layer].columns[k])):
+                c = htmLevel.layerArray[self.layer].columns[k][m]
+                for i in range(len(c.cells)):
+                    # Set the output to true if a cell is in predictive stat for a particular column for the current timeStep
+                    if htmLevel.layerArray[self.layer].predictiveState(c,i,currentTime)==True:
+                        commandGrid[k][m] = 1
+        return commandGrid    
+    #def predictedCommand(self,level):
+        # Return the predicted command.
+        # The command which has the most predicted cells.
+        # Commands are acceleration levels. 
+        # left is negative acc right is positive acc
+        # ONLY WORKS IF THE COMMANDS ARE ONE COLUMN WIDE. THIS MUST BE FIXED!
+        # numberCols = len(self.htm.HTMLayerArray[level].columns[0])
+        # accScore = np.array([0 for i in range(numberCols)])
+        # htmLevel = self.htm.HTMLayerArray[level]
+        # currentTime=htmLevel.timeStep
+        # # only look at the cells in the command space.
+        # for k in range(self.htm.commandRow,len(self.htm.HTMLayerArray[level].columns)):
+        #     for m in range(len(self.htm.HTMLayerArray[level].columns[k])):
+        #         c = htmLevel.columns[k][m]
+        #         for i in range(len(c.cells)):
+        #             # If the cell is in predictive state for the current timeStep
+        #             if htmLevel.predictiveState(c,i,currentTime)==True:
+        #                     accScore[m] += 1
+        # # LikelyCommand is the acceleration command with the largest number of predicting cells.
+        # highestScore = accScore[0]
+        # sameCommands = []
+        # likelyCommand = None
+        # for m in range(len(accScore)):
+        #     if accScore[m] > 0:
+        #         if accScore[m] > highestScore:
+        #             likelyCommand = m
+        #             sameCommands = []
+        #         if accScore[m] == likelyCommand:
+        #             sameCommands.append(m)
+        # # If two commands had the same number of predicting cells than choose a random command.
+        # if len(sameCommands)>0:
+        #     randomCommand = random.choice(sameCommands)
+        #     # Convert the column number into an acceleration. Left is neg right is pos
+        #     return -round(numberCols/2)+randomCommand
+        # elif likelyCommand != None:
+        #     return -round(numberCols/2)+likelyCommand
+        # else:
+        #     return 'none'
+
+
+    def commandSuccessful(self,level):
+        # Return whether the new input contains mostly active cells from non bursting columns.
+        # If the number of non bursting cells is larger than the predefined threshold
+        # then the previous command is said to have successfully produced a predicted result.
+        numberRows = len(self.htm.HTMRegionArray[level].layerArray[self.layer].columns)
+        notBurstingScore = 0
+        endRow = (numberRows - self.htm.commandRow) # Only search through the new input space not the feedback or command space.
+        htmLevel = self.htm.HTMRegionArray[level]
+        currentTime=htmLevel.layerArray[self.layer].timeStep
+        # only look at the cells in the input space.
+        for col in htmLevel.layerArray[self.layer].activeColumns:
+            if col.pos_y < endRow:
+                numCellsActive = 0# Reset the count to work out if the column of cells is bursting
+                for i in range(len(col.cells)):
+                    # If the cell is in active state for the current timeStep
+                    if htmLevel.layerArray[self.layer].activeState(col,i,currentTime)==True:
+                            numCellsActive += 1 
+                if numCellsActive == 1:  # The column is not bursting
+                    notBurstingScore += 1
+        if notBurstingScore > self.minNumberPredCells:
+            return True
+        else:
+            return False
         
     def higherCommand(self,level):
         # Return the predicted command from the higher level.
-        htmLevel = self.htm.HTMLayerArray[level]
+        htmLevel = self.htm.HTMRegionArray[level]
         # The higher levels command space is the left half of the command space.
         fbCommandCols=self.cols/2
         # Create an empty array to store the feedback command
@@ -492,20 +569,21 @@ class HTMGridViewer(QtGui.QGraphicsView):
         # If this is the highest level then return an empty array.
         # There is no feedback for the highest level.
         if level<self.htm.numLevels:
-            for k in range(self.htm.commandRow,len(htmLevel.columns)):
+            for k in range(self.htm.commandRow,len(htmLevel.layerArray[self.layer].columns)):
                 for m in range(0,fbCommandCols):
-                    c = htmLevel.columns[k][m]
+                    c = htmLevel.layerArray[self.layer].columns[k][m]
                     for i in range(len(c.cells)):
                         # Check each cell if it's in the predicted state for the \
                         # current timeStep of the level
-                        if htmLevel.predictiveState(c,i,htmLevel.timeStep)==True:
+                        if htmLevel.layerArray[self.layer].predictiveState(c,i,htmLevel.timeStep)==True:
                             row=k-self.htm.commandRow
                             col=m
                             fbCommand[row][col]=1
         return fbCommand
+
     def inSpaceOutput(self,level):
         # Return the active columns of the input space.
-        return self.htm.HTMLayerArray[level].inSpaceOutput
+        return self.htm.HTMRegionArray[level].layerArray[self.layer].inSpaceOutput
         
         
 class HTMNetwork(QtGui.QWidget):
@@ -523,39 +601,46 @@ class HTMNetwork(QtGui.QWidget):
         self.iteration = 0
         self.origIteration = 0  # Stores the iteration for the previous saved HTM
         self.numLevels = 2 # The number of levels.
-        self.cardSize = 3   # How many columns will make up a single card.
-        self.numCards = 5
-        self.numCommRows = 3   # The number of rows that are command rows
-        self.oppCard = None # This is the opponents card.
-        self.oppPlay= None  # This is the oppoenents play.
-        self.card = None    # The card received, the current hand. To be played with next.
-        self.previousCommand = None    # The command (play) used on the previous hand
-        self.money = round(self.numCards*self.cardSize/2)        # 50 percent of all the money in the game is yours if their is 1 opponent
-        self.oldMoney = np.array([self.money for i in range(self.numLevels)])   # An array tostore the previous money value for each level
-        # Store the commands from each level.
-        self.command = np.array(['raise' for i in range(self.numLevels)])
-        # The height is the cards plus the feedback comm space plus the comm space
-        self.height=self.cardSize*self.numCards + 2*self.numCommRows
-        # If the width can't be split evenly add one.
-        # The money width becomes 1 unit wider.
-        if self.cardSize*3%2!=0:
-            self.width=self.cardSize*3+1
-            self.moneyWidth=self.cardSize+1
-        else:
-            self.width=self.cardSize*3   # There is one suit. Your cards are in the left col, money in the middle, opponenets commands on left
-            self.moneyWidth=self.cardSize
+        self.angleInputHeight = 4   # How many rows will make up the angle input space.
+        self.width = 9  # The number of columns making up the input spaces
+        self.numCommRows = 4   # The number of rows that are command rows
+        
+        # Create the physics simualtion class
+        self.invPen = invertPen.InvertedPendulum()
+        self.angle = 3     # The angle that the inverted pendulum is at.
+        self.angleOverlap = 0 # The number of columns that an angle position can overlap either side.
+        self.minAngle = 1 # The angle that a cell in the first column represents.
+        self.maxAngle = 9 # The angle that a cell in the last column represents.
+        self.desAngle = 3 # The desired angle that the system should aim to acheive.
+        self.oldAngle = np.array([self.angle for i in range(self.numLevels)])   # An array to store the previous angle value for each level
+        #self.acceleration = 0.0   # The acceleration commanded by the HTM
+        self.maxAcc = 1  # The maximum acceleration.
+        self.minAcc = -1  # The maximum acceleration.
+
+
+        self.command = np.array([0 for i in range(self.numLevels)])
+        self.previousCommand = np.array([0 for i in range(self.numLevels)])
+        self.height=self.angleInputHeight+2*self.numCommRows 
+        
         # Set which row specifies the start of the command space.
         # This will be the row below the feedback commands
         # The feedback command space has the same size as the command space.
-        self.commandRow = self.cardSize*self.numCards+self.numCommRows  # This is where the command cells start.
-        self.comSpaceWidth = self.width   # This is the width of the command space.
-        self.scaleFactor=0.2    # How much to scale the grids by
+        self.commandRow = self.angleInputHeight+self.numCommRows  # This is where the command cells start.
+        
         # The input space includes the feedback command space
         self.inputSpace = self.setInput(self.width,(self.commandRow))
         self.commandSpace = self.setInput(self.width,(self.height-self.commandRow))
         self.HTMNetworkGrid = HTMGridViewer(self.width,self.height,self.commandRow,self.numLevels)
         self.inputGrid = HTMInput(self.width,self.height)
+
+        self.angleInput = invertPen.createInput(self.angle, self.width, self.angleInputHeight, self.angleOverlap, self.minAngle, self.maxAngle)
+
+        # Store the commands from each level.
+
+        # Used to create and save new views
+        self.markedHTMViews = []
         
+        self.scaleFactor=0.2    # How much to scale the grids by
         self.grid = None    # This is the layout holding the frames.
         self.frame1 = None
         self.frame2 = None
@@ -574,8 +659,11 @@ class HTMNetwork(QtGui.QWidget):
         self.btn11=None # Save
         self.btn12=None # Load
         self.btn13=None # Level select
+        self.btn14=None # Mark state
         self.makeFrames()
         self.makeButtons()
+
+
         #self.setWindowTitle('Main window')
         self.show()
 
@@ -609,6 +697,8 @@ class HTMNetwork(QtGui.QWidget):
         self.btn11.clicked.connect(self.saveHTM)
         self.btn12 = QtGui.QPushButton("load", self)
         self.btn12.clicked.connect(self.loadHTM)
+        self.btn14 = QtGui.QPushButton("mark", self)
+        self.btn14.clicked.connect(self.markHTM)
         
         # Create the level dropDown
         self.levelDropDown()
@@ -628,6 +718,7 @@ class HTMNetwork(QtGui.QWidget):
         self.grid.addWidget(self.btn7, 3, 2, 1, 1)
         self.grid.addWidget(self.btn1, 3, 5, 1, 1)
         self.grid.addWidget(self.btn2, 3, 6, 1, 1)
+        self.grid.addWidget(self.btn14, 2, 6, 1, 1)
         
     def levelDropDown(self):
         # Create a drop down button to select the level in the HTM to draw.
@@ -647,7 +738,20 @@ class HTMNetwork(QtGui.QWidget):
         # single cells segment connection was being shown
         self.HTMNetworkGrid.showAllHTM = True
         self.HTMNetworkGrid.updateHTMGrid()
+    
+    def markHTM(self):
+        # Mark the current state of the HTM by creatng an new view to view the current state.
+        self.markedHTMViews.append(HTMGridViewer(self.width,self.height,self.commandRow,self.numLevels))
+        # Use the HTMGridVeiw object that has been appended to the end of the list
+        self.markedHTMViews[-1].htm = copy.deepcopy(self.HTMNetworkGrid.htm)
+        # Update the view settings
+        self.markedHTMViews[-1].showActiveCells = self.HTMNetworkGrid.showActiveCells
+        self.markedHTMViews[-1].showLearnCells = self.HTMNetworkGrid.showLearnCells
+        self.markedHTMViews[-1].showPredictCells = self.HTMNetworkGrid.showPredictCells
+        # Redraw the new view 
+        self.markedHTMViews[-1].updateHTMGrid()
         
+
     def showActiveCells(self):
         # Toggle between showing the active cells or not
         if self.HTMNetworkGrid.showActiveCells==True:
@@ -699,17 +803,18 @@ class HTMNetwork(QtGui.QWidget):
         self.frame2 = QtGui.QFrame(self)
         self.frame2.setLineWidth(3)
         self.frame2.setFrameStyle(QtGui.QFrame.Box|QtGui.QFrame.Sunken)
-        self.frame3 = QtGui.QFrame(self)
-        self.frame3.setLineWidth(3)
-        self.frame3.setFrameStyle(QtGui.QFrame.Box|QtGui.QFrame.Sunken)
+        #self.frame3 = QtGui.QFrame(self)
+        #self.frame3.setLineWidth(3)
+        #self.frame3.setFrameStyle(QtGui.QFrame.Box|QtGui.QFrame.Sunken)
         self.grid = QtGui.QGridLayout()
         self.grid.setSpacing(1)
         # addWidget(QWidget, row, column, rowSpan, columnSpan)
-        self.grid.addWidget(self.HTMNetworkGrid,3,5,10,4)
-        self.grid.addWidget(self.inputGrid,3,1,10,4)
-        self.grid.addWidget(self.frame1, 1, 1, 2, 8)
-        self.grid.addWidget(self.frame2, 3, 1, 10, 4)
-        self.grid.addWidget(self.frame3, 3, 5, 10, 4)
+        #self.grid.addWidget(self.HTMNetworkGrid,3,5,10,4)
+        self.grid.addWidget(self.inputGrid,1,1,10,8)
+        self.grid.addWidget(self.HTMNetworkGrid,8,1,10,8)
+        #self.grid.addWidget(self.frame1, 1, 1, 2, 8)
+        #self.grid.addWidget(self.frame2, 3, 1, 10, 4)
+        #self.grid.addWidget(self.frame3, 3, 5, 10, 4)
         self.setLayout(self.grid)
     def setLevel(self,level):
         # Set the level for the HTMVeiwer to draw to the selected level.
@@ -719,13 +824,13 @@ class HTMNetwork(QtGui.QWidget):
         self.HTMNetworkGrid.updateHTMGrid()
         
     def saveHTM(self):
-        self.HTMNetworkGrid.htm.saveLayers()
+        self.HTMNetworkGrid.htm.saveRegions()
         self.origIteration = self.iteration
         print "Saved HTM layers"
     def loadHTM(self):
         # We need to make sure the GUI points to the correct object
-        origHTM = self.HTMNetworkGrid.htm.loadLayers()
-        self.HTMNetworkGrid.htm.HTMLayerArray = origHTM
+        origHTM = self.HTMNetworkGrid.htm.loadRegions()
+        self.HTMNetworkGrid.htm.HTMRegionArray = origHTM
         self.iteration = self.origIteration
         self.HTMNetworkGrid.iteration = self.origIteration
         print "loaded HTM layers"
@@ -748,150 +853,196 @@ class HTMNetwork(QtGui.QWidget):
                 
             
     def step(self,updateViewer):
+        # Update the inputs and run them through thte HTM levels just once.
+
         print "NEW PLAY. Current TimeStep = %s"%self.iteration
-        
-        # STEP 1 MAKE NEW INPUT FOR LEVEL 0
-        # Opponents new card.
-        print "STEP 1"
-        self.oppCard = pkcd.newOppCard(self.numCards)
-        # Opponents Play. This is done before the HTM plays it's command.
-        oppPlayInput,self.oppPlay = pkcd.oppPlay(self.oppCard,self.cardSize,self.cardSize*self.numCards)
-        print " Opponents command is %s"%self.oppPlay
-        print " Opponents card is %s"%self.oppCard
-        # Return the predicted command for level zero.
-        command = self.HTMNetworkGrid.predictedCommand(0)
+        # PART 1 MAKE NEW INPUT FOR LEVEL 0
+        ############################################
+        print "PART 1"
+
+        # Return an average acceleration output to pass to the simulated inverted pendulum
+        command = invertPen.medianAcc(self.HTMNetworkGrid.predictedCommand(0), self.minAcc, self.maxAcc)
+        #print " CommandSpace = %s"%self.HTMNetworkGrid.predictedCommand(0)
+
         print " Predicted command is %s"%command
         if command=='none':
-            command=pkcd.randomCommand() 
-        print " command played was ",command 
-        print " Card played was= %s"%self.card      
-        self.previousCommand = command
+            command = random.randint(self.minAcc,self.maxAcc)
+        print " command played was ",command      
+        
         # Save level 0 command
         self.command[0]=command
-        # Add or subtract money based on the last command,card and opponenets card.
-        inputHeight = self.cardSize*self.numCards
-        newMoneyInput,self.money = pkcd.updateMoney(self.moneyWidth,inputHeight,self.money,command,self.card,self.oppCard,self.oppPlay)
-        if self.oldMoney[0]<=self.money:
-            print "     WON"
-        else:
-            print "     LOST"
-        print " New money = %s Old money = %s"%(self.money,self.oldMoney[0])
-        #Create a new card.
-        newCardsInput,self.card=pkcd.createNewSimpleHand(self.cardSize,self.numCards)
+        # update the inverted pendulum with the new acceleration command.
+        self.oldAngle[0] = self.angle
+        self.angle = self.invPen.step(command,self.minAngle, self.maxAngle, self.maxAcc ,1)  # Use 1 second for the step size.
+        #print "self.angle=%s, self.width=%s, self.angleInputHeight=%s, self.angleOverlap=%s, self.minAngle=%s, self.maxAngle=%s"%(self.angle, self.width, self.angleInputHeight, self.angleOverlap, self.minAngle, self.maxAngle)
+        self.angleInput = invertPen.createInput(self.angle, self.width, self.angleInputHeight, self.angleOverlap, self.minAngle, self.maxAngle)
+
+        print " New angle = %s Old angle = %s"%(self.angle,self.oldAngle[0])
         
-        # STEP 2 ADD THE INPUT PARTS TOGETHER AND RUN THROUGH THE HTM LEVELS
-        print "STEP 2"
+        
+        # PART 2 ADD THE INPUT PARTS TOGETHER AND RUN THROUGH THE HTM LEVELS
+        #####################################################################
+        print "PART 2"
         self.iteration += 1 # Increase the time
         for lev in range(0,self.numLevels):
             # If the iteration is a power of 2 update the higher levels as well
             twoPowLev = math.pow(2,0)
             if self.iteration%twoPowLev==0:
-                print " LEVEL %s"%lev
+                print " Level %s"%lev
+
+                if lev>0:
+                    # Get the output (of the input space) from the lower level (0)
+                    # Don't include the feedback command space.
+                    lowerLevelOutput = self.HTMNetworkGrid.inSpaceOutput(lev-1)[:-self.numCommRows]
+                    #Check the lower levels input whether it was successful
+                    lowerInSuccessful = self.HTMNetworkGrid.commandSuccessful(lev-1)
+                else:
+                    # The lowest level uses the newly created input 
+                    lowerLevelOutput = self.inputSpace[:-self.numCommRows]
+                    lowerInSuccessful = False
+
+                
+                # Check the last input and work out if the previous command was successful or not.
+                print "     New angle = %s Old angle = %s"%(self.angle,self.oldAngle[lev])
+                # This fuction is not called for the highest level.
+                if lev==0:
+                    commSuccessful = self.HTMNetworkGrid.commandSuccessful(lev)
+                    if commSuccessful == True:
+                        print "     level %s WON"%lev
+                        newCommInput=invertPen.createInput(self.previousCommand[lev], self.width, self.angleInputHeight, self.angleOverlap, self.minAcc, self.maxAcc)
+                    else:
+                        print "     level %s LOST"%lev
+                        newCommInput=invertPen.createInput('none', self.width, self.angleInputHeight, self.angleOverlap, self.minAcc, self.maxAcc)
+                elif lowerInSuccessful==True:
+                    # Then update the higher layer of the region as its command was successful
+                    newCommInput=invertPen.createInput(self.command[lev], self.width, self.angleInputHeight, self.angleOverlap, self.minAcc, self.maxAcc)
+                    print "     level %s WON"%lev
+                else:
+                    newCommInput=invertPen.createInput('none', self.width, self.angleInputHeight, self.angleOverlap, self.minAcc, self.maxAcc)
+                    print "     level %s LOST"%lev
+
+
+                ## The highest level checks if the pendulum has moved closer to the middle.
+                ##if lev==(self.numLevels-1):
+                #    # If the distance to the desired angle is smaller than before or is equal to zero then reinforce the command.
+                #    if (abs(self.desAngle-self.angle) < abs(self.desAngle-self.oldAngle[lev]) or abs(self.desAngle-self.angle)==0):
+                #        newCommInput=invertPen.createInput(self.command[lev], self.width, self.angleInputHeight, self.angleOverlap, self.minAcc, self.maxAcc)
+                #        print "     level %s WON"%lev
+                #    else:
+                #        newCommInput=invertPen.createInput('none', self.width, self.angleInputHeight, self.angleOverlap, self.minAcc, self.maxAcc)
+                #        print "     level %s LOST"%lev
+
 
                 # Get the command of the current level except for level 0
                 # Level zero has already been done.
                 # This must be done before the HTM is updated so the predicted
                 # cells aren't over written.
                 if lev!=0:
-                    pred_command=self.HTMNetworkGrid.predictedCommand(lev)
+                    pred_command=invertPen.medianAcc(self.HTMNetworkGrid.predictedCommand(lev), self.minAcc, self.maxAcc)
                     print "     current levels pred command=%s"%(pred_command)
-                    self.command[lev] = pred_command
-                    # If no command is predicted a random command is chosen.
+                    # If no command is predicted then use the last command.
                     # This command is sent down a level and used to learn against. 
-                    if self.command[lev]=='none':
-                        self.command[lev]=pkcd.randomCommand() 
-                        
-
+                    if pred_command=='none':
+                        self.command[lev] = random.randint(self.minAcc,self.maxAcc)
+                    else:    
+                        self.command[lev] = pred_command
 
                 # Get the feed back from the upper level.
+                # This fuction is not called for the highest level.
                 if lev<(self.numLevels-1):
                     higherLevel=lev+1
                     #fbComm = self.HTMNetworkGrid.predictedCommand(higherLevel)
-                    fbComm = self.command[higherLevel]
+                    fbComm = self.command[higherLevel] 
                     print "     fbComm is %s"%fbComm
-                    # This fuction is not called for the highest level.
-                    ##upperCommInput=self.HTMNetworkGrid.higherCommand(higherLevel)
-                    upperCommInput=pkcd.newCommInput(self.comSpaceWidth,self.numCommRows,fbComm)
+                    #print " fbComm=%s self.width=%s self.numCommRows=%s self.angleOverlap=%s self.minAcc=%s self.maxAcc=%s "%(fbComm, self.width, self.numCommRows, self.angleOverlap, self.minAcc, self.maxAcc)
+                    upperCommInput = invertPen.createInput(fbComm, self.width, self.numCommRows, self.angleOverlap, self.minAcc, self.maxAcc)
                 else:
-                    upperCommInput = np.array([[0 for i in range(self.comSpaceWidth)] for j in range(self.numCommRows)])
+                    # upperCommInput = np.array([[0 for i in range(self.width)] for j in range(self.numCommRows)])
+                    upperCommInput = invertPen.createInput(0, self.width, self.numCommRows, self.angleOverlap, self.minAcc, self.maxAcc)
                 #print "     FB COMMAND=",upperCommInput
 
                 # For level 0 update the input space for level 0 and the display widget. 
                 if lev==0:
-                    inputSpace = np.hstack((newCardsInput,newMoneyInput,oppPlayInput))  
+                    inputSpace = self.angleInput  
                     inputSpace = np.vstack((inputSpace,upperCommInput))    
                     self.inputSpace = np.empty_like(inputSpace)
                     self.inputSpace[:] = inputSpace # Make a deep copy of the new input
 
-                if lev>0:
-                    # Get the output (of the input space) from the lower level (0)
-                    # Don't include the feedback command space.
-                    lowerLevelOutput = self.HTMNetworkGrid.inSpaceOutput(lev-1)[:-self.numCommRows]
-                else:
-                    # The lowest level uses the newly created input 
-                    lowerLevelOutput = self.inputSpace[:-self.numCommRows]                  
-                # Add together the upper fb comm and lower levels output to create the total input for the current level.
-                inFbSpace = np.vstack((lowerLevelOutput,upperCommInput))
-                newInput = np.empty_like(inFbSpace)
-                newInput[:] = inFbSpace
+                    
+
+                # Add together the upper fb comm, lower levels output and command Space to create the total input for the current level.
+                inTotalSpace = np.vstack((lowerLevelOutput,upperCommInput,newCommInput))
+                newInput = np.empty_like(inTotalSpace)
+                newInput[:] = inTotalSpace
+
                 # Run the input through the HTM level.
                 # This also increments the time for that level.
-                self.HTMNetworkGrid.step(newInput,lev,True)
+                self.HTMNetworkGrid.step(newInput,lev)
                 
+
+                # Save the old angle for each level
+                self.oldAngle[lev]=self.angle
+                
+                # Save the command
+                self.previousCommand = copy.deepcopy(self.command)
+
+        
                     
         
         
-        # STEP 3 CREATE THE NEW COMMAND AND RUN IT THROUGH EACH LEVEL
-        # The new input to the command space comes from the upper level and 
-        # whether the previous command increased money.
-        print "STEP 3"
-        # Calculate the command space of the highest level first
-        #for lev in reversed(xrange(self.numLevels)):
-        for lev in xrange(self.numLevels):
-            # If the iteration is a power of 2 update the higher levels as well
-            twoPowLev = math.pow(2,0)
-            if self.iteration%twoPowLev==0:
-                print " LEVEL %s"%lev
-                # If the money is now less then don't set the command as active. 
-                # The command will not be incremented. 
-                # The first level is allowed to break even, the higher levels
-                # must see an increase in money.
-                print "   Levels current money=%s"%self.oldMoney[lev]
-                if ((lev!=0 and self.oldMoney[lev]<self.money) or 
-                        (lev==0 and self.oldMoney[lev]<=self.money)):
-                    newCommInput=pkcd.newCommInput(self.comSpaceWidth,self.numCommRows,self.command[lev])
-                    print "     level %s WON"%lev
-                else:
-                    newCommInput=pkcd.newCommInput(self.comSpaceWidth,self.numCommRows,'none')
-                    print "     level %s LOST"%lev
+#         # STEP 3 CREATE THE NEW COMMAND AND RUN IT THROUGH EACH LEVEL
+#         ###############################################################
+#         # The new input to the command space comes from the upper level and 
+#         # wether the previous command brought the angle closer to 90 degrees.
+#         print "STEP 3"
+#         # Calculate the command space of the highest level first
+#         for lev in xrange(self.numLevels):
+#             # If the iteration is a power of 2 update the higher levels as well
+#             twoPowLev = math.pow(2,2*lev)
+#             if self.iteration%twoPowLev==0:
+#                 print " LEVEL %s"%lev
+#                 # If the angle is further from 90 degs then don't set the command as active. 
+#                 # The command will not be incremented. 
+#                 print "     New angle = %s Old angle = %s"%(self.angle,self.oldAngle[0])
+#                 commSuccessful = self.HTMNetworkGrid.commandSuccessful(lev)
+#                 if commSuccessful == True:
+#                     print "     level %s WON"%lev
+#                     newCommInput=invertPen.createInput(self.command[lev], self.width, self.angleInputHeight, self.angleOverlap, -self.maxAcc, self.maxAcc)
+#                 else:
+#                     print "     level %s LOST"%lev
+#                     newCommInput=invertPen.createInput('none', self.width, self.angleInputHeight, self.angleOverlap, -self.maxAcc, self.maxAcc)
+#                 # if (abs(90-self.angle) < abs(90-self.oldAngle[0])):
+#                 #     newCommInput=invertPen.createInput(self.command[lev], self.width, self.angleInputHeight, self.angleOverlap, -self.maxAcc, self.maxAcc)
+#                 #     print "     level %s WON"%lev
+#                 # else:
+#                 #     newCommInput=invertPen.createInput('none', self.width, self.angleInputHeight, self.angleOverlap, -self.maxAcc, self.maxAcc)
+#                 #     print "     level %s LOST"%lev
                 
-                # Add together the upper comm and current comm to create the total comm space.
-                commandSpace = np.empty_like(newCommInput)
-                commandSpace[:] = newCommInput
-                #print " COMSPACE=",newCommInput
-                # Run the new total input through the HTM
-                self.HTMNetworkGrid.step(commandSpace,lev,False)
-                # Save the old money for each level
-                self.oldMoney[lev]=self.money
-##                # Update self.input for the input display widget.
-##                self.input[lev][self.commandRow:,:] = self.commandSpace   
+#                 commandSpace = np.empty_like(newCommInput)
+#                 commandSpace[:] = newCommInput
+#                 # Run the new total input through the HTM
+
+#                 # Save the old angle for each level
+#                 self.oldAngle[lev]=self.angle
+# ##                # Update self.input for the input display widget.
+# ##                self.input[lev][self.commandRow:,:] = self.commandSpace   
+
         print " level commands=",self.command
+
         if updateViewer==True:
             # Set the input viewers array to self.input
             self.inputGrid.setInput(self.inputSpace)
             self.inputGrid.updateInput()
             # Update the columns and cells of the HTM viewer
             self.HTMNetworkGrid.updateHTMGrid()
-        
-        #print " Command %s was executed"%self.previousCommand
-        print " new card = %s"%self.card
+
         print "------------------------------------------"
     
     #def createNewInput(self):
     #    for i in range(self.inputGrid.input
         
-    #def mouseMoveEvent(self,event):
-    #    print "Enter!" 
+    def mouseMoveEvent(self,event):
+        print "Enter!" 
     
 class HTMGui(QtGui.QMainWindow):
     

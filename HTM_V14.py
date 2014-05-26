@@ -669,9 +669,9 @@ class HTMLayer:
                             buPredicted = True
                             self.activeStateAdd(c,i,timeStep)
                             learnState = 2
-                            #if self.segmentActive(s,timeStep-1,learnState) > 0:
-                            lcChosen = True
-                            self.learnStateAdd(c,i,timeStep)
+                            if self.segmentActive(s,timeStep-1,learnState) > 0:
+                                lcChosen = True
+                                self.learnStateAdd(c,i,timeStep)
             # Different to CLA paper
             # If the column is about to burst because no cell was predicting 
             # check the cell with the highest score.  
@@ -765,101 +765,66 @@ class HTMLayer:
                         #print "learn state for x,y,cell = %s,%s,%s"%(c.pos_x,c.pos_y,i)
                         self.adaptSegments(c,i,True)
                     # Trying a different method to the CLA white pages
-                    #if self.activeState(c,i,timeStep) == False and self.predictiveState(c,i,timeStep-1) == True:
-                    # Same method as the CLA white pages.
-                    if self.predictiveState(c,i,timeStep-1) == True and self.predictiveState(c,i,timeStep) == False:
+                    if self.activeState(c,i,timeStep) == False and self.predictiveState(c,i,timeStep-1) == True:                        
                         #print "INCORRECT predictive state for x,y,cell = %s,%s,%s"%(c.pos_x,c.pos_y,i)
                         self.adaptSegments(c,i,False)
                     # After the learning delete any segments that have zero synapses in them.
                     # This must be done after learning since during learning the index of the segment
                     # is used to identify each segment and this changes when segments are deleted.
-                    self.deleteEmptySegments(c,i)    
-
-
-class HTMRegion:
-    def __init__(self, input, column_array_width,column_array_height,cells_per_column,commandRow):
-        self.quit = False
-        # The class contains multiple HTM layers stacked on one another
-        self.width = column_array_width
-        self.height = column_array_height
-        self.cellsPerColumn = cells_per_column
-        # We will use layer 0 as the input layer and layer 1 as the control layer
-        self.numLayers = 2  # The number of HTM layer that make up a region. 
+                    self.deleteEmptySegments(c,i)
         
-        # Define the section of the HTM Control layer (layer 1) that is a command space.
-        self.commandRow = commandRow
-        
-        self.layerArray = np.array([],dtype = object)
-        for i in range(self.numLayers):
-            if i==0:
-                # Create the input layer 0. This layer is just an input (input space), there is no command rows.
-                inputLayerHeight= commandRow    # Use to set the command Row so all rows are input rows.
-                self.layerArray = np.append(self.layerArray,HTMLayer(input,self.width,inputLayerHeight,self.cellsPerColumn,inputLayerHeight))
-            else:
-                self.layerArray = np.append(self.layerArray,HTMLayer(input,self.width,self.height,self.cellsPerColumn,commandRow))
-
-    def spatialTemporal(self,input,layerNum):
-        # The layerNum selects which layer in the region the spatial temporal functions are performed for.
-        self.layerArray[layerNum].timeStep = self.layerArray[layerNum].timeStep+1
-        # Update the current layers input with the new input
-        self.layerArray[layerNum].updateInput(input)
-        # This updates the spatial pooler
-        self.layerArray[layerNum].Overlap()
-        self.layerArray[layerNum].inhibition(self.layerArray[layerNum].timeStep)
-        self.layerArray[layerNum].learning()
-        #This Updates the temporal pooler
-        self.layerArray[layerNum].updateActiveState(self.layerArray[layerNum].timeStep)
-        self.layerArray[layerNum].updatePredictiveState(self.layerArray[layerNum].timeStep)
-        self.layerArray[layerNum].temporalLearning(self.layerArray[layerNum].timeStep)
             
 class HTM:
     def __init__(self, numLevels,input, column_array_width,column_array_height,cells_per_column,commandRow):
         self.quit = False
-        # The class contains multiple HTM levels stacked on one another
+        # The class contains multiple HTM layers stacked on one another
         self.numLevels = numLevels   # The number of levels in the HTM network
         self.width = column_array_width
         self.height = column_array_height
         self.cellsPerColumn = cells_per_column
         
-        # Define the section of the HTM layer that is a command space.
+        # Define the section of the HTM region that is a command section.
+        # The columns that are in a higher row than commandRow are designated command columns.
+        # These columns receive command inputs that affect the input.
+        # Half the command space is for the higher regions feedback commands (the right half).
+        # The left half is for the current levels commands.
         self.commandRow = commandRow
         
-        self.HTMRegionArray = np.array([],dtype = object)
+        self.HTMLayerArray = np.array([],dtype = object)
         for i in range(numLevels):
-            self.HTMRegionArray = np.append(self.HTMRegionArray,HTMRegion(input,self.width,self.height,self.cellsPerColumn,self.commandRow))
+            self.HTMLayerArray = np.append(self.HTMLayerArray,HTMLayer(input,self.width,self.height,self.cellsPerColumn,self.commandRow))
         # create a place to store layers so they can be reverted.
-        self.HTMOriginal = copy.deepcopy(self.HTMRegionArray)
+        self.HTMOriginal = copy.deepcopy(self.HTMLayerArray)
         
-    def saveRegions(self):
+    def saveLayers(self):
         # Save the HTM so it can be reloaded.
         print "\n    SAVE COMMAND SYN "
-        self.HTMOriginal = copy.deepcopy(self.HTMRegionArray)
-    def loadRegions(self):
+        self.HTMOriginal = copy.deepcopy(self.HTMLayerArray)
+    def loadLayers(self):
         # Save the synases for the command area so they can be reloaded.
         print "\n    LOAD COMMAND SYN "
-        self.HTMRegionArray = self.HTMOriginal
+        self.HTMLayerArray = self.HTMOriginal
         # Need create a new deepcopy of the original
-        self.HTMOriginal = copy.deepcopy(self.HTMRegionArray)
+        self.HTMOriginal = copy.deepcopy(self.HTMLayerArray)
         # return the pointer to the HTM so the GUI can use it to point
         # to the correct object.
-        return self.HTMRegionArray
+        return self.HTMLayerArray
     
     def spatialTemporal(self,input,level):
-        #######   NOT FINISHED #################
         # Update the spatial and temporal pooler. Find spatial and temporal patterns from the input.
         # This updates the columns and all there vertical synapses as well as the cells and the horizontal Synapses.
         # The level selects which level to update.
-        self.HTMRegionArray[level].timeStep = self.HTMRegionArray[level].timeStep+1
+        self.HTMLayerArray[level].timeStep = self.HTMLayerArray[level].timeStep+1
         # Update the current levels input with the new input
-        self.HTMRegionArray[level].updateInput(input)
+        self.HTMLayerArray[level].updateInput(input)
         # This updates the spatial pooler
-        self.HTMRegionArray[level].Overlap()
-        self.HTMRegionArray[level].inhibition(self.HTMRegionArray[level].timeStep)
-        self.HTMRegionArray[level].learning()
+        self.HTMLayerArray[level].Overlap()
+        self.HTMLayerArray[level].inhibition(self.HTMLayerArray[level].timeStep)
+        self.HTMLayerArray[level].learning()
         #This Updates the temporal pooler
-        self.HTMRegionArray[level].updateActiveState(self.HTMRegionArray[level].timeStep)
-        self.HTMRegionArray[level].updatePredictiveState(self.HTMRegionArray[level].timeStep)
-        self.HTMRegionArray[level].temporalLearning(self.HTMRegionArray[level].timeStep)
+        self.HTMLayerArray[level].updateActiveState(self.HTMLayerArray[level].timeStep)
+        self.HTMLayerArray[level].updatePredictiveState(self.HTMLayerArray[level].timeStep)
+        self.HTMLayerArray[level].temporalLearning(self.HTMLayerArray[level].timeStep)
            
             
 

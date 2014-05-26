@@ -25,7 +25,7 @@ class Synapse:
             self.cell = cellIndex
             self.pos_x=pos_x            # The end of the synapse. The start is at a column or cells position
             self.pos_y=pos_y
-            self.permanence = 0.5
+            self.permanence = 0.38
             #If the permanence value for a synapse is greater than this
             #value, it is said to be connected.
             self.connectPermanence = 0.3
