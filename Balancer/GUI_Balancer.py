@@ -4,40 +4,39 @@
 HTM poker GUI
 author: Calum Meiklejohn
 website: calumroy.com
-last edited: June 2013
 
 This code draws the input and a HTM network in a grid using PyQt
-
-It creates a simplified version of an Inverted_Pendulumn and 
+It creates a simplified version of an Inverted_Pendulumn and
 attempts to learn and control the system using the HTM network.
 
 """
 import sys
-sys.path.insert(0, './')       #Add the parent diectory to the path to search for modules
+#, Add the parent diectory to the path to search for modules
+sys.path.insert(0, './')
 import numpy as np
 import random
 import sys
 from PyQt4 import QtGui, QtCore
-from PyQt4.QtCore import QObject, pyqtSlot
+#from PyQt4.QtCore import QObject
 import HTM_Balancer as HTM_V
 import math
 import copy
 
 import Inverted_Pendulum as invertPen
 
+
 class layerPopup(QtGui.QWidget):
     # A popup menu to slect a certain layer to display in the HTM
-    
     # Create a signal to tell the network which layer was selected
     levelSelectedSignal = QtCore.pyqtSignal(int)
-    
-    def __init__(self,numLayers):
+
+    def __init__(self, numLayers):
         QtGui.QWidget.__init__(self)
         self.numLayers = numLayers
         layout = QtGui.QVBoxLayout()
         self.checks = []
         for i in range(self.numLayers):
-            c = QtGui.QCheckBox("Layer %s" %i)
+            c = QtGui.QCheckBox(" Layer %s " % i)
             c.stateChanged.connect(self.levelSelected)
             layout.addWidget(c)
             self.checks.append(c)
@@ -53,10 +52,10 @@ class layerPopup(QtGui.QWidget):
 
 class levelPopup(QtGui.QWidget):
     # A popup menu to slect a certain level to display in the HTM
-    
+
     # Create a signal to tell the network which level was selected
     levelSelectedSignal = QtCore.pyqtSignal(int)
-    
+
     def __init__(self,numLevels):
         QtGui.QWidget.__init__(self)
         self.numLevels = numLevels
@@ -78,10 +77,10 @@ class levelPopup(QtGui.QWidget):
         dc = QtGui.QPainter(self)
 
 class popup(QtGui.QWidget):
-    
+
     # Create a signal to tell the scene which segment was selected
     segmentSelectedSignal = QtCore.pyqtSignal(int)
-    
+
     def __init__(self,x,y,cell,numSegments):
         QtGui.QWidget.__init__(self)
         self.pos_x = x
@@ -96,7 +95,7 @@ class popup(QtGui.QWidget):
             layout.addWidget(c)
             self.checks.append(c)
         self.setLayout(layout)
-        
+
     def segmentSelected(self,i):
         # Check each check box to find out which one was selected
         for i in range(len(self.checks)):
@@ -122,7 +121,7 @@ class HTMColumn(QtGui.QGraphicsRectItem):
         self.setPen(pen)
         self.setBrush(brush)
         self.setFlag(QtGui.QGraphicsItem.ItemIsSelectable)
-        
+
     #def mousePressEvent(self,event):
     #    print"column pos_x,pos_y = %s,%s"%(self.pos_x,self.pos_y)
 
@@ -142,17 +141,17 @@ class HTMCell(QtGui.QGraphicsRectItem):
         self.setPen(pen)
         self.setBrush(brush)
         self.setFlag(QtGui.QGraphicsItem.ItemIsSelectable)
-    
+
     #def mousePressEvent(self,event):
     #    print"cell pos_x,pos_y,cell = %s,%s,%s"%(self.pos_x,self.pos_y,self.cell)
-        
+
 
 
 class HTMInput(QtGui.QGraphicsView):
 
     def __init__(self,width,height):
         super(HTMInput, self).__init__()
-        
+
         self.initUI(width,height)
 
     def initUI(self,width,height):
@@ -167,7 +166,7 @@ class HTMInput(QtGui.QGraphicsView):
         self.inputArray = np.array([[0 for i in range(width)] for j in range(height)])
         self.drawGrid(self.rows,self.cols,self.size)
         self.show()
-        
+
     def scaleScene(self,scaleSize):
         self.scale(scaleSize, scaleSize)
 
@@ -183,7 +182,7 @@ class HTMInput(QtGui.QGraphicsView):
                             brush.setColor(QtCore.Qt.green);
                         item = self.scene.addRect(x*size,y*size,size,size, pen, brush)
                         item.setFlag(QtGui.QGraphicsItem.ItemIsSelectable)
-    
+
     def updateInput(self):
         for y in range(self.rows):
                 for x in range(self.cols):
@@ -197,20 +196,20 @@ class HTMInput(QtGui.QGraphicsView):
                         else:
                             brush.setColor(QtCore.Qt.green)
                             item.setBrush(brush)
-        
+
     def setInput(self,newInput):
         self.cols = len(newInput[0])
         self.rows = len(newInput)
         #print "rows, cols = (%s,%s)" %(self.rows, self.cols)
         self.inputArray = newInput
-        
+
 class HTMGridViewer(QtGui.QGraphicsView):
-    
+
     def __init__(self,htm,layer):
         super(HTMGridViewer, self).__init__()
         self.initUI(htm,layer)
 
-        
+
     def initUI(self,htm,layer):
         self.scene=QtGui.QGraphicsScene(self)
         self.scaleSize = 1
@@ -220,7 +219,7 @@ class HTMGridViewer(QtGui.QGraphicsView):
         self.level = 0  # Draw this level (Region) of the HTMNetwork
         self.layer = layer # Draw this HTM layer in the level.
         # The minimum number of cells that are active and where predicted for the command to be considered successful
-        self.minNumberPredCells = 3 
+        self.minNumberPredCells = 3
         # For the popup segment selection box
         self.segmentSelect = None
         self.selectedItem = None
@@ -228,15 +227,15 @@ class HTMGridViewer(QtGui.QGraphicsView):
         self.setDragMode(QtGui.QGraphicsView.RubberBandDrag)
         self._mousePressed = False
         self._dragPos = None
-        
+
         # Store the htm so it can be referenced in other functions.
         self.htm = htm
 
-        self.showAllHTM = True  # A flag to indicate to draw all the cells and column states    
+        self.showAllHTM = True  # A flag to indicate to draw all the cells and column states
         self.showActiveCells = True
         self.showPredictCells = False
         self.showLearnCells = False
-        
+
         self.scaleGridSize()
         self.cellItems = []   # Stores all the cell items in the scene
         self.columnItems = [] # Stores all the column items in the scene
@@ -247,12 +246,12 @@ class HTMGridViewer(QtGui.QGraphicsView):
     def selectedSegmentIndex(self,index):
         #print"Selected item pos_x,pos_y,cell,segment%s,%s,%s,%s"%(self.selectedItem.pos_x,self.selectedItem.pos_y,self.selectedItem.cell,index)
         self.drawSingleCell(self.selectedItem.pos_x,self.selectedItem.pos_y,self.selectedItem.cell,index)
-        
+
     def scaleGridSize(self):
         # Scale the size of the grid so the cells can be shown if there are too many cells
         while (int (math.ceil(self.numCells ** 0.5))>self.size/2):
             self.size = self.size *2
-            
+
     def drawGrid(self,size):
         # Used to initialise the graphics scene with columns and cells
         # Also used to draw a new layer of the HTM since different layers cn have different sized HTM grids.
@@ -277,9 +276,9 @@ class HTMGridViewer(QtGui.QGraphicsView):
                             brush.setColor(QtCore.Qt.green)
                     # Create a column item and add it to a list so we can iterate through them to update
                     columnItem = HTMColumn(x,y,size,pen,brush)
-                    columnItem.setFlag(QtGui.QGraphicsItem.ItemIsSelectable)  
-                    #columnItem.setFlag(QtGui.QGraphicsItem.ItemIsMovable)                  
-                    self.columnItems.append(columnItem) 
+                    columnItem.setFlag(QtGui.QGraphicsItem.ItemIsSelectable)
+                    #columnItem.setFlag(QtGui.QGraphicsItem.ItemIsMovable)
+                    self.columnItems.append(columnItem)
                     self.scene.addItem(columnItem)
                     self.drawCells(self.numCells,x,y,size)
 
@@ -332,7 +331,7 @@ class HTMGridViewer(QtGui.QGraphicsView):
                     brush.setColor(darkGreen);
             self.columnItems[i].setBrush(brush)
             #self.columnItems[i].setPen(pen)
-                
+
     def drawSingleCell(self,pos_x,pos_y,cell,segment):
         # Draw the cells connected to the selected segment
         print"pos_x,pos_y,cell,seg = %s,%s,%s,%s"%(pos_x,pos_y,cell,segment)
@@ -359,8 +358,8 @@ class HTMGridViewer(QtGui.QGraphicsView):
                     brush.setColor(blue);
             self.cellItems[i].setBrush(brush)
             self.cellItems[i].setPen(pen)
-                
-    
+
+
     def updateHTMGrid(self):
         for i in range(len(self.columnItems)):
             brush = QtGui.QBrush(QtCore.Qt.green)
@@ -375,8 +374,8 @@ class HTMGridViewer(QtGui.QGraphicsView):
                     brush.setColor(QtCore.Qt.green)
                     self.columnItems[i].setBrush(brush)
         self.updateCells()
-            
-                    
+
+
     def updateCells(self):
         # Redraw the cells.
         timeStep=self.htm.HTMRegionArray[self.level].layerArray[self.layer].timeStep
@@ -412,11 +411,11 @@ class HTMGridViewer(QtGui.QGraphicsView):
                     brush.setColor(transpBlue);
             self.cellItems[i].setBrush(brush)
             self.cellItems[i].setPen(pen)
-                
-    
+
+
     def scaleScene(self,scaleSize):
         self.scale(scaleSize, scaleSize)
-        
+
     def mousePressEvent(self,event):
         if event.buttons() == QtCore.Qt.LeftButton:
             self._mousePressed = True
@@ -440,9 +439,9 @@ class HTMGridViewer(QtGui.QGraphicsView):
                 self.segmentSelect.show()
             if item.__class__.__name__ == "HTMColumn":
                 print"column"
-                print "pos_x,pos_y = %s,%s"%(item.pos_x,item.pos_y)
+                print "pos_x, pos_y = %s, %s" % (item.pos_x, item.pos_y)
                 # Draw the columns synapses.
-                self.drawSingleColumn(item.pos_x,item.pos_y)      
+                self.drawSingleColumn(item.pos_x,item.pos_y)
         if event.buttons() == QtCore.Qt.RightButton:
             # Toggle the view from predicted, learn and active cells.
             if self.showActiveCells==True:
@@ -461,7 +460,7 @@ class HTMGridViewer(QtGui.QGraphicsView):
                 self.showActiveCells = True
             self.updateHTMGrid()
 
-               
+
     def mouseMoveEvent(self, event):
         if self._mousePressed:
             newPos = event.pos()
@@ -471,7 +470,7 @@ class HTMGridViewer(QtGui.QGraphicsView):
             self.verticalScrollBar().setValue(self.verticalScrollBar().value() - diff.y())
             event.accept()
         else:
-            super(HTMGridViewer, self).mouseMoveEvent(event)        
+            super(HTMGridViewer, self).mouseMoveEvent(event)
 
     def mouseReleaseEvent(self, event):
         if event.button() == QtCore.Qt.LeftButton:
@@ -501,7 +500,7 @@ class HTMGridViewer(QtGui.QGraphicsView):
             super(HTMGridViewer, self).keyPressEvent(event)
         # Toggle through the differnt regions (layers) in the HTM
         if event.key() == QtCore.Qt.Key_R:
-            self.layer += 1 
+            self.layer += 1
             if self.layer >= self.htm.HTMRegionArray[self.level].numLayers:
                 self.layer = 0
             print "Layer %s"%self.layer
@@ -509,20 +508,20 @@ class HTMGridViewer(QtGui.QGraphicsView):
             self.updateHTMGrid()
         # Toggle through the differnt levels in the HTM
         if event.key() == QtCore.Qt.Key_L:
-            self.level += 1 
+            self.level += 1
             if self.level >= self.htm.numLevels:
                 self.level = 0
             print "Level %s"%self.level
             self.drawGrid(self.size)
             self.updateHTMGrid()
-                
+
 
     def wheelEvent(self,  event):
         factor = 1.2;
         if event.delta() < 0:
             factor = 1.0 / factor
         self.scale(factor, factor)
-      
+
     def predictedCommand(self,level):
         # Return the predicted command as an array input.
         numberCols = len(self.htm.HTMRegionArray[level].layerArray[self.layer].columns[0])
@@ -538,11 +537,11 @@ class HTMGridViewer(QtGui.QGraphicsView):
                     # Set the output to true if a cell is in predictive stat for a particular column for the current timeStep
                     if htmLevel.layerArray[self.layer].predictiveState(c,i,currentTime)==True:
                         commandGrid[k][m] = 1
-        return commandGrid    
+        return commandGrid
     #def predictedCommand(self,level):
         # Return the predicted command.
         # The command which has the most predicted cells.
-        # Commands are acceleration levels. 
+        # Commands are acceleration levels.
         # left is negative acc right is positive acc
         # ONLY WORKS IF THE COMMANDS ARE ONE COLUMN WIDE. THIS MUST BE FIXED!
         # numberCols = len(self.htm.HTMLayerArray[level].columns[0])
@@ -595,14 +594,14 @@ class HTMGridViewer(QtGui.QGraphicsView):
                 for i in range(len(col.cells)):
                     # If the cell is in active state for the current timeStep
                     if htmLevel.layerArray[layer].activeState(col,i,currentTime)==True:
-                            numCellsActive += 1 
+                            numCellsActive += 1
                 if numCellsActive == 1:  # The column is not bursting
                     notBurstingScore += 1
         if notBurstingScore > self.minNumberPredCells:
             return True
         else:
             return False
-        
+
     def higherCommand(self,level):
         # Return the predicted command from the higher level.
         htmLevel = self.htm.HTMRegionArray[level]
@@ -630,15 +629,15 @@ class HTMGridViewer(QtGui.QGraphicsView):
     def inSpaceOutput(self,level,layer):
         # Return the active columns of the input space.
         return self.htm.HTMRegionArray[level].layerArray[layer].inSpaceOutput
-        
-        
+
+
 class HTMNetwork(QtGui.QWidget):
-    # Creates a HTM multi level network. Each level consists of an input space 
-    # which is the lowest index rows and a command space which is the highest rows. 
+    # Creates a HTM multi level network. Each level consists of an input space
+    # which is the lowest index rows and a command space which is the highest rows.
     # These spaces are in the HTM level so synapses can form between their cells.
     # The command space is split in two. The left side has the current levels commands
     # and the right side is the feedback from the upper levels command space.
-    
+
     def __init__(self):
         super(HTMNetwork, self).__init__()
         self.initUI()
@@ -651,7 +650,7 @@ class HTMNetwork(QtGui.QWidget):
         self.angleInputHeight = 4   # How many rows will make up the angle input space.
         self.width = 9  # The number of columns making up the input spaces
         self.numCommRows = 4   # The number of rows that are command rows
-        
+
         # Create the physics simualtion class
         self.invPen = invertPen.InvertedPendulum()
         self.angle = 3     # The angle that the inverted pendulum is at.
@@ -667,13 +666,13 @@ class HTMNetwork(QtGui.QWidget):
 
         self.command = np.array([0 for i in range(self.numLevels)])
         self.previousCommand = np.array([0 for i in range(self.numLevels)])
-        self.height=self.angleInputHeight+2*self.numCommRows 
-        
+        self.height=self.angleInputHeight+2*self.numCommRows
+
         # Set which row specifies the start of the command space.
         # This will be the row below the feedback commands
         # The feedback command space has the same size as the command space.
         self.commandRow = self.angleInputHeight+self.numCommRows  # This is where the command cells start.
-        
+
         # The input space includes the feedback command space
         self.inputSpace = self.setInput(self.width,(self.commandRow))
         self.commandSpace = self.setInput(self.width,(self.height-self.commandRow))
@@ -693,13 +692,13 @@ class HTMNetwork(QtGui.QWidget):
 
         # Used to create and save new views
         self.markedHTMViews = []
-        
+
         self.scaleFactor=0.2    # How much to scale the grids by
         self.grid = None    # This is the layout holding the frames.
         self.frame1 = None
         self.frame2 = None
         self.frame3 = None
-        
+
         self.btn1=None # HTM +
         self.btn2=None # HTM -
         self.btn3=None # All HTM
@@ -724,7 +723,7 @@ class HTMNetwork(QtGui.QWidget):
     def setInput(self,width,height):
         input = np.array([[0 for i in range(width)] for j in range(height)])
         return input
-    
+
 
     def makeButtons(self):
         self.btn1 = QtGui.QPushButton("HTM +", self)
@@ -753,12 +752,12 @@ class HTMNetwork(QtGui.QWidget):
         self.btn12.clicked.connect(self.loadHTM)
         self.btn14 = QtGui.QPushButton("mark", self)
         self.btn14.clicked.connect(self.markHTM)
-        
+
         # Create the level dropDown
         self.levelDropDown()
         # Create the layer dropDown
         self.layerDropDown()
-        
+
         # Add the dropdown menu to the screens top frame
         # addWidget(QWidget, row, column, rowSpan, columnSpan)
         self.grid.addWidget(self.btn5, 1, 4, 1, 1)
@@ -769,13 +768,13 @@ class HTMNetwork(QtGui.QWidget):
         self.grid.addWidget(self.btn9, 1, 7, 1, 1)
         self.grid.addWidget(self.btn10, 1, 8, 1, 1)
         self.grid.addWidget(self.btn3, 2, 5, 1, 1)
-        
+
         self.grid.addWidget(self.btn6, 3, 1, 1, 1)
         self.grid.addWidget(self.btn7, 3, 2, 1, 1)
         self.grid.addWidget(self.btn1, 3, 5, 1, 1)
         self.grid.addWidget(self.btn2, 3, 6, 1, 1)
         self.grid.addWidget(self.btn14, 2, 6, 1, 1)
-        
+
     def levelDropDown(self):
         # Create a drop down button to select the level in the HTM to draw.
         self.btn13 = QtGui.QToolButton(self)
@@ -805,11 +804,11 @@ class HTMNetwork(QtGui.QWidget):
         # Add the dropdown menu to the screens top frame
         self.grid.addWidget(self.btn15, 1, 2, 1, 1)
     def showAllHTM(self):
-        # Draw the entire HTM netwrok. This is used if previously just a 
+        # Draw the entire HTM netwrok. This is used if previously just a
         # single cells segment connection was being shown
         self.HTMNetworkGrid.showAllHTM = True
         self.HTMNetworkGrid.updateHTMGrid()
-    
+
     def markHTM(self):
         # Mark the current state of the HTM by creatng an new view to view the current state.
         self.markedHTMViews.append(HTMGridViewer(self.htm,0))
@@ -819,9 +818,9 @@ class HTMNetwork(QtGui.QWidget):
         self.markedHTMViews[-1].showActiveCells = self.HTMNetworkGrid.showActiveCells
         self.markedHTMViews[-1].showLearnCells = self.HTMNetworkGrid.showLearnCells
         self.markedHTMViews[-1].showPredictCells = self.HTMNetworkGrid.showPredictCells
-        # Redraw the new view 
+        # Redraw the new view
         self.markedHTMViews[-1].updateHTMGrid()
-        
+
 
     def showActiveCells(self):
         # Toggle between showing the active cells or not
@@ -832,7 +831,7 @@ class HTMNetwork(QtGui.QWidget):
             # Don't show the learning or predictive cells
             self.HTMNetworkGrid.showPredictCells=False
             self.HTMNetworkGrid.showLearnCells=False
-            
+
         self.HTMNetworkGrid.updateHTMGrid()
     def showPredictCells(self):
         # Toggle between showing the predicting cells or not
@@ -900,7 +899,7 @@ class HTMNetwork(QtGui.QWidget):
         # Update the columns and cells of the HTM viewer
         self.HTMNetworkGrid.drawGrid(self.HTMNetworkGrid.size)
         self.HTMNetworkGrid.updateHTMGrid()
-        
+
     def saveHTM(self):
         self.htm.saveRegions()
         self.origIteration = self.iteration
@@ -912,24 +911,24 @@ class HTMNetwork(QtGui.QWidget):
         self.iteration = self.origIteration
         self.HTMNetworkGrid.iteration = self.origIteration
         print "loaded HTM layers"
-     
+
     def oneStep(self):
         # Used as a call back for the one step button.
         # This is done so the True argument is passed and the viewers are then updated.
         self.step(True)
-       
+
     def nSteps(self):
         numSteps, ok = QtGui.QInputDialog.getInt(self, 'number of steps','steps:')
         if ok:
             print numSteps
-            # Minus one from the number of steps since we only update 
+            # Minus one from the number of steps since we only update
             # the veiwer on the last step.
             for i in range(numSteps-1):
                 self.step(False)
             # Update the viewer on the last step.
             self.step(True)
-                
-            
+
+
     def step(self,updateViewer):
         # Update the inputs and run them through thte HTM levels just once.
 
@@ -945,8 +944,8 @@ class HTMNetwork(QtGui.QWidget):
         print " Predicted command is %s"%command
         if command=='none':
             command = random.randint(self.minAcc,self.maxAcc)
-        print " command played was ",command      
-        
+        print " command played was ",command
+
         # Save level 0 command
         self.command[0]=command
         # update the inverted pendulum with the new acceleration command.
@@ -956,8 +955,8 @@ class HTMNetwork(QtGui.QWidget):
         self.angleInput = invertPen.createInput(self.angle, self.width, self.angleInputHeight, self.angleOverlap, self.minAngle, self.maxAngle)
 
         print " New angle = %s Old angle = %s"%(self.angle,self.oldAngle[0])
-        
-        
+
+
         # PART 2 ADD THE INPUT PARTS TOGETHER AND RUN THROUGH THE HTM LEVELS
         #####################################################################
         print "PART 2"
@@ -977,11 +976,11 @@ class HTMNetwork(QtGui.QWidget):
                     #Check the lower layer input whether it was successful
                     lowerInSuccessful = self.HTMNetworkGrid.commandSuccessful(lev-1,bottomLayer)
                 else:
-                    # The lowest level uses the newly created input 
+                    # The lowest level uses the newly created input
                     lowerLevelOutput = self.inputSpace[:-self.numCommRows]
                     lowerInSuccessful = False
 
-                
+
                 # Check the last input and work out if the previous command was successful or not.
                 print "     New angle = %s Old angle = %s"%(self.angle,self.oldAngle[lev])
                 # This fuction is not called for the highest level.
@@ -1022,10 +1021,10 @@ class HTMNetwork(QtGui.QWidget):
                     pred_command=invertPen.medianAcc(self.HTMNetworkGrid.predictedCommand(lev), self.minAcc, self.maxAcc)
                     print "     current levels pred command=%s"%(pred_command)
                     # If no command is predicted then use the last command.
-                    # This command is sent down a level and used to learn against. 
+                    # This command is sent down a level and used to learn against.
                     if pred_command=='none':
                         self.command[lev] = random.randint(self.minAcc,self.maxAcc)
-                    else:    
+                    else:
                         self.command[lev] = pred_command
 
                 # Get the feed back from the upper level.
@@ -1033,7 +1032,7 @@ class HTMNetwork(QtGui.QWidget):
                 if lev<(self.numLevels-1):
                     higherLevel=lev+1
                     #fbComm = self.HTMNetworkGrid.predictedCommand(higherLevel)
-                    fbComm = self.command[higherLevel] 
+                    fbComm = self.command[higherLevel]
                     print "     fbComm is %s"%fbComm
                     #print " fbComm=%s self.width=%s self.numCommRows=%s self.angleOverlap=%s self.minAcc=%s self.maxAcc=%s "%(fbComm, self.width, self.numCommRows, self.angleOverlap, self.minAcc, self.maxAcc)
                     upperCommInput = invertPen.createInput(fbComm, self.width, self.numCommRows, self.angleOverlap, self.minAcc, self.maxAcc)
@@ -1042,40 +1041,36 @@ class HTMNetwork(QtGui.QWidget):
                     upperCommInput = invertPen.createInput(0, self.width, self.numCommRows, self.angleOverlap, self.minAcc, self.maxAcc)
                 #print "     FB COMMAND=",upperCommInput
 
-                # For level 0 update the input space for level 0 and the display widget. 
-                if lev==0:
-                    inputSpace = self.angleInput  
-                    inputSpace = np.vstack((inputSpace,upperCommInput))    
+                # For level 0 update the input space for level 0 and the display widget.
+                if lev == 0:
+                    inputSpace = self.angleInput
+                    inputSpace = np.vstack((inputSpace, upperCommInput))
                     self.inputSpace = np.empty_like(inputSpace)
-                    self.inputSpace[:] = inputSpace # Make a deep copy of the new input
+                    # Make a deep copy of the new input
+                    self.inputSpace[:] = inputSpace
 
-                    
-
-                # Add together the upper fb comm, lower levels output and command Space to create the total input for the current level.
-                inTotalSpace = np.vstack((lowerLevelOutput,upperCommInput,newCommInput))
+                # Add together the upper fb comm, lower levels output and
+                # command Space to create the total input for the current level.
+                inTotalSpace = np.vstack((lowerLevelOutput,
+                                          upperCommInput, newCommInput))
                 newInput = np.empty_like(inTotalSpace)
                 newInput[:] = inTotalSpace
 
                 # Run the input through the HTM level.
                 # This also increments the time for that level.
                 # Update layer 0
-                self.htm.HTMRegionArray[lev].spatialTemporal(newInput,0)   
+                self.htm.HTMRegionArray[lev].spatialTemporal(newInput, 0)
                 # Update layer 1
-                self.htm.HTMRegionArray[lev].spatialTemporal(newInput,1) 
+                self.htm.HTMRegionArray[lev].spatialTemporal(newInput, 1)
 
                 # Save the old angle for each level
-                self.oldAngle[lev]=self.angle
-                
+                self.oldAngle[lev] = self.angle
+
                 # Save the command
                 self.previousCommand = copy.deepcopy(self.command)
-
-        
-                    
-        
-        
 #         # STEP 3 CREATE THE NEW COMMAND AND RUN IT THROUGH EACH LEVEL
 #         ###############################################################
-#         # The new input to the command space comes from the upper level and 
+#         # The new input to the command space comes from the upper level and
 #         # wether the previous command brought the angle closer to 90 degrees.
 #         print "STEP 3"
 #         # Calculate the command space of the highest level first
@@ -1084,8 +1079,8 @@ class HTMNetwork(QtGui.QWidget):
 #             twoPowLev = math.pow(2,2*lev)
 #             if self.iteration%twoPowLev==0:
 #                 print " LEVEL %s"%lev
-#                 # If the angle is further from 90 degs then don't set the command as active. 
-#                 # The command will not be incremented. 
+#                 # If the angle is further from 90 degs then don't set the command as active.
+#                 # The command will not be incremented.
 #                 print "     New angle = %s Old angle = %s"%(self.angle,self.oldAngle[0])
 #                 commSuccessful = self.HTMNetworkGrid.commandSuccessful(lev)
 #                 if commSuccessful == True:
@@ -1100,7 +1095,7 @@ class HTMNetwork(QtGui.QWidget):
 #                 # else:
 #                 #     newCommInput=invertPen.createInput('none', self.width, self.angleInputHeight, self.angleOverlap, -self.maxAcc, self.maxAcc)
 #                 #     print "     level %s LOST"%lev
-                
+
 #                 commandSpace = np.empty_like(newCommInput)
 #                 commandSpace[:] = newCommInput
 #                 # Run the new total input through the HTM
@@ -1108,11 +1103,10 @@ class HTMNetwork(QtGui.QWidget):
 #                 # Save the old angle for each level
 #                 self.oldAngle[lev]=self.angle
 # ##                # Update self.input for the input display widget.
-# ##                self.input[lev][self.commandRow:,:] = self.commandSpace   
+# ##                self.input[lev][self.commandRow:,:] = self.commandSpace
+        print " level commands=", self.command
 
-        print " level commands=",self.command
-
-        if updateViewer==True:
+        if updateViewer is True:
             # Set the input viewers array to self.input
             self.inputGrid.setInput(self.inputSpace)
             self.inputGrid.updateInput()
@@ -1120,50 +1114,54 @@ class HTMNetwork(QtGui.QWidget):
             self.HTMNetworkGrid.updateHTMGrid()
 
         print "------------------------------------------"
-    
+
     #def createNewInput(self):
     #    for i in range(self.inputGrid.input
-        
-    def mouseMoveEvent(self,event):
-        print "Enter!" 
-    
+
+    def mouseMoveEvent(self, event):
+        print "Enter!"
+
+
 class HTMGui(QtGui.QMainWindow):
-    
+
     def __init__(self):
         super(HTMGui, self).__init__()
-        
+
         self.initUI()
-        
-    def initUI(self):               
+
+    def initUI(self):
         layout = QtGui.QHBoxLayout()
-        HTMWidget=HTMNetwork()
-        layout.addWidget(HTMWidget);
+        HTMWidget = HTMNetwork()
+        layout.addWidget(HTMWidget)
         self.statusBar().showMessage('Ready')
-        
-        newInputAction = QtGui.QAction(QtGui.QIcon('grid.png'), '&New Input', self)        
+
+        newInputAction = QtGui.QAction(QtGui.QIcon('grid.png'),
+                                       '&New Input', self)
         newInputAction.setStatusTip('create a new input')
         #newInputAction.triggered.connect(HTMWidget.createNewInput())
-        drawLevelAction = QtGui.QAction(QtGui.QIcon('grid.png'), '&Level', self)        
+        drawLevelAction = QtGui.QAction(QtGui.QIcon('grid.png'),
+                                        '&Level', self)
         drawLevelAction.setStatusTip('draw Level x')
         #drawLevelAction.triggered.connect(HTMWidget.drawLevel())
-        
+
         self.toolbar = self.addToolBar('create a new input')
         self.toolbar.addAction(newInputAction)
         self.toolbar = self.addToolBar('draw a different Level')
         self.toolbar.addAction(drawLevelAction)
-        
+
         menubar = self.menuBar()
         fileMenu = menubar.addMenu('&File')
         ViewMenu = menubar.addMenu('&View')
         fileMenu.addAction(newInputAction)
         ViewMenu.addAction(drawLevelAction)
-        
+
         self.setGeometry(600, 100, 600, 750)
         self.setWindowTitle('HTM')
-        self.setCentralWidget(HTMWidget);    
+        self.setCentralWidget(HTMWidget)
         self.show()
 
-def main():   
+
+def main():
     app = QtGui.QApplication(sys.argv)
     ex = HTMGui()
     sys.exit(app.exec_())
@@ -1171,5 +1169,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-
