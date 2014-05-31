@@ -117,20 +117,23 @@ class Column:
                     if j >= 0 and j < (len(input[0])):
                         # Create a Synapse pointing to the HTM layers input
                         #so the synapse cellIndex is -1
-                        self.potentialSynapses=np.append(self.potentialSynapses,[Synapse(input,j,i,-1)])   #i is pos_y j is pos_x
-        self.predictiveStateArray = np.array([0 for i in range(self.historyLength)]) # An array storing when each of the cells in the column were last in a predictive state.
+                        self.potentialSynapses = np.append(self.potentialSynapses,
+                                                           [Synapse(input, j, i, -1)])   # i is pos_y j is pos_x
+        # An array storing when each of the cells in the column were last in a predictive state.
+        self.predictiveStateArray = np.array([0 for i in range(self.historyLength)])
         for i in range(length-1):   # Minus one since the first entry is already there
-            self.predictiveStateArray = np.vstack((self.predictiveStateArray,[0 for i in range(self.historyLength)]))
+            self.predictiveStateArray = np.vstack((self.predictiveStateArray, [0 for i in range(self.historyLength)]))
         # An array storing the timestep when each cell in the column was last in
         # an active state. This means the column has
         # feedforward input and the cell has a temporal context indicated by
         # active segments.
         self.activeStateArray = np.array([0 for i in range(self.historyLength)])
         for i in range(length-1):
-            self.activeStateArray = np.vstack((self.activeStateArray,[0 for i in range(self.historyLength)]))
-        self.learnStateArray = np.array([0 for i in range(self.historyLength)]) # An array storing when each of the cells in the column were last in a learn state.
+            self.activeStateArray = np.vstack((self.activeStateArray, [0 for i in range(self.historyLength)]))
+        # An array storing when each of the cells in the column were last in a learn state.
+        self.learnStateArray = np.array([0 for i in range(self.historyLength)])
         for i in range(length-1):
-            self.learnStateArray = np.vstack((self.learnStateArray,[0 for i in range(self.historyLength)]))
+            self.learnStateArray = np.vstack((self.learnStateArray, [0 for i in range(self.historyLength)]))
         # An array storing the last scores for each of the cells
           # in the column.
         # The score is based on how many of the previous sequence patterns have been seen for a cell.
@@ -140,17 +143,19 @@ class Column:
         # An array storing the last timeSteps when the column was active.
         self.columnActive = np.array([0 for i in range(self.historyLength)])
     # POSSIBLY MOVE THESE FUNCTIONS TO THE HTMLayer CLASS?
+
     def updateConnectedSynapses(self):
-        self.connectedSynapses = np.array([], dtype = object)
+        self.connectedSynapses = np.array([], dtype=object)
         for i in range(len(self.potentialSynapses)):
-            if self.potentialSynapses[i].permanence>self.potentialSynapses[i].connectPermanence:
-                self.connectedSynapses = np.append(self.connectedSynapses,self.potentialSynapses[i])
+            if self.potentialSynapses[i].permanence > self.potentialSynapses[i].connectPermanence:
+                self.connectedSynapses = np.append(self.connectedSynapses, self.potentialSynapses[i])
 ##    def input(self,input):
 ##        # Update the selected synapses inputs
 ##        for i in range(len(self.potentialSynapses)):
 ##            self.potentialSynapses[i].updateInput(input)
+
     def updateBoost(self):
-        if self.activeDutyCycle<self.minDutyCycle:
+        if self.activeDutyCycle < self.minDutyCycle:
             self.boost = self.boost+self.boostStep
         else:
             #print "activeDutyCycle %s > minDutyCycle %s"
@@ -208,13 +213,14 @@ class HTMLayer:
         self.dutyCycleAverageLength = 1000
         self.timeStep = 0
         self.output = np.array([[0 for i in range(self.width)] for j in range(self.height)])
-        self.activeColumns = np.array([], dtype = object)
+        self.activeColumns = np.array([], dtype=object)
         self.averageReceptiveFeildSizeArray = np.array([])
-        self.columns = np.array([[Column(self.cellsPerColumn,i,j,input) for i in range(columnArrayWidth)]
-        for j in range(columnArrayHeight)], dtype = object)      #Create the array storing the columns
+        # Create the array storing the columns
+        self.columns = np.array([[Column(self.cellsPerColumn, i, j, input) for
+                                i in range(columnArrayWidth)] for
+                                j in range(columnArrayHeight)], dtype=object)
         # The active Columns output from just the input space
         self.inSpaceOutput = np.array([[0 for i in range(self.width)] for j in range(self.commandRow)])
-
 
     def updateOutput(self):
         for i in range(len(self.output)):
@@ -233,23 +239,26 @@ class HTMLayer:
         pass
 
     def neighbours(self, c):
-        close_columns=np.array([], dtype = object)     # returns a list of the columns that are within the inhibitionRadius of c
+        # returns a list of the columns that are within the inhibitionRadius of c
+        closeColumns = np.array([], dtype=object)
         # Add one to the c.pos_y+c.inhibitionRadius because for example range(0,2)=(0,1)
-        for i in range(int(c.pos_y-c.inhibitionRadius),int(c.pos_y+c.inhibitionRadius)+1):
-            if i>=0 and i<(len(self.columns)):
-                for j in range(int(c.pos_x-c.inhibitionRadius),int(c.pos_x+c.inhibitionRadius)+1):
-                    if j>=0 and j<(len(self.columns[0])):
-                        close_columns = np.append(close_columns,self.columns[i][j])
-        return close_columns
+        for i in range(int(c.pos_y-c.inhibitionRadius), int(c.pos_y+c.inhibitionRadius)+1):
+            if i >= 0 and i < (len(self.columns)):
+                for j in range(int(c.pos_x-c.inhibitionRadius), int(c.pos_x+c.inhibitionRadius)+1):
+                    if j >= 0 and j < (len(self.columns[0])):
+                        closeColumns = np.append(closeColumns, self.columns[i][j])
+        return closeColumns
 
     def updateOverlapDutyCycle(self, c):
-            c.overlapDutyCycleArray = np.append(c.overlapDutyCycleArray,self.timeStep)   # Append the current time to the list of times that the column was active for
+            # Append the current time to the list of times that the column was active for
+            c.overlapDutyCycleArray = np.append(c.overlapDutyCycleArray, self.timeStep)
             for i in range(len(c.overlapDutyCycleArray)):        # Remove the values that where too long ago
-                if c.overlapDutyCycleArray[0]<(self.timeStep-self.dutyCycleAverageLength):
-                    c.overlapDutyCycleArray=np.delete(c.overlapDutyCycleArray,0,0)
+                if c.overlapDutyCycleArray[0] < (self.timeStep-self.dutyCycleAverageLength):
+                    c.overlapDutyCycleArray = np.delete(c.overlapDutyCycleArray, 0, 0)
                 else:
-                   break
-            c.overlapDutyCycle = float(len(c.overlapDutyCycleArray))/float(self.dutyCycleAverageLength)     #Update the overlap duty cycle running average
+                    break
+            #Update the overlap duty cycle running average
+            c.overlapDutyCycle = float(len(c.overlapDutyCycleArray))/float(self.dutyCycleAverageLength)
             #print "overlap DutyCycle = %s length =
             # %s averagelength = %s"%(c.overlapDutyCycle,len
                 # (c.overlapDutyCycleArray),self.dutyCycleAverageLength)
@@ -259,7 +268,8 @@ class HTMLayer:
         # It's used to help columns win that don't
         # have a good overlap with any inputs
         for i in range(len(c.potentialSynapses)):
-            c.potentialSynapses[i].permanence = min(1.0, (1+scale)*(c.potentialSynapses[i].permanence))  # Increase the permance by a scale factor
+            # Increase the permance by a scale factor
+            c.potentialSynapses[i].permanence = min(1.0, (1+scale)*(c.potentialSynapses[i].permanence))
 
     def boostFunction(c):
         pass
@@ -280,20 +290,24 @@ class HTMLayer:
         self.averageReceptiveFeildSizeArray = np.array([])
         for i in range(len(self.columns)):
             for c in self.columns[i]:
-                self.averageReceptiveFeildSizeArray = np.append(self.averageReceptiveFeildSizeArray,len(c.connectedSynapses))
+                self.averageReceptiveFeildSizeArray = np.append(self.averageReceptiveFeildSizeArray,
+                                                                len(c.connectedSynapses))
         #print np.average(self.averageReceptiveFeildSizeArray)
-        return int(math.sqrt(np.average(self.averageReceptiveFeildSizeArray))/2)    #Returns the radius of the average receptive feild size
+        #Returns the radius of the average receptive feild size
+        return int(math.sqrt(np.average(self.averageReceptiveFeildSizeArray))/2)
 
     def updateActiveDutyCycle(self, c):
         if c.activeState is True:
-            c.activeDutyCycleArray = np.append(c.activeDutyCycleArray,self.timeStep)   # Append the current time call to the list of times that the column was active for
+            # Append the current time call to the list of times that the column was active for
+            c.activeDutyCycleArray = np.append(c.activeDutyCycleArray, self.timeStep)
         for i in range(len(c.activeDutyCycleArray)):
         # Remove the values that where too long ago
-            if c.activeDutyCycleArray[0]<(self.timeStep-self.dutyCycleAverageLength):
-                c.activeDutyCycleArray=np.delete(c.activeDutyCycleArray,0,0)
+            if c.activeDutyCycleArray[0] < (self.timeStep-self.dutyCycleAverageLength):
+                c.activeDutyCycleArray = np.delete(c.activeDutyCycleArray, 0, 0)
             else:
                 break
-        c.activeDutyCycle = float(len(c.activeDutyCycleArray))/float(self.dutyCycleAverageLength)     #Update the active duty cycle running average
+        #Update the active duty cycle running average
+        c.activeDutyCycle = float(len(c.activeDutyCycleArray))/float(self.dutyCycleAverageLength)
         #print "DutyCycle = %s length = %s averagelength
         # = %s"%(c.activeDutyCycle,len(c.activeDutyCycleArray),
             # self.dutyCycleAverageLength)
@@ -321,7 +335,7 @@ class HTMLayer:
                 deleteEmptySegments.append(s)
         if len(deleteEmptySegments) > 0:  # Used for printing only
             print "Deleted %s segments from x, y, i=%s, %s, %s segindex = %s"%(len(deleteEmptySegments), c.pos_x,c.pos_y,i,deleteEmptySegments)
-        c.cells[i].segments = np.delete(c.cells[i].segments,deleteEmptySegments)
+        c.cells[i].segments = np.delete(c.cells[i].segments, deleteEmptySegments)
 
     def deleteWeakSynapses(self, c, i, segIndex):
         # Delete the synapses that have a permanence
@@ -333,7 +347,7 @@ class HTMLayer:
             syn = c.cells[i].segments[segIndex].synapses[k]
             if syn.permanence < syn.connectPermanence:
                 deleteActiveSynapses.append(k)
-        c.cells[i].segments[segIndex].synapses = np.delete(c.cells[i].segments[segIndex].synapses,deleteActiveSynapses)
+        c.cells[i].segments[segIndex].synapses = np.delete(c.cells[i].segments[segIndex].synapses, deleteActiveSynapses)
         #print "     deleted %s number of synapses"%(len(deleteActiveSynapses))
 
     def columnActiveAdd(self, c, timeStep):
@@ -417,12 +431,12 @@ class HTMLayer:
                     if self.learnState(m, j, timeStep) is True:
                         #print "time = %s synapse ends at
                         # active cell x,y,i = %s,%s,%s"%(timeStep,m.pos_x,m.pos_y,j)
-                        synapseList = np.append(synapseList,Synapse(0,m.pos_x,m.pos_y,j))
+                        synapseList = np.append(synapseList, Synapse(0, m.pos_x, m.pos_y, j))
         # Take a random sample from the list synapseList
         # Check that there is at least one segment
         # and the segment index isnot -1 meaning
         # it's a new segment that hasn't been created yet.
-        if len(c.cells[i].segments) > 0 and s! = -1:
+        if len(c.cells[i].segments) > 0 and s != -1:
             numNewSynapses = self.newSynapseCount-len(c.cells[i].segments[s].synapses)
         else:
             numNewSynapses = self.newSynapseCount
@@ -468,7 +482,7 @@ class HTMLayer:
             x = s.synapses[i].pos_x
             y = s.synapses[i].pos_y
             cell = s.synapses[i].cell
-            if self.columnActiveState(self.columns[y][x],timeStep) is True:
+            if self.columnActiveState(self.columns[y][x], timeStep) is True:
                 if self.columns[y][x].cells[cell].score > highestScoreCount:
                     highestScoreCount = self.columns[y][x].cells[cell].score
         return highestScoreCount
@@ -547,8 +561,8 @@ class HTMLayer:
         #%s,%s,%s num segs = %s"%(c.pos_x,c.pos_y,i,len(c.cells[i].segments))
         for g in range(len(c.cells[i].segments)):
             # Find synapses that are active at timeStep
-            currentSegSynCount = self.segmentNumSynapsesActive(c.cells[i].segments[g],timeStep,onCell)
-            mostActiveSegSynCount = self.segmentNumSynapsesActive(c.cells[i].segments[h],timeStep,onCell)
+            currentSegSynCount = self.segmentNumSynapsesActive(c.cells[i].segments[g], timeStep, onCell)
+            mostActiveSegSynCount = self.segmentNumSynapsesActive(c.cells[i].segments[h], timeStep, onCell)
             if currentSegSynCount > mostActiveSegSynCount:
                 h = g
                 #print "\n new best matching segment found for h = %s\n"%h
@@ -592,12 +606,12 @@ class HTMLayer:
             if h >= 0:
                 # Need to make sure the best cell actually has a segment.
                 if len(c.cells[bestCell].segments) > 0:
-                    #print "Best Segment at the moment
-                    #is segIndex=%s"%bestSegment
+                    #print "Best Segment at the moment is segIndex=%s"%bestSegment
                     # Must be larger than or equal to
                     #otherwise cell 0 segment 0 will never
                     #be chosen as the best cell
-                    if self.segmentNumSynapsesActive(c.cells[i].segments[h],timeStep,True) >= self.segmentNumSynapsesActive(c.cells[bestCell].segments[bestSegment],timeStep,True):
+                    if (self.segmentNumSynapsesActive(c.cells[i].segments[h], timeStep, True) >= self.segmentNumSynapsesActive(c.cells[bestCell].segments[bestSegment], timeStep, True)):
+                        # Remeber the best cell and segment
                         bestCell = i
                         bestSegment = h
                         bestCellFound = True
@@ -611,7 +625,8 @@ class HTMLayer:
             #with the fewest number of segments
             #num=%s"%(fewestSegments,len(c.cells[fewestSegments].segments))
             return (fewestSegments, -1)
-    def getSegmentActiveSynapses(self, c, i, timeStep, s, newSynapses = False):
+
+    def getSegmentActiveSynapses(self, c, i, timeStep, s, newSynapses=False):
         # Returns an segmentUpdate structure. This is used
         #to update the segments and their
         # synapses during learning. It adds the synapses
@@ -620,7 +635,9 @@ class HTMLayer:
         # structure so these synapses can be updated
         # appropriately (either inc or dec) later during learning.
         # s is the index of the segment in the cells segment list.
-        newSegmentUpdate = {'index':s,'activeSynapses':np.array([],dtype = object),'newSynapses':np.array([],dtype=object),'sequenceSegment':0, 'createdAtTime': timeStep}
+        newSegmentUpdate = {'index': s, 'activeSynapses': np.array([], dtype=object),
+                            'newSynapses': np.array([], dtype=object), 'sequenceSegment': 0,
+                            'createdAtTime': timeStep}
         #print "    getSegmentActiveSynapse called for
         #timeStep = %s x,y,i,s = %s,%s,%s,%s newSyn =
         #%s"%(timeStep,c.pos_x,c.pos_y,i,s,newSynapses)
@@ -638,20 +655,22 @@ class HTMLayer:
                         #%(end_x, end_y, end_cell)
                         # Check to see if the Synapse is
                         #connected to an active cell
-                        if self.activeState(self.columns[end_y][end_x],end_cell,timeStep)==True:
+                        if self.activeState(self.columns[end_y][end_x], end_cell, timeStep) is True:
                             # If so add it to the updateSegment structure
                             #print "     active synapse starts at
                             #x,y,cell,segIndex = %s,%s,%s,%s"%
                             #(c.pos_x,c.pos_y,i,s)
                             #print "     the synapse ends at x,y,cell
                             #= %s,%s,%s"%(end_x,end_y,end_cell)
-                            newSegmentUpdate['activeSynapses'] = np.append(newSegmentUpdate['activeSynapses'],c.cells[i].segments[s].synapses[k])
+                            newSegmentUpdate['activeSynapses'] = np.append(newSegmentUpdate['activeSynapses'],
+                                                                           c.cells[i].segments[s].synapses[k])
         if newSynapses is True:
             # Add new synapses that have an active end.
             # We add them  to the segmentUpdate structure. They are added
             # To the actual segment later during learning when the cell is
             # in a learn state.
-            newSegmentUpdate['newSynapses'] = np.append(newSegmentUpdate['newSynapses'],self.randomActiveSynapses(c,i,s,timeStep))
+            newSegmentUpdate['newSynapses'] = np.append(newSegmentUpdate['newSynapses'],
+                                                        self.randomActiveSynapses(c, i, s, timeStep))
             #print "     New synapse added to the segmentUpdate"
         # Return the update structure.
         #print "     returned from getSegmentActiveSynapse"
@@ -705,7 +724,8 @@ class HTMLayer:
                 #print "oldActiveSyn = %s newSyn = %s"
                 #%(len(c.cells[i].segments[segIndex].synapses),
                     #len(c.cells[i].segmentUpdateList[j]['newSynapses']))
-                c.cells[i].segments[segIndex].synapses = np.append(c.cells[i].segments[segIndex].synapses,c.cells[i].segmentUpdateList[j]['newSynapses'])
+                c.cells[i].segments[segIndex].synapses = np.append(c.cells[i].segments[segIndex].synapses,
+                                                                   c.cells[i].segmentUpdateList[j]['newSynapses'])
                 # Delete synapses that have low permanence values.
                 self.deleteWeakSynapses(c, i, segIndex)
             # If the segment is new (the segIndex = -1) add it to the cell
@@ -752,7 +772,7 @@ class HTMLayer:
             for c in self.columns[i]:
                 c.activeState = False
                 if c.overlap > 0:
-                    minLocalActivity = self.kthScore(self.neighbours(c),self.desiredLocalActivity)
+                    minLocalActivity = self.kthScore(self.neighbours(c), self.desiredLocalActivity)
                     #print "current column = (%s,%s)"%(c.pos_x,c.pos_y)
                     if c.overlap >= minLocalActivity:
                         self.activeColumns = np.append(self.activeColumns, c)
@@ -812,8 +832,8 @@ class HTMLayer:
                 # Check the cell to find a best matching
                 #segment active due to active columns.
                 bestMatchSeg = self.getBestMatchingSegment(c, i, timeStep-1, False)
-                if  bestMatchSeg ! = -1:
-                    c.cells[i].score = 1 + self.segmentHighestScore(c.cells[i].segments[bestMatchSeg],timeStep-1)
+                if bestMatchSeg != -1:
+                    c.cells[i].score = 1+self.segmentHighestScore(c.cells[i].segments[bestMatchSeg], timeStep-1)
                     #print"Cell x,y,i = %s,%s,%s bestSeg =
                     #%s score = %s"%(c.pos_x,c.pos_y,i,
                         #bestMatchSeg,c.cells[i].score)
@@ -827,10 +847,10 @@ class HTMLayer:
             lcChosen = False
             for i in range(self.cellsPerColumn):
                 # Update the cells according to the CLA paper
-                if self.predictiveState(c,i,timeStep-1) is True:
+                if self.predictiveState(c, i, timeStep-1) is True:
                     s = self.getActiveSegment(c, i, timeStep-1)
                     # If a segment was found then continue
-                    if s! = -1:
+                    if s != -1:
                         # Since we get the active segments
                         #from 1 time step ago then we need to
                         # find which of these where sequence
@@ -839,14 +859,14 @@ class HTMLayer:
                         if s.sequenceSegment == timeStep-1:
                             buPredicted = True
                             self.activeStateAdd(c, i, timeStep)
-                            learnState = 2
+                            #learnState = 2
                             #if self.segmentActive(s,timeStep-1,learnState) > 0:
                             lcChosen = True
                             self.learnStateAdd(c, i, timeStep)
             # Different to CLA paper
             # If the column is about to burst because no cell was predicting
             # check the cell with the highest score.
-            if highestScoredCell ! = None:
+            if highestScoredCell is not None:
                 if buPredicted is False and c.cells[highestScoredCell].score >= self.minScoreThreshold:
                     print"best SCORE active x, y, i = %s, %s, %s score = %s"%(c.pos_x, c.pos_y,highestScoredCell, c.cells[highestScoredCell].score)
                     buPredicted = True
@@ -854,15 +874,15 @@ class HTMLayer:
                     lcChosen = True
                     self.learnStateAdd(c, highestScoredCell, timeStep)
                     # Add a new Segment
-                    sUpdate = self.getSegmentActiveSynapses(c, highestScoredCell, timeStep-1,-1,True)
+                    sUpdate = self.getSegmentActiveSynapses(c, highestScoredCell, timeStep-1, -1, True)
                     sUpdate['sequenceSegment'] = timeStep
                     c.cells[highestScoredCell].segmentUpdateList.append(sUpdate)
                 if lcChosen is False and c.cells[highestScoredCell].score >= self.minScoreThreshold:
-                    print"best SCORE learn x,y,i = %s,%s,%s score = %s"%(c.pos_x,c.pos_y,highestScoredCell,c.cells[highestScoredCell].score)
+                    print"best SCORE learn x,y,i = %s,%s,%s score = %s" % (c.pos_x, c.pos_y, highestScoredCell, c.cells[highestScoredCell].score)
                     lcChosen = True
                     self.learnStateAdd(c, highestScoredCell, timeStep)
                     # Add a new Segment
-                    sUpdate = self.getSegmentActiveSynapses(c, highestScoredCell, timeStep-1,-1,True)
+                    sUpdate = self.getSegmentActiveSynapses(c, highestScoredCell, timeStep-1, -1, True)
                     sUpdate['sequenceSegment'] = timeStep
                     c.cells[highestScoredCell].segmentUpdateList.append(sUpdate)
 
@@ -912,7 +932,7 @@ class HTMLayer:
                         # learning cells.
                         #activeState = 1
                         #if self.segmentActive(s,timeStep,activeState) > 0:
-                        learnState = 2
+                        #learnState = 2
                         activeState = 1
                         predictionLevel = self.segmentActive(s, timeStep, activeState)
                         # printing only
@@ -944,6 +964,7 @@ class HTMLayer:
                     #predUpdate=self.getSegmentActiveSynapses
                     #(c,i,timeStep-1,predSegment,True)
                     #c.cells[i].segmentUpdateList.append(predUpdate)
+
     def temporalLearning(self, timeStep):
         # Third function called for the temporal pooler.
         # The update structures are implemented on the cells
@@ -962,7 +983,8 @@ class HTMLayer:
                     #if self.activeState(c,i,timeStep) ==
                     #False and self.predictiveState(c,i,timeStep-1) is True:
                     # Same method as the CLA white pages.
-                    if self.predictiveState(c,i,timeStep-1) is True and self.predictiveState(c,i,timeStep) is False:
+                    if (self.predictiveState(c, i, timeStep-1) is True
+                            and self.predictiveState(c, i, timeStep) is False):
                         #print "INCORRECT predictive
                         #state for x,y,cell = %s,%s,%s"%(c.pos_x,c.pos_y,i)
                         self.adaptSegments(c, i, False)
@@ -983,28 +1005,35 @@ class HTMRegion:
         self.height = columnArrayHeight
         self.cellsPerColumn = cellsPerColumn
         # We will use layer 0 as the input layer
-        #and layer 1 as the control layer
+        # and layer 1 as the control layer
         self.numLayers = 2  # The number of HTM layer that make up a region.
 
         # Define the section of the HTM Control layer (layer 1)
-        #that is a command space.
+        # that is a command space.
         self.commandRow = commandRow
 
-        self.layerArray = np.array([], dtype = object)
+        self.layerArray = np.array([], dtype=object)
         for i in range(self.numLayers):
             if i == 0:
                 # Create the input layer 0.
-                #This layer is just an input (input space),
-                #there is no command rows.
+                # This layer is just an input (input space),
+                # there is no command rows.
                 inputLayerHeight = commandRow
                 # Use to set the command Row so all rows are input rows.
-                self.layerArray = np.append(self.layerArray,HTMLayer(input, self.width, inputLayerHeight,self.cellsPerColumn,inputLayerHeight))
+                self.layerArray = np.append(self.layerArray,
+                                            HTMLayer(input, self.width,
+                                                     inputLayerHeight,
+                                                     self.cellsPerColumn,
+                                                     inputLayerHeight))
             else:
-                self.layerArray = np.append(self.layerArray,HTMLayer(input, self.width, self.height, self.cellsPerColumn,commandRow))
+                self.layerArray = np.append(self.layerArray,
+                                            HTMLayer(input, self.width,
+                                                     self.height, self.cellsPerColumn,
+                                                     commandRow))
 
     def spatialTemporal(self, input, layerNum):
         # The layerNum selects which layer in the
-        #region the spatial temporal functions are performed for.
+        # region the spatial temporal functions are performed for.
         self.layerArray[layerNum].timeStep = self.layerArray[layerNum].timeStep+1
         # Update the current layers input with the new input
         self.layerArray[layerNum].updateInput(input)
@@ -1012,7 +1041,7 @@ class HTMRegion:
         self.layerArray[layerNum].Overlap()
         self.layerArray[layerNum].inhibition(self.layerArray[layerNum].timeStep)
         self.layerArray[layerNum].learning()
-        #This Updates the temporal pooler
+        # This Updates the temporal pooler
         self.layerArray[layerNum].updateActiveState(self.layerArray[layerNum].timeStep)
         self.layerArray[layerNum].updatePredictiveState(self.layerArray[layerNum].timeStep)
         self.layerArray[layerNum].temporalLearning(self.layerArray[layerNum].timeStep)
@@ -1033,7 +1062,9 @@ class HTM:
 
         self.HTMRegionArray = np.array([], dtype=object)
         for i in range(numLevels):
-            self.HTMRegionArray = np.append(self.HTMRegionArray,HTMRegion(input,self.width,self.height,self.cellsPerColumn,self.commandRow))
+            self.HTMRegionArray = np.append(self.HTMRegionArray,
+                                            HTMRegion(input, self.width, self.height,
+                                                      self.cellsPerColumn, self.commandRow))
         # create a place to store layers so they can be reverted.
         self.HTMOriginal = copy.deepcopy(self.HTMRegionArray)
 
