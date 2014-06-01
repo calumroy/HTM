@@ -8,7 +8,7 @@
 import numpy as np
 import random
 import math
-import pprint
+#import pprint
 import copy
 
 ##Struct = {'field1': 'some val', 'field2': 'some val'}
@@ -223,6 +223,10 @@ class HTMLayer:
         self.inSpaceOutput = np.array([[0 for i in range(self.width)] for j in range(self.commandRow)])
 
     def updateOutput(self):
+        # Update the output array as well as the input Space output array.
+        # The inSpaceOutput is just a 2d array showing which columns are
+        # active in the input space (the columns not in the command space).
+        # Initialise all outputs as zero first then set the active columns as 1.
         for i in range(len(self.output)):
             for j in range(len(self.output[i])):
                 self.output[i][j] = 0
@@ -917,8 +921,8 @@ class HTMLayer:
                 #of synapses active on any segment on any cell in the column
                 mostPredCell = 0
                 # This is the cellIndex with the most
-                #mostPredCellSynCount. This cell is the
-                #highest predictor in the column.
+                # mostPredCellSynCount. This cell is the
+                # highest predictor in the column.
                 mostPredSegment = 0
                 columnPredicting = False
                 for i in range(len(c.cells)):
@@ -926,10 +930,9 @@ class HTMLayer:
                     for s in c.cells[i].segments:
                         # This differs to the CLA.
                         # When all cells are active in a
-                        #column this stops them from all causing predictions.
+                        # column this stops them from all causing predictions.
                         # lcchosen will be correctly set when a
-                        #cell predicts and is activated by a group of
-                        # learning cells.
+                        # cell predicts and is activated by a group of learning cells.
                         #activeState = 1
                         #if self.segmentActive(s,timeStep,activeState) > 0:
                         #learnState = 2
