@@ -636,8 +636,6 @@ class HTMNetwork(QtGui.QWidget):
         # Create an angle input grid to feed into the htm from the simulation
         self.angleInput = invertPen.createInput(self.angle, self.inputWidth, self.inputHeight, self.angleOverlap, self.minAngle, self.maxAngle)
 
-        # Store the commands from each level.
-
         # Used to create and save new views
         self.markedHTMViews = []
 
@@ -890,29 +888,28 @@ class HTMNetwork(QtGui.QWidget):
             # Update the viewer on the last step.
             self.step(True)
 
-
-    def step(self,updateViewer):
+    def step(self, updateViewer):
         # Update the inputs and run them through the HTM levels just once.
 
-        print "NEW PLAY. Current TimeStep = %s"%self.iteration
+        print "NEW PLAY. Current TimeStep = %s" % self.iteration
         # PART 1 MAKE NEW INPUT FOR LEVEL 0
         ############################################
         print "PART 1"
 
         # Return an average acceleration output to pass to the simulated inverted pendulum
-        #command = invertPen.medianAcc(self.HTMNetworkGrid.predictedCommand(0), self.minAcc, self.maxAcc)
+        command = invertPen.medianAcc(self.HTMNetworkGrid.htm.levelCommandOutput(0), self.minAcc, self.maxAcc)
         #print " CommandSpace = %s"%self.HTMNetworkGrid.predictedCommand(0)
         #print " Predicted command is %s" % command
-        #if command == 'none':
-        #    command = random.randint(self.minAcc, self.maxAcc)
+        if command == 'none':
+            command = random.randint(self.minAcc, self.maxAcc)
         #print " command played was ", command
 
         # Save level 0 command
         #self.command[0] = command
         # update the inverted pendulum with the new acceleration command.
         #self.oldAngle[0] = self.angle
-        #self.angle = self.invPen.step(command,self.minAngle, self.maxAngle, self.maxAcc ,1)  # Use 1 second for the step size.
-        #self.angleInput = invertPen.createInput(self.angle, self.inputWidth, self.inputHeight, self.angleOverlap, self.minAngle, self.maxAngle)
+        self.angle = self.invPen.step(command,self.minAngle, self.maxAngle, self.maxAcc ,1)  # Use 1 second for the step size.
+        self.angleInput = invertPen.createInput(self.angle, self.inputWidth, self.inputHeight, self.angleOverlap, self.minAngle, self.maxAngle)
 
         #print " New angle = %s Old angle = %s" % (self.angle, self.oldAngle[0])
 
@@ -922,11 +919,15 @@ class HTMNetwork(QtGui.QWidget):
         self.iteration += 1  # Increase the time
         #print " level commands=", self.command
 
+        # Update the HTM input
+        #self.HTMNetworkGrid.updateHTMInput(self.angleInput)
+        self.htm.spatialTemporal(self.angleInput)
+
         if updateViewer is True:
             # Set the input viewers array to self.input
             self.inputGrid.updateInput()
             # Update the columns and cells of the HTM viewer
-            self.HTMNetworkGrid.updateHTMGrid()
+            self.htm.updateHTMGrid(self.angleInput)
 
         print "------------------------------------------"
 

@@ -207,6 +207,23 @@ class HTMLayer:
             for c in self.columns[i]:
                 self.updatePotentialSynapses(c)
 
+    def activeCellGrid(self):
+        ############### TODO ############
+        # Return a grid representing the cells in the columns which are active but
+        # not bursting. Cells in a column are placed in adjacent grid cells right of each other.
+        # Eg. A HTM layer with 10 rows, 5 columns and 3 cells per column would produce an
+        # activeCellGrid of 10*3 = 15 columns and 10 rows.
+        output = np.array([[0 for i in range(self.width*self.cellsPerColumn)]
+                          for j in range(self.height)])
+        for k in range(len(self.columns)):
+            for p in range(len(self.columns[k])):
+                c = self.columns[k][p]
+                for i in range(len(c.cells)):
+                    if c.activeStateArray[i] == self.timeStep:
+                        output[k][p*self.cellsPerColumn+i] = 1
+        print "output = ", output
+        return output
+
     def updateOutput(self):
         # Update the output array.
         # Initialise all outputs as zero first then set the active columns as 1.
@@ -1026,28 +1043,38 @@ class HTMRegion:
                                         HTMLayer(lowerOutput, self.width,
                                         self.height, self.cellsPerColumn))
 
-    def updateLayerInputs(self, input):
+    def updateRegionInput(self, input):
         # Update the input and outputs of the layers.
         # Layer 0 receives the new input. The higher layers
         # receive inputs from the lower layer outputs
         self.layerArray[0].updateInput(input)
         for i in range(1, self.numLayers):
-            self.layerArray[i].input = self.layerArray[i-1].output
+            self.layerArray[i].updateInput(self.layerArray[i-1].output)
 
-    def spatialTemporal(self, input, layerNum):
-        # The layerNum selects which layer in the
-        # region the spatial temporal functions are performed for.
-        self.layerArray[layerNum].timeStep = self.layerArray[layerNum].timeStep+1
-        # Update the current layers input with the new input
-        self.layerArray[layerNum].updateInput(input)
-        # This updates the spatial pooler
-        self.layerArray[layerNum].Overlap()
-        self.layerArray[layerNum].inhibition(self.layerArray[layerNum].timeStep)
-        self.layerArray[layerNum].learning()
-        # This Updates the temporal pooler
-        self.layerArray[layerNum].updateActiveState(self.layerArray[layerNum].timeStep)
-        self.layerArray[layerNum].updatePredictiveState(self.layerArray[layerNum].timeStep)
-        self.layerArray[layerNum].temporalLearning(self.layerArray[layerNum].timeStep)
+    def regionOutput(self):
+        # Return the regions output from its highest layer.
+        highestLayer = self.numLayers-1
+        return self.layerArray[highestLayer].output
+
+    def regionCommandOutput(self):
+        # Return the regions command output from its command layer (the highest layer).
+        # The command output is the grid of the active non bursted cells.
+        highestLayer = self.numLayers-1
+        return self.layerArray[highestLayer].activeCellGrid()
+
+    def spatialTemporal(self):
+        for layer in self.layerArray:
+            layer.timeStep = layer.timeStep+1
+            ## Update the current layers input with the new input
+            ##self.layerArray[layerNum].updateInput(input)
+            # This updates the spatial pooler
+            layer.Overlap()
+            layer.inhibition(layer.timeStep)
+            layer.learning()
+            # This Updates the temporal pooler
+            layer.updateActiveState(layer.timeStep)
+            layer.updatePredictiveState(layer.timeStep)
+            layer.temporalLearning(layer.timeStep)
 
 
 class HTM:
@@ -1059,8 +1086,6 @@ class HTM:
         self.width = columnArrayWidth
         self.height = columnArrayHeight
         self.cellsPerColumn = cellsPerColumn
-
-        self.input = input  # The input to the total HTM network.
 
         self.HTMRegionArray = np.array([], dtype=object)
         for i in range(numLevels):
@@ -1085,24 +1110,30 @@ class HTM:
         # to the correct object.
         return self.HTMRegionArray
 
-    def spatialTemporal(self, input, level):
+    def updateHTMInput(self, input):
+        # Update the input and outputs of the levels.
+        # Level 0 receives the new input. The higher levels
+        # receive inputs from the lower levels outputs
+        self.HTMRegionArray[0].updateRegionInput(input)
+        for i in range(1, self.numLevels):
+            lowerLevel = i-1
+            lowerLevelOutput = self.HTMRegionArray[lowerLevel].regionOutput()
+            self.HTMRegionArray[i].updateRegionInput(lowerLevelOutput)
+
+    def levelCommandOutput(self, level):
+        # Return the command output of the desired level.
+        return self.HTMRegionArray[0].regionOutput()
+
+    def spatialTemporal(self, input):
         #######   NOT FINISHED #################
         # Update the spatial and temporal pooler.
         #Find spatial and temporal patterns from the input.
         # This updates the columns and all there vertical
         #synapses as well as the cells and the horizontal Synapses.
-        # The level selects which level to update.
-        self.HTMRegionArray[level].timeStep = self.HTMRegionArray[level].timeStep+1
         # Update the current levels input with the new input
-        self.HTMRegionArray[level].updateInput(input)
-        # This updates the spatial pooler
-        self.HTMRegionArray[level].Overlap()
-        self.HTMRegionArray[level].inhibition(self.HTMRegionArray[level].timeStep)
-        self.HTMRegionArray[level].learning()
-        #This Updates the temporal pooler
-        self.HTMRegionArray[level].updateActiveState(self.HTMRegionArray[level].timeStep)
-        self.HTMRegionArray[level].updatePredictiveState(self.HTMRegionArray[level].timeStep)
-        self.HTMRegionArray[level].temporalLearning(self.HTMRegionArray[level].timeStep)
+        self.updateHTMInput(input)
+        for level in self.HTMRegionArray:
+            level.spatialTemporal()
 
 
 
