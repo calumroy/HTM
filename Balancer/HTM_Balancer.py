@@ -167,7 +167,7 @@ class Column:
 
 
 class HTMLayer:
-    def __init__(self, input, columnArrayWidth, columnArrayHeight, cellsPerColumn, commandRow):
+    def __init__(self, input, columnArrayWidth, columnArrayHeight, cellsPerColumn):
         # The columns are in a 2 dimensional array columnArrayWidth by
         #columnArrayHeight.
         self.width = columnArrayWidth
@@ -181,15 +181,6 @@ class HTMLayer:
         # How many cells within the inhibition radius are active
         self.desiredLocalActivity = 5
         self.cellsPerColumn = cellsPerColumn
-        # Define the section of the HTM region that is a command section.
-        # The columns that are in a higher row than commandRow are
-        # designated command columns.
-        # These columns receive command inputs that affect the inputs.
-        self.commandRow = commandRow
-        self.numCommRows = self.height-self.commandRow
-        # The Feedback command space has the same size of the command row
-        # It is situated above the command space.
-        self.fbCommandSpaceRow = self.commandRow-self.numCommRows
         self.connectPermanence = 0.3
         # Should be smaller than activationThreshold
         self.minThreshold = 4
@@ -838,8 +829,6 @@ class HTMLayer:
         # Different to CLA paper.
         # First we calculate the score for each cell in the active column
         for c in self.activeColumns:
-            ## Only perform learning for commands
-            ##if c.pos_y>=self.commandRow:
             #print "\n ACTIVE COLUMN x,y = %s,%s time =
             #%s"%(c.pos_x,c.pos_y,timeStep)
             #print "columnActive =",c.columnActive
@@ -1016,7 +1005,7 @@ class HTMLayer:
 
 
 class HTMRegion:
-    def __init__(self, input, columnArrayWidth, columnArrayHeight, cellsPerColumn, commandRow):
+    def __init__(self, input, columnArrayWidth, columnArrayHeight, cellsPerColumn):
         self.quit = False
         # The class contains multiple HTM layers stacked on one another
         self.width = columnArrayWidth
@@ -1026,16 +1015,11 @@ class HTMRegion:
         # and layer 1 as the control layer
         self.numLayers = 2  # The number of HTM layer that make up a region.
 
-        # Define the section of the HTM Control layer (layer 1)
-        # that is a command space.
-        self.commandRow = commandRow
-
         self.layerArray = np.array([], dtype=object)
         for i in range(self.numLayers):
             self.layerArray = np.append(self.layerArray,
                                         HTMLayer(input, self.width,
-                                                 self.height, self.cellsPerColumn,
-                                                 commandRow))
+                                                 self.height, self.cellsPerColumn))
 
     def spatialTemporal(self, input, layerNum):
         # The layerNum selects which layer in the
@@ -1055,7 +1039,7 @@ class HTMRegion:
 
 class HTM:
     def __init__(self, numLevels, input, columnArrayWidth,
-                 columnArrayHeight, cellsPerColumn, commandRow):
+                 columnArrayHeight, cellsPerColumn):
         self.quit = False
         # The class contains multiple HTM levels stacked on one another
         self.numLevels = numLevels   # The number of levels in the HTM network
@@ -1063,14 +1047,11 @@ class HTM:
         self.height = columnArrayHeight
         self.cellsPerColumn = cellsPerColumn
 
-        # Define the section of the HTM layer that is a command space.
-        self.commandRow = commandRow
-
         self.HTMRegionArray = np.array([], dtype=object)
         for i in range(numLevels):
             self.HTMRegionArray = np.append(self.HTMRegionArray,
                                             HTMRegion(input, self.width, self.height,
-                                                      self.cellsPerColumn, self.commandRow))
+                                                      self.cellsPerColumn))
         # create a place to store layers so they can be reverted.
         self.HTMOriginal = copy.deepcopy(self.HTMRegionArray)
 
