@@ -106,19 +106,9 @@ class Column:
         self.highestScoredCell = None
 
         self.connectedSynapses = np.array([], dtype=object)
+        # The possible feed forward Synapse connections for the column
         self.potentialSynapses = np.array([], dtype=object)
-        # the possible feed forward Synapse connections for the column
-        #Work out the potential feedforward connections this column could make
-        for i in range(int(self.pos_y-self.potentialRadius),
-                       int(self.pos_y+self.potentialRadius)+1):
-            if i >= 0 and i < (len(input)):
-                for j in range(int(self.pos_x-self.potentialRadius),
-                               int(self.pos_x+self.potentialRadius)+1):
-                    if j >= 0 and j < (len(input[0])):
-                        # Create a Synapse pointing to the HTM layers input
-                        #so the synapse cellIndex is -1
-                        self.potentialSynapses = np.append(self.potentialSynapses,
-                                                           [Synapse(input, j, i, -1)])   # i is pos_y j is pos_x
+
         # An array storing when each of the cells in the column were last in a predictive state.
         self.predictiveStateArray = np.array([0 for i in range(self.historyLength)])
         for i in range(length-1):   # Minus one since the first entry is already there
@@ -162,6 +152,7 @@ class Column:
             # %(self.activeDutyCycle,self.minDutyCycle)
             self.boost = 1.0
         #print self.boost
+
     #def updateArray(self,timeStep,array):
         ## This function will be used if activeArray ends up storing more
         # than just the last active time.
@@ -219,28 +210,50 @@ class HTMLayer:
         self.columns = np.array([[Column(self.cellsPerColumn, i, j, input) for
                                 i in range(columnArrayWidth)] for
                                 j in range(columnArrayHeight)], dtype=object)
-        # The active Columns output from just the input space
-        self.inSpaceOutput = np.array([[0 for i in range(self.width)] for j in range(self.commandRow)])
+        # Initialise the columns potential synapses.
+        # Work out the potential feedforward connections each column could make to the input.
+        for i in range(len(self.columns)):
+            for c in self.columns[i]:
+                self.updatePotentialSynapses(c)
 
     def updateOutput(self):
-        # Update the output array as well as the input Space output array.
-        # The inSpaceOutput is just a 2d array showing which columns are
-        # active in the input space (the columns not in the command space).
+        # Update the output array.
         # Initialise all outputs as zero first then set the active columns as 1.
         for i in range(len(self.output)):
             for j in range(len(self.output[i])):
                 self.output[i][j] = 0
-                if i < self.commandRow:
-                    self.inSpaceOutput[i][j] = 0
         for i in range(len(self.activeColumns)):
             x = self.activeColumns[i].pos_x
             y = self.activeColumns[i].pos_y
             self.output[y][x] = 1
-            if y < self.commandRow:
-                    self.inSpaceOutput[y][x] = 1
 
-    def potentialSynapses(c):
-        pass
+    def updatePotentialSynapses(self, c):
+        # Update the locations of the potential synapses for column c.
+        # If the input is larger than the number of columns then
+        # the columns are evenly spaced out over the input.
+        inputHeigth = len(self.Input)
+        inputWidth = len(self.Input[0])
+        columnHeight = len(self.columns)
+        columnWidth = len(self.columns[0])
+        # Calculate the ratio between columns and the input space.
+        colInputRatioHeight = inputHeigth / columnHeight
+        colInputRatioWidth = inputWidth / columnWidth
+        #print "Column to input height ratio = %s" % colInputRatioHeight
+        #print "Column to input width ratio = %s" % colInputRatioWidth
+
+        # i is pos_y j is pos_x
+        for y in range(int(c.pos_y-c.potentialRadius),
+                       int(c.pos_y+c.potentialRadius)+1):
+            inputPos_y = y*colInputRatioHeight
+            if inputPos_y >= 0 and inputPos_y < inputHeigth:
+                for x in range(int(c.pos_x-c.potentialRadius),
+                               int(c.pos_x+c.potentialRadius)+1):
+                    inputPos_x = x*colInputRatioWidth
+                    if inputPos_x >= 0 and inputPos_x < inputWidth:
+                        # Create a Synapse pointing to the HTM layers input
+                        #so the synapse cellIndex is -1
+                        c.potentialSynapses = np.append(c.potentialSynapses,
+                                                        [Synapse(self.Input, inputPos_x, inputPos_y, -1)])
 
     def neighbours(self, c):
         # returns a list of the columns that are within the inhibitionRadius of c
@@ -759,6 +772,8 @@ class HTMLayer:
                 for s in c.connectedSynapses:
                     # Check if the input that this synapses
                     #is connected to is active.
+                    print "s.pos_y = %s s.pos_x = %s" % (s.pos_y, s.pos_x)
+                    print "input width = %s input height = %s" % (len(self.Input[0]), len(self.Input))
                     inputActive = self.Input[s.pos_y][s.pos_x]
                     c.overlap = c.overlap + inputActive
                 if c.overlap < c.minOverlap:
@@ -1017,22 +1032,10 @@ class HTMRegion:
 
         self.layerArray = np.array([], dtype=object)
         for i in range(self.numLayers):
-            if i == 0:
-                # Create the input layer 0.
-                # This layer is just an input (input space),
-                # there is no command rows.
-                inputLayerHeight = commandRow
-                # Use to set the command Row so all rows are input rows.
-                self.layerArray = np.append(self.layerArray,
-                                            HTMLayer(input, self.width,
-                                                     inputLayerHeight,
-                                                     self.cellsPerColumn,
-                                                     inputLayerHeight))
-            else:
-                self.layerArray = np.append(self.layerArray,
-                                            HTMLayer(input, self.width,
-                                                     self.height, self.cellsPerColumn,
-                                                     commandRow))
+            self.layerArray = np.append(self.layerArray,
+                                        HTMLayer(input, self.width,
+                                                 self.height, self.cellsPerColumn,
+                                                 commandRow))
 
     def spatialTemporal(self, input, layerNum):
         # The layerNum selects which layer in the
