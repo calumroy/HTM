@@ -173,6 +173,11 @@ class HTMInput(QtGui.QGraphicsView):
         self.rows = 0
         self.columnItems = []  # Stores all the column items in the scene
 
+        # Keep track of the right mouse button to move the view
+        self.setDragMode(QtGui.QGraphicsView.RubberBandDrag)
+        self._mousePressed = False
+        self._dragPos = None
+
         self.drawGrid(self.size)
         self.show()
 
@@ -222,6 +227,58 @@ class HTMInput(QtGui.QGraphicsView):
             if value == 1:
                     brush.setColor(QtCore.Qt.green)
                     self.columnItems[i].setBrush(brush)
+
+    def scaleScene(self, scaleSize):
+        self.scale(scaleSize, scaleSize)
+
+    def mousePressEvent(self, event):
+        if event.buttons() == QtCore.Qt.LeftButton:
+            self._mousePressed = True
+            self.setCursor(QtCore.Qt.ClosedHandCursor)
+            self._dragPos = event.pos()
+            event.accept()
+
+    def mouseMoveEvent(self, event):
+        if self._mousePressed:
+            newPos = event.pos()
+            diff = newPos - self._dragPos
+            self._dragPos = newPos
+            self.horizontalScrollBar().setValue(self.horizontalScrollBar().value() - diff.x())
+            self.verticalScrollBar().setValue(self.verticalScrollBar().value() - diff.y())
+            event.accept()
+        else:
+            super(HTMInput, self).mouseMoveEvent(event)
+
+    def mouseReleaseEvent(self, event):
+        if event.button() == QtCore.Qt.LeftButton:
+            if event.modifiers() & QtCore.Qt.ControlModifier:
+                self.setCursor(QtCore.Qt.OpenHandCursor)
+            else:
+                self.setCursor(QtCore.Qt.ArrowCursor)
+            #self._mousePressed = False
+        #if event.button() == QtCore.Qt.RightButton:
+        #        super(HTMInput, self).mouseReleaseEvent(event)
+        super(HTMInput, self).mouseReleaseEvent(event)
+
+    def mouseDoubleClickEvent(self, event):
+        pass
+
+    def keyPressEvent(self, event):
+        if event.key() == QtCore.Qt.Key_Control and not self._mousePressed:
+            self.setCursor(QtCore.Qt.OpenHandCursor)
+        else:
+            super(HTMInput, self).keyPressEvent(event)
+
+    def keyReleaseEvent(self, event):
+        if event.key() == QtCore.Qt.Key_Control:
+            if not self._mousePressed:
+                self.setCursor(QtCore.Qt.ArrowCursor)
+
+    def wheelEvent(self, event):
+        factor = 1.2
+        if event.delta() < 0:
+            factor = 1.0 / factor
+        self.scale(factor, factor)
 
 
 class HTMGridViewer(QtGui.QGraphicsView):
@@ -614,20 +671,20 @@ class HTMNetwork(QtGui.QWidget):
         return input
 
     def makeButtons(self):
-        self.btn1 = QtGui.QPushButton("HTM +", self)
-        self.btn1.clicked.connect(self.HTMzoomIn)
-        self.btn2 = QtGui.QPushButton("HTM -", self)
-        self.btn2.clicked.connect(self.HTMzoomOut)
+        #self.btn1 = QtGui.QPushButton("HTM +", self)
+        #self.btn1.clicked.connect(self.HTMzoomIn)
+        #self.btn2 = QtGui.QPushButton("HTM -", self)
+        #self.btn2.clicked.connect(self.HTMzoomOut)
         self.btn3 = QtGui.QPushButton("All HTM", self)
         self.btn3.clicked.connect(self.showAllHTM)
         self.btn4 = QtGui.QPushButton("n steps", self)
         self.btn4.clicked.connect(self.nSteps)
         self.btn5 = QtGui.QPushButton("step", self)
         self.btn5.clicked.connect(self.oneStep)
-        self.btn6 = QtGui.QPushButton("In +", self)
-        self.btn6.clicked.connect(self.inputZoomIn)
-        self.btn7 = QtGui.QPushButton("IN -", self)
-        self.btn7.clicked.connect(self.inputZoomOut)
+        #self.btn6 = QtGui.QPushButton("In +", self)
+        #self.btn6.clicked.connect(self.inputZoomIn)
+        #self.btn7 = QtGui.QPushButton("IN -", self)
+        #self.btn7.clicked.connect(self.inputZoomOut)
         self.btn8 = QtGui.QPushButton("Active Cells", self)
         self.btn8.clicked.connect(self.showActiveCells)
         self.btn9 = QtGui.QPushButton("Predict Cells", self)
@@ -656,11 +713,10 @@ class HTMNetwork(QtGui.QWidget):
         self.grid.addWidget(self.btn9, 1, 7, 1, 1)
         self.grid.addWidget(self.btn10, 1, 8, 1, 1)
         self.grid.addWidget(self.btn3, 2, 5, 1, 1)
-
-        self.grid.addWidget(self.btn6, 3, 1, 1, 1)
-        self.grid.addWidget(self.btn7, 3, 2, 1, 1)
-        self.grid.addWidget(self.btn1, 3, 5, 1, 1)
-        self.grid.addWidget(self.btn2, 3, 6, 1, 1)
+        #self.grid.addWidget(self.btn6, 3, 1, 1, 1)
+        #self.grid.addWidget(self.btn7, 3, 2, 1, 1)
+        #self.grid.addWidget(self.btn1, 3, 5, 1, 1)
+        #self.grid.addWidget(self.btn2, 3, 6, 1, 1)
         self.grid.addWidget(self.btn14, 2, 6, 1, 1)
 
     def levelDropDown(self):
@@ -762,12 +818,12 @@ class HTMNetwork(QtGui.QWidget):
         self.inputGrid.scaleScene(1-self.scaleFactor)
 
     def makeFrames(self):
-        self.frame1 = QtGui.QFrame(self)
-        self.frame1.setLineWidth(3)
-        self.frame1.setFrameStyle(QtGui.QFrame.Box | QtGui.QFrame.Sunken)
-        self.frame2 = QtGui.QFrame(self)
-        self.frame2.setLineWidth(3)
-        self.frame2.setFrameStyle(QtGui.QFrame.Box | QtGui.QFrame.Sunken)
+        #self.frame1 = QtGui.QFrame(self)
+        #self.frame1.setLineWidth(3)
+        #self.frame1.setFrameStyle(QtGui.QFrame.Box | QtGui.QFrame.Sunken)
+        #self.frame2 = QtGui.QFrame(self)
+        #self.frame2.setLineWidth(3)
+        #self.frame2.setFrameStyle(QtGui.QFrame.Box | QtGui.QFrame.Sunken)
         #self.frame3 = QtGui.QFrame(self)
         #self.frame3.setLineWidth(3)
         #self.frame3.setFrameStyle(QtGui.QFrame.Box|QtGui.QFrame.Sunken)
@@ -775,8 +831,8 @@ class HTMNetwork(QtGui.QWidget):
         self.grid.setSpacing(1)
         # addWidget(QWidget, row, column, rowSpan, columnSpan)
         #self.grid.addWidget(self.HTMNetworkGrid,3,5,10,4)
-        self.grid.addWidget(self.inputGrid, 1, 1, 10, 8)
-        self.grid.addWidget(self.HTMNetworkGrid, 8, 1, 10, 8)
+        self.grid.addWidget(self.inputGrid, 3, 1, 2, 8)
+        self.grid.addWidget(self.HTMNetworkGrid, 6, 1, 10, 8)
         #self.grid.addWidget(self.frame1, 1, 1, 2, 8)
         #self.grid.addWidget(self.frame2, 3, 1, 10, 4)
         #self.grid.addWidget(self.frame3, 3, 5, 10, 4)
@@ -895,10 +951,10 @@ class HTMGui(QtGui.QMainWindow):
         drawLevelAction.setStatusTip('draw Level x')
         #drawLevelAction.triggered.connect(HTMWidget.drawLevel())
 
-        self.toolbar = self.addToolBar('create a new input')
-        self.toolbar.addAction(newInputAction)
-        self.toolbar = self.addToolBar('draw a different Level')
-        self.toolbar.addAction(drawLevelAction)
+        #self.toolbar = self.addToolBar('create a new input')
+        #self.toolbar.addAction(newInputAction)
+        #self.toolbar = self.addToolBar('draw a different Level')
+        #self.toolbar.addAction(drawLevelAction)
 
         menubar = self.menuBar()
         fileMenu = menubar.addMenu('&File')
