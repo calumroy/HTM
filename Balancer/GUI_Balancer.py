@@ -844,6 +844,9 @@ class HTMNetwork(QtGui.QWidget):
         self.HTMNetworkGrid.level = level
         # Update the columns and cells of the HTM viewer
         self.HTMNetworkGrid.updateHTMGrid()
+        self.inputGrid.level = level
+        # Update the columns and cells of the input viewer
+        self.inputGrid.updateInput()
 
     def setLayer(self, layer):
         # Set the layer for the HTMVeiwer to draw.
@@ -852,6 +855,11 @@ class HTMNetwork(QtGui.QWidget):
         # Update the columns and cells of the HTM viewer
         self.HTMNetworkGrid.drawGrid(self.HTMNetworkGrid.size)
         self.HTMNetworkGrid.updateHTMGrid()
+        # Set the layer for the HTMInput to draw.
+        self.inputGrid.layer = layer
+        # Update the columns and cells of the input viewer
+        self.inputGrid.drawGrid(self.inputGrid.size)
+        self.inputGrid.updateInput()
 
     def saveHTM(self):
         self.htm.saveRegions()

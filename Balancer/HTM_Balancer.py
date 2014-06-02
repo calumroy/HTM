@@ -1011,15 +1011,28 @@ class HTMRegion:
         self.width = columnArrayWidth
         self.height = columnArrayHeight
         self.cellsPerColumn = cellsPerColumn
-        # We will use layer 0 as the input layer
-        # and layer 1 as the control layer
+
         self.numLayers = 2  # The number of HTM layer that make up a region.
 
         self.layerArray = np.array([], dtype=object)
-        for i in range(self.numLayers):
+        # Set up the inputs to the HTM layers.
+        # Layer 0 gets the new input.
+        # The higher layers receive the lower layers output.
+        self.layerArray = np.append(self.layerArray, HTMLayer(input, self.width,
+                                                              self.height, self.cellsPerColumn))
+        for i in range(1, self.numLayers):
+            lowerOutput = self.layerArray[i-1].output
             self.layerArray = np.append(self.layerArray,
-                                        HTMLayer(input, self.width,
-                                                 self.height, self.cellsPerColumn))
+                                        HTMLayer(lowerOutput, self.width,
+                                        self.height, self.cellsPerColumn))
+
+    def updateLayerInputs(self, input):
+        # Update the input and outputs of the layers.
+        # Layer 0 receives the new input. The higher layers
+        # receive inputs from the lower layer outputs
+        self.layerArray[0].updateInput(input)
+        for i in range(1, self.numLayers):
+            self.layerArray[i].input = self.layerArray[i-1].output
 
     def spatialTemporal(self, input, layerNum):
         # The layerNum selects which layer in the
@@ -1046,6 +1059,8 @@ class HTM:
         self.width = columnArrayWidth
         self.height = columnArrayHeight
         self.cellsPerColumn = cellsPerColumn
+
+        self.input = input  # The input to the total HTM network.
 
         self.HTMRegionArray = np.array([], dtype=object)
         for i in range(numLevels):
