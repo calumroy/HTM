@@ -1,7 +1,7 @@
 # Title: HTM
 # Description: git managed development of a HTM network
 # Author: Calum Meiklejohn
-# Development phase: alpha V 0.63
+# Development phase: alpha
 
 #import HTM_draw
 #import pygame
@@ -244,19 +244,21 @@ class HTMLayer:
         columnHeight = len(self.columns)
         columnWidth = len(self.columns[0])
         # Calculate the ratio between columns and the input space.
-        colInputRatioHeight = inputHeigth / columnHeight
-        colInputRatioWidth = inputWidth / columnWidth
+        colInputRatioHeight = float(inputHeigth / columnHeight)
+        colInputRatioWidth = float(inputWidth / columnWidth)
         #print "Column to input height ratio = %s" % colInputRatioHeight
         #print "Column to input width ratio = %s" % colInputRatioWidth
 
         # i is pos_y j is pos_x
         for y in range(int(c.pos_y-c.potentialRadius),
                        int(c.pos_y+c.potentialRadius)+1):
-            inputPos_y = y*colInputRatioHeight
+            # Cast the y position to an int so it matches up with a row number.
+            inputPos_y = int(y*colInputRatioHeight)
             if inputPos_y >= 0 and inputPos_y < inputHeigth:
                 for x in range(int(c.pos_x-c.potentialRadius),
                                int(c.pos_x+c.potentialRadius)+1):
-                    inputPos_x = x*colInputRatioWidth
+                    # Cast the x position to an int so it matches up with a column number.
+                    inputPos_x = int(x*colInputRatioWidth)
                     if inputPos_x >= 0 and inputPos_x < inputWidth:
                         # Create a Synapse pointing to the HTM layers input
                         #so the synapse cellIndex is -1
@@ -780,8 +782,8 @@ class HTMLayer:
                 for s in c.connectedSynapses:
                     # Check if the input that this synapses
                     #is connected to is active.
-                    print "s.pos_y = %s s.pos_x = %s" % (s.pos_y, s.pos_x)
-                    print "input width = %s input height = %s" % (len(self.Input[0]), len(self.Input))
+                    #print "s.pos_y = %s s.pos_x = %s" % (s.pos_y, s.pos_x)
+                    #print "input width = %s input height = %s" % (len(self.Input[0]), len(self.Input))
                     inputActive = self.Input[s.pos_y][s.pos_x]
                     c.overlap = c.overlap + inputActive
                 if c.overlap < c.minOverlap:
@@ -1063,7 +1065,10 @@ class HTMRegion:
         return self.layerArray[highestLayer].activeCellGrid()
 
     def spatialTemporal(self):
+        i = 0
         for layer in self.layerArray:
+            print "     Layer = %s" % i
+            i += 1
             layer.timeStep = layer.timeStep+1
             ## Update the current layers input with the new input
             ##self.layerArray[layerNum].updateInput(input)
@@ -1088,9 +1093,15 @@ class HTM:
         self.cellsPerColumn = cellsPerColumn
 
         self.HTMRegionArray = np.array([], dtype=object)
-        for i in range(numLevels):
+        # The lowest region
+        self.HTMRegionArray = np.append(self.HTMRegionArray,
+                                        HTMRegion(input, self.width, self.height,
+                                                  self.cellsPerColumn))
+        # The higher levels get inputs from the lower levels.
+        for i in range(1, numLevels):
+            lowerOutput = self.HTMRegionArray[i-1].regionOutput()
             self.HTMRegionArray = np.append(self.HTMRegionArray,
-                                            HTMRegion(input, self.width, self.height,
+                                            HTMRegion(lowerOutput, self.width, self.height,
                                                       self.cellsPerColumn))
         # create a place to store layers so they can be reverted.
         self.HTMOriginal = copy.deepcopy(self.HTMRegionArray)
@@ -1125,14 +1136,16 @@ class HTM:
         return self.HTMRegionArray[0].regionOutput()
 
     def spatialTemporal(self, input):
-        #######   NOT FINISHED #################
         # Update the spatial and temporal pooler.
-        #Find spatial and temporal patterns from the input.
+        # Find spatial and temporal patterns from the input.
         # This updates the columns and all there vertical
-        #synapses as well as the cells and the horizontal Synapses.
+        # synapses as well as the cells and the horizontal Synapses.
         # Update the current levels input with the new input
         self.updateHTMInput(input)
+        i = 0
         for level in self.HTMRegionArray:
+            print "Level = %s" % i
+            i += 1
             level.spatialTemporal()
 
 

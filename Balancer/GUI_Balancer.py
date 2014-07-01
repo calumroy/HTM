@@ -624,17 +624,17 @@ class HTMNetwork(QtGui.QWidget):
         self.maxAcc = 1  # The maximum acceleration.
         self.minAcc = -1  # The maximum acceleration.
 
+        # Create an angle input grid to feed into the htm from the simulation
+        self.angleInput = invertPen.createInput(self.angle, self.inputWidth, self.inputHeight, self.angleOverlap, self.minAngle, self.maxAngle)
+
         # Create HTM network with an empty input
-        new_input = np.array([[0 for i in range(self.inputHeight)] for j in range(self.inputWidth)])
-        self.htm = HTM_V.HTM(self.numLevels, new_input, self.width, self.height, self.numCells)
+        self.htm = HTM_V.HTM(self.numLevels, self.angleInput, self.width, self.height, self.numCells)
 
         # Create the HTM grid veiwer widget.
         self.HTMNetworkGrid = HTMGridViewer(self.htm)
         # Create the input veiwer widget.
         self.inputGrid = HTMInput(self.htm)
 
-        # Create an angle input grid to feed into the htm from the simulation
-        self.angleInput = invertPen.createInput(self.angle, self.inputWidth, self.inputHeight, self.angleOverlap, self.minAngle, self.maxAngle)
 
         # Used to create and save new views
         self.markedHTMViews = []
@@ -831,6 +831,8 @@ class HTMNetwork(QtGui.QWidget):
         #self.grid.addWidget(self.HTMNetworkGrid,3,5,10,4)
         self.grid.addWidget(self.inputGrid, 3, 1, 2, 8)
         self.grid.addWidget(self.HTMNetworkGrid, 6, 1, 10, 8)
+        # Set the minimum size for the HTM veiwer (row , minsize in pixels)
+        self.grid.setRowMinimumHeight(6, 300)
         #self.grid.addWidget(self.frame1, 1, 1, 2, 8)
         #self.grid.addWidget(self.frame2, 3, 1, 10, 4)
         #self.grid.addWidget(self.frame3, 3, 5, 10, 4)
@@ -839,23 +841,30 @@ class HTMNetwork(QtGui.QWidget):
     def setLevel(self, level):
         # Set the level for the HTMVeiwer to draw.
         print "Level set to %s" % level
-        self.HTMNetworkGrid.level = level
+
         # Update the columns and cells of the HTM viewer
+        self.HTMNetworkGrid.level = level
+        self.HTMNetworkGrid.drawGrid(self.HTMNetworkGrid.size)
         self.HTMNetworkGrid.updateHTMGrid()
-        self.inputGrid.level = level
+
         # Update the columns and cells of the input viewer
+        # Redraw the grid as the input size could have changed.
+        self.inputGrid.level = level
+        self.inputGrid.drawGrid(self.inputGrid.size)
         self.inputGrid.updateInput()
 
     def setLayer(self, layer):
         # Set the layer for the HTMVeiwer to draw.
         print "Layer set to %s" % layer
-        self.HTMNetworkGrid.layer = layer
+
         # Update the columns and cells of the HTM viewer
+        self.HTMNetworkGrid.layer = layer
         self.HTMNetworkGrid.drawGrid(self.HTMNetworkGrid.size)
         self.HTMNetworkGrid.updateHTMGrid()
+
+        # Update the columns and cells of the input viewer
         # Set the layer for the HTMInput to draw.
         self.inputGrid.layer = layer
-        # Update the columns and cells of the input viewer
         self.inputGrid.drawGrid(self.inputGrid.size)
         self.inputGrid.updateInput()
 
@@ -902,7 +911,7 @@ class HTMNetwork(QtGui.QWidget):
         #print " Predicted command is %s" % command
         if command == 'none':
             command = random.randint(self.minAcc, self.maxAcc)
-        #print " command played was ", command
+        print " command played was ", command
 
         # Save level 0 command
         #self.command[0] = command
@@ -927,7 +936,7 @@ class HTMNetwork(QtGui.QWidget):
             # Set the input viewers array to self.input
             self.inputGrid.updateInput()
             # Update the columns and cells of the HTM viewer
-            self.htm.updateHTMGrid(self.angleInput)
+            self.HTMNetworkGrid.updateHTMGrid()
 
         print "------------------------------------------"
 

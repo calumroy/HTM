@@ -6,7 +6,6 @@ The HTM controls the motion of the stand and hence this affects the pendulum.
 
 author: Calum Meiklejohn
 website: calumroy.com
-last edited: August 2013
 """
 import numpy as np
 import math
@@ -18,8 +17,8 @@ def createInput(angle, gridWidth, gridHeight, angleOverlap, minAngle, maxAngle):
     # gridWidth = The width of the matrix
     # gridHeight = The height of the matrix
     # angleOverlap = The number of columns the active angle cells take up. This affects the overlap between angle readings.
-    # minAngle = The minimum angle. This is the angle value that the first column represents. 
-    # maxAngle = The maximum angle. This is the angle value that the last column represents. 
+    # minAngle = The minimum angle. This is the angle value that the first column represents.
+    # maxAngle = The maximum angle. This is the angle value that the last column represents.
     if angle=='none':
         return np.array([[0 for i in range(gridWidth)] for j in range(gridHeight)])
     angleInput = np.array([[0 for i in range(gridWidth)] for j in range(gridHeight)])
@@ -28,14 +27,14 @@ def createInput(angle, gridWidth, gridHeight, angleOverlap, minAngle, maxAngle):
     #angleCol = int(round(anglePos))
     for row in range(len(angleInput)):
         for col in range(len(angleInput[0])):
-            if col >= (round(anglePos-angleOverlap)) and col <= (round(anglePos+angleOverlap)): 
+            if col >= (round(anglePos-angleOverlap)) and col <= (round(anglePos+angleOverlap)):
                 angleInput[row][col] = 1
     #print "grid = ",angleInput
     return angleInput
 
 def medianAcc(accGrid, minAcc, maxAcc):
     # Take a command grid input and output an average acceleration value
-    # The minimum acceleration is the acceleration represented by column 0 the 
+    # The minimum acceleration is the acceleration represented by column 0 the
     # maximum acceleration is from the most right column; linearly scaled between this.
     numPredCells = 0 # This is the number of predicting cells
     numAccLevels = 1+abs(maxAcc-minAcc) # The number of accleration levels
@@ -46,7 +45,7 @@ def medianAcc(accGrid, minAcc, maxAcc):
     for k in range(len(accGrid)):
         for m in range(len(accGrid[k])):
             if accGrid[k][m]==1:
-                #avgAcc += m*accPerCol 
+                #avgAcc += m*accPerCol
                 accArray[int(m*accPerCol)] += 1;
                 numPredCells += 1
     if numPredCells>0:  # Avoid divide by zero
@@ -62,8 +61,8 @@ def medianAcc(accGrid, minAcc, maxAcc):
         return medianAcc
     else:
         return 'none'
-        
-        
+
+
 
 
 class InvertedPendulum():
@@ -78,7 +77,7 @@ class InvertedPendulum():
 
     def step(self, acc, minAngle, maxAngle, maxAcc, time):
         # Calculate the new position of the pendulum after the time while applying the specified acceleration.
-        # Simple pendulum for now! 
+        # Simple pendulum for now!
         print " self.angle = %s, vel = %s, acc = %s, time = %s"%(self.angle,self.vel,acc,time)
         self.vel = self.vel+int(time*acc)
         # Limit the velocity
