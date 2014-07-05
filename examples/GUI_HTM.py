@@ -608,13 +608,13 @@ class HTMNetwork(QtGui.QWidget):
         self.origIteration = 0  # Stores the iteration for the previous saved HTM
         self.numLevels = 1  # The number of levels.
         self.numCells = 3  # The number of cells in a column.
-        self.width = 9  # The width of the columns in the HTM 2D array
-        self.height = 6  # The height of the columns in the HTM 2D array
+        self.width = 8  # The width of the columns in the HTM 2D array
+        self.height = 20  # The height of the columns in the HTM 2D array
         self.inputWidth = self.width
         self.inputHeight = self.height
 
         # Create the input class
-        self.overlap = 0
+        self.overlap = 1
         self.InputCreator = Create_Inputs.InputCreator(self.inputWidth, self.inputHeight, self.overlap)
 
         # Create HTM network with an initialized input
