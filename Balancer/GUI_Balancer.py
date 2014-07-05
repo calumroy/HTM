@@ -6,8 +6,8 @@ author: Calum Meiklejohn
 website: calumroy.com
 
 This code draws the input and a HTM network in a grid using PyQt
-It creates a simplified version of an Inverted_Pendulumn and
-attempts to learn and control the system using the HTM network.
+It creates a simple input of a moving vertical line and the HTM
+region attempts to learn this pattern.
 
 """
 import sys
@@ -22,7 +22,7 @@ import HTM_Balancer as HTM_V
 import math
 import copy
 
-import Inverted_Pendulum as invertPen
+import Inverted_Pendulumn
 
 
 class layerPopup(QtGui.QWidget):
@@ -114,6 +114,7 @@ class popup(QtGui.QWidget):
 
 
 class HTMColumn(QtGui.QGraphicsRectItem):
+    # A class used to display the column of a HTM network
     def __init__(self, HTM_x, HTM_y, squareSize, pen, brush):
         super(HTMColumn, self).__init__()
         self.initUI(HTM_x, HTM_y, squareSize, pen, brush)
@@ -132,6 +133,7 @@ class HTMColumn(QtGui.QGraphicsRectItem):
 
 
 class HTMCell(QtGui.QGraphicsRectItem):
+    # A class used to display the cell of a HTM network
     def __init__(self, HTM_x, HTM_y, cell, x, y, squareSize, pen, brush):
         super(HTMCell, self).__init__()
         self.initUI(HTM_x, HTM_y, cell, x, y, squareSize, pen, brush)
@@ -151,7 +153,7 @@ class HTMCell(QtGui.QGraphicsRectItem):
 
 
 class HTMInput(QtGui.QGraphicsView):
-
+    # A class used to dispaly the input to a HTM
     def __init__(self, htm):
         super(HTMInput, self).__init__()
 
@@ -295,8 +297,6 @@ class HTMGridViewer(QtGui.QGraphicsView):
         self.numCells = htm.cellsPerColumn  # The number of cells in a column.
         self.level = 0  # Draw this level (Region) of the HTMNetwork
         self.layer = 0  # Draw this HTM layer in the level.
-        # The minimum number of cells that are active and where predicted for the command to be considered successful
-        self.minNumberPredCells = 3
         # For the popup segment selection box
         self.segmentSelect = None
         self.selectedItem = None
@@ -597,7 +597,7 @@ class HTMGridViewer(QtGui.QGraphicsView):
 
 
 class HTMNetwork(QtGui.QWidget):
-    # Creates a HTM multi level network.
+    # Creates a HTM network.
 
     def __init__(self):
         super(HTMNetwork, self).__init__()
@@ -606,35 +606,24 @@ class HTMNetwork(QtGui.QWidget):
     def initUI(self):
         self.iteration = 0
         self.origIteration = 0  # Stores the iteration for the previous saved HTM
-        self.numLevels = 2  # The number of levels.
+        self.numLevels = 1  # The number of levels.
         self.numCells = 3  # The number of cells in a column.
-        self.width = 9  # The width of the columns 2D array
-        self.height = 12  # The height of the columns 2D array
-        self.inputWidth = 2*self.width
-        self.inputHeight = 2*self.height
+        self.width = 8  # The width of the columns in the HTM 2D array
+        self.height = 20  # The height of the columns in the HTM 2D array
+        self.inputWidth = self.width
+        self.inputHeight = self.height
 
-        # Create the physics simualtion class
-        self.invPen = invertPen.InvertedPendulum()
-        self.angle = 3     # The angle that the inverted pendulum is at.
-        self.angleOverlap = 0  # The number of columns that an angle position can overlap either side.
-        self.minAngle = 1  # The angle that a cell in the first column represents.
-        self.maxAngle = 9  # The angle that a cell in the last column represents.
-        self.desAngle = 3  # The desired angle that the system should aim to acheive.
-        #self.acceleration = 0.0   # The acceleration commanded by the HTM
-        self.maxAcc = 1  # The maximum acceleration.
-        self.minAcc = -1  # The maximum acceleration.
+        # Create the input class
+        self.overlap = 1
+        self.InputCreator = Inverted_Pendulumn.InputCreator(self.inputWidth, self.inputHeight, self.overlap)
 
-        # Create an angle input grid to feed into the htm from the simulation
-        self.angleInput = invertPen.createInput(self.angle, self.inputWidth, self.inputHeight, self.angleOverlap, self.minAngle, self.maxAngle)
-
-        # Create HTM network with an empty input
-        self.htm = HTM_V.HTM(self.numLevels, self.angleInput, self.width, self.height, self.numCells)
+        # Create HTM network with an initialized input
+        self.htm = HTM_V.HTM(self.numLevels, self.InputCreator.newInput(), self.width, self.height, self.numCells)
 
         # Create the HTM grid veiwer widget.
         self.HTMNetworkGrid = HTMGridViewer(self.htm)
         # Create the input veiwer widget.
         self.inputGrid = HTMInput(self.htm)
-
 
         # Used to create and save new views
         self.markedHTMViews = []
@@ -704,7 +693,7 @@ class HTMNetwork(QtGui.QWidget):
         # Add the dropdown menu to the screens top frame
         # addWidget(QWidget, row, column, rowSpan, columnSpan)
         self.grid.addWidget(self.btn5, 1, 4, 1, 1)
-        self.grid.addWidget(self.btn4, 1, 6, 1, 1)
+        self.grid.addWidget(self.btn4, 1, 5, 1, 1)
         self.grid.addWidget(self.btn11, 2, 1, 1, 1)
         self.grid.addWidget(self.btn12, 2, 2, 1, 1)
         self.grid.addWidget(self.btn8, 1, 6, 1, 1)
@@ -900,38 +889,20 @@ class HTMNetwork(QtGui.QWidget):
     def step(self, updateViewer):
         # Update the inputs and run them through the HTM levels just once.
 
-        print "NEW PLAY. Current TimeStep = %s" % self.iteration
+        print "NEW TimeStep. Current TimeStep = %s" % self.iteration
         # PART 1 MAKE NEW INPUT FOR LEVEL 0
         ############################################
         print "PART 1"
+        # Update the input
 
-        # Return an average acceleration output to pass to the simulated inverted pendulum
-        command = invertPen.medianAcc(self.HTMNetworkGrid.htm.levelCommandOutput(0), self.minAcc, self.maxAcc)
-        #print " CommandSpace = %s"%self.HTMNetworkGrid.predictedCommand(0)
-        #print " Predicted command is %s" % command
-        if command == 'none':
-            command = random.randint(self.minAcc, self.maxAcc)
-        print " command played was ", command
-
-        # Save level 0 command
-        #self.command[0] = command
-        # update the inverted pendulum with the new acceleration command.
-        #self.oldAngle[0] = self.angle
-        self.angle = self.invPen.step(command,self.minAngle, self.maxAngle, self.maxAcc ,1)  # Use 1 second for the step size.
-        self.angleInput = invertPen.createInput(self.angle, self.inputWidth, self.inputHeight, self.angleOverlap, self.minAngle, self.maxAngle)
-
-        #print " New angle = %s Old angle = %s" % (self.angle, self.oldAngle[0])
-
-        # PART 2 ADD THE INPUT PARTS TOGETHER AND RUN THROUGH THE HTM LEVELS
+        # PART 2 RUN THE NEW INPUT THROUGHT THE HTM
         #####################################################################
         print "PART 2"
         self.iteration += 1  # Increase the time
-        #print " level commands=", self.command
+        # Update the HTM input and run through the
+        self.htm.spatialTemporal(self.InputCreator.newInput())
 
-        # Update the HTM input
-        #self.HTMNetworkGrid.updateHTMInput(self.angleInput)
-        self.htm.spatialTemporal(self.angleInput)
-
+        # Check if the view should be updated
         if updateViewer is True:
             # Set the input viewers array to self.input
             self.inputGrid.updateInput()
@@ -939,12 +910,6 @@ class HTMNetwork(QtGui.QWidget):
             self.HTMNetworkGrid.updateHTMGrid()
 
         print "------------------------------------------"
-
-    #def createNewInput(self):
-    #    for i in range(self.inputGrid.input
-
-    def mouseMoveEvent(self, event):
-        print "Enter!"
 
 
 class HTMGui(QtGui.QMainWindow):
