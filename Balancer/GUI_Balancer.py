@@ -614,11 +614,10 @@ class HTMNetwork(QtGui.QWidget):
         self.inputHeight = self.height
 
         # Create the input class
-        self.overlap = 1
-        self.InputCreator = Inverted_Pendulumn.InputCreator(self.inputWidth, self.inputHeight, self.overlap)
+        self.InputCreator = Inverted_Pendulum.InvertedPendulum(self.inputWidth, self.inputHeight)
 
         # Create HTM network with an initialized input
-        self.htm = HTM_V.HTM(self.numLevels, self.InputCreator.newInput(), self.width, self.height, self.numCells)
+        self.htm = HTM_V.HTM(self.numLevels, self.InputCreator.createInput(), self.width, self.height, self.numCells)
 
         # Create the HTM grid veiwer widget.
         self.HTMNetworkGrid = HTMGridViewer(self.htm)
@@ -821,7 +820,7 @@ class HTMNetwork(QtGui.QWidget):
         self.grid.addWidget(self.inputGrid, 3, 1, 2, 8)
         self.grid.addWidget(self.HTMNetworkGrid, 6, 1, 10, 8)
         # Set the minimum size for the HTM veiwer (row , minsize in pixels)
-        self.grid.setRowMinimumHeight(6, 300)
+        self.grid.setRowMinimumHeight(6, self.height*20)
         #self.grid.addWidget(self.frame1, 1, 1, 2, 8)
         #self.grid.addWidget(self.frame2, 3, 1, 10, 4)
         #self.grid.addWidget(self.frame3, 3, 5, 10, 4)
@@ -893,14 +892,15 @@ class HTMNetwork(QtGui.QWidget):
         # PART 1 MAKE NEW INPUT FOR LEVEL 0
         ############################################
         print "PART 1"
-        # Update the input
+        # Update the input class
+        self.InputCreator.step(random.randint(-1, 1))
 
         # PART 2 RUN THE NEW INPUT THROUGHT THE HTM
         #####################################################################
         print "PART 2"
         self.iteration += 1  # Increase the time
         # Update the HTM input and run through the
-        self.htm.spatialTemporal(self.InputCreator.newInput())
+        self.htm.spatialTemporal(self.InputCreator.createInput())
 
         # Check if the view should be updated
         if updateViewer is True:

@@ -1066,7 +1066,7 @@ class HTMRegion:
         self.height = columnArrayHeight
         self.cellsPerColumn = cellsPerColumn
 
-        self.numLayers = 1  # The number of HTM layer that make up a region.
+        self.numLayers = 2  # The number of HTM layer that make up a region.
 
         self.layerArray = np.array([], dtype=object)
         # Set up the inputs to the HTM layers.

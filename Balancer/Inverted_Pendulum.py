@@ -11,26 +11,7 @@ import numpy as np
 import math
 import random
 
-def createInput(angle, gridWidth, gridHeight, angleOverlap, minAngle, maxAngle):
-    # Create the angle input matrix
-    # angle = The current angle of the inverted pendulum
-    # gridWidth = The width of the matrix
-    # gridHeight = The height of the matrix
-    # angleOverlap = The number of columns the active angle cells take up. This affects the overlap between angle readings.
-    # minAngle = The minimum angle. This is the angle value that the first column represents.
-    # maxAngle = The maximum angle. This is the angle value that the last column represents.
-    if angle=='none':
-        return np.array([[0 for i in range(gridWidth)] for j in range(gridHeight)])
-    angleInput = np.array([[0 for i in range(gridWidth)] for j in range(gridHeight)])
-    anglePos = float(float(gridWidth)/float(1.0+(abs(maxAngle-minAngle))))*float(abs(angle-minAngle))
-    #print"anglePos,angleOverlap = %s,%s "%(anglePos,angleOverlap)
-    #angleCol = int(round(anglePos))
-    for row in range(len(angleInput)):
-        for col in range(len(angleInput[0])):
-            if col >= (round(anglePos-angleOverlap)) and col <= (round(anglePos+angleOverlap)):
-                angleInput[row][col] = 1
-    #print "grid = ",angleInput
-    return angleInput
+
 
 def medianAcc(accGrid, minAcc, maxAcc):
     # Take a command grid input and output an average acceleration value
@@ -66,32 +47,61 @@ def medianAcc(accGrid, minAcc, maxAcc):
 
 
 class InvertedPendulum():
-    def __init__(self):
+    def __init__(self, gridWidth, gridHeight):
         self.length = 1.0
         self.weigth = 1.0
         self.cartAcc = 1.0   # The carts acceleration in the horizontal direction m/s.
         self.x = 0.0
         self.y = self.length
-        self.angle = 90      # 90 deg is upright
+        self.angle = int(gridWidth/2)      # 90 deg is upright
         self.vel = 0
 
-    def step(self, acc, minAngle, maxAngle, maxAcc, time):
-        # Calculate the new position of the pendulum after the time while applying the specified acceleration.
+        self.gridWidth = gridWidth
+        self.gridHeight = gridHeight
+        self.angleOverlap = 1
+        self.minAngle = 0
+        self.maxAngle = gridWidth
+        self.maxAcc = 1
+
+    def step(self, acc):
+        # Calculate the new position of the pendulum after applying the specified acceleration.
         # Simple pendulum for now!
-        print " self.angle = %s, vel = %s, acc = %s, time = %s"%(self.angle,self.vel,acc,time)
-        self.vel = self.vel+int(time*acc)
+
+        self.vel = self.vel+int(acc)
+        self.angle = self.angle + self.vel
         # Limit the velocity
-        if self.vel > maxAcc:
-            self.vel = maxAcc
-        if self.vel < -maxAcc:
-            self.vel = -maxAcc
+        if self.vel > self.maxAcc:
+            self.vel = self.maxAcc
+        if self.vel < -self.maxAcc:
+            self.vel = -self.maxAcc
         self.angle = self.angle+self.vel
         # Limit the angle
-        if self.angle > maxAngle:
-            self.angle = maxAngle
-        if self.angle < minAngle:
-            self.angle = minAngle
+        if self.angle > self.maxAngle:
+            self.angle = self.maxAngle
+        if self.angle < self.minAngle:
+            self.angle = self.minAngle
+        print " self.angle = %s, vel = %s, acc = %s "%(self.angle, self.vel, acc)
         return self.angle
+
+    def createInput(self):
+        # Create the angle input matrix
+        # angle = The current angle of the inverted pendulum
+        # gridWidth = The width of the matrix
+        # gridHeight = The height of the matrix
+        # angleOverlap = The number of columns the active angle cells take up. This affects the overlap between angle readings.
+        # minAngle = The minimum angle. This is the angle value that the first column represents.
+        # maxAngle = The maximum angle. This is the angle value that the last column represents.
+        # return np.array([[0 for i in range(self.gridWidth)] for j in range(self.gridHeight)])
+        angleInput = np.array([[0 for i in range(self.gridWidth)] for j in range(self.gridHeight)])
+        anglePos = float(float(self.gridWidth)/float(1.0+(abs(self.maxAngle-self.minAngle))))*float(abs(self.angle-self.minAngle))
+        #print"anglePos,angleOverlap = %s,%s "%(self.anglePos,self.angleOverlap)
+        #angleCol = int(round(self.anglePos))
+        for row in range(len(angleInput)):
+            for col in range(len(angleInput[0])):
+                if col >= (round(anglePos-self.angleOverlap)) and col <= (round(anglePos+self.angleOverlap)):
+                    angleInput[row][col] = 1
+        #print "grid = ",angleInput
+        return angleInput
 
 class InputCreator:
 
