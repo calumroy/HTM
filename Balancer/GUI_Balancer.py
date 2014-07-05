@@ -22,7 +22,7 @@ import HTM_Balancer as HTM_V
 import math
 import copy
 
-import Inverted_Pendulumn
+import Inverted_Pendulum
 
 
 class layerPopup(QtGui.QWidget):
