@@ -37,7 +37,9 @@ class InputCreator:
         for row in range(gridHeight):
             for col in range(gridWidth):
                 if col >= (round(pos_x-overlap)) and col <= (round(pos_x+overlap)):
-                    newInput[row][col] = 1
-        #print "grid = ",angleInput
+                    #Add some noise if you feel like it
+                    if random.randint(0, 5) >= 0:
+                        newInput[row][col] = 1
+        #print "grid = ",newInput
         return newInput
 
