@@ -85,7 +85,7 @@ class Column:
         #This parameters value is automatically reset.
         self.inhibitionRadius = 1
         # The max distance that Synapses can be made at
-        self.potentialRadius = 1
+        self.potentialRadius = 2
         self.permanenceInc = 0.1
         self.permanenceDec = 0.02
         self.minDutyCycle = 0.01   # The minimum firing rate of the column
@@ -179,7 +179,7 @@ class HTMLayer:
         # the desiredLocalActivity parameter
         # are observed in the inhibition radius.
         # How many cells within the inhibition radius are active
-        self.desiredLocalActivity = 1
+        self.desiredLocalActivity = 2
         self.cellsPerColumn = cellsPerColumn
         self.connectPermanence = 0.3
         # Should be smaller than activationThreshold
@@ -244,26 +244,25 @@ class HTMLayer:
         columnHeight = len(self.columns)
         columnWidth = len(self.columns[0])
         # Calculate the ratio between columns and the input space.
-        colInputRatioHeight = float(inputHeigth / columnHeight)
-        colInputRatioWidth = float(inputWidth / columnWidth)
-        #print "Column to input height ratio = %s" % colInputRatioHeight
-        #print "Column to input width ratio = %s" % colInputRatioWidth
-
+        colInputRatioHeight = float(inputHeigth) / float(columnHeight)
+        colInputRatioWidth = float(inputWidth) / float(columnWidth)
+        #print "Column to input height ratio = %f" % colInputRatioHeight
+        #print "Column to input width ratio = %f" % colInputRatioWidth
+        # Cast the y position to an int so it matches up with a row number.
+        inputCenter_y = int(c.pos_y*colInputRatioHeight)
+        # Cast the x position to an int so it matches up with a column number.
+        inputCenter_x = int(c.pos_x*colInputRatioWidth)
         # i is pos_y j is pos_x
-        for y in range(int(c.pos_y-c.potentialRadius),
-                       int(c.pos_y+c.potentialRadius)+1):
-            # Cast the y position to an int so it matches up with a row number.
-            inputPos_y = int(y*colInputRatioHeight)
-            if inputPos_y >= 0 and inputPos_y < inputHeigth:
-                for x in range(int(c.pos_x-c.potentialRadius),
-                               int(c.pos_x+c.potentialRadius)+1):
-                    # Cast the x position to an int so it matches up with a column number.
-                    inputPos_x = int(x*colInputRatioWidth)
-                    if inputPos_x >= 0 and inputPos_x < inputWidth:
+        for y in range(int(inputCenter_y-c.potentialRadius),
+                       int(inputCenter_y+c.potentialRadius)+1):
+            if y >= 0 and y < inputHeigth:
+                for x in range(int(inputCenter_x-c.potentialRadius),
+                               int(inputCenter_x+c.potentialRadius)+1):
+                    if x >= 0 and x < inputWidth:
                         # Create a Synapse pointing to the HTM layers input
                         #so the synapse cellIndex is -1
                         c.potentialSynapses = np.append(c.potentialSynapses,
-                                                        [Synapse(self.Input, inputPos_x, inputPos_y, -1)])
+                                                        [Synapse(self.Input, x, y, -1)])
 
     def neighbours(self, c):
         # returns a list of the columns that are within the inhibitionRadius of c
@@ -1173,7 +1172,7 @@ class HTM:
     def spatialTemporal(self, input):
         # Update the spatial and temporal pooler.
         # Find spatial and temporal patterns from the input.
-        # This updates the columns and all there vertical
+        # This updates the columns and all their vertical
         # synapses as well as the cells and the horizontal Synapses.
         # Update the current levels input with the new input
         self.updateHTMInput(input)

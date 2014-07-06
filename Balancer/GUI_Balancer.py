@@ -154,12 +154,12 @@ class HTMCell(QtGui.QGraphicsRectItem):
 
 class HTMInput(QtGui.QGraphicsView):
     # A class used to dispaly the input to a HTM
-    def __init__(self, htm):
+    def __init__(self, htm, HTMGridViewer):
         super(HTMInput, self).__init__()
 
-        self.initUI(htm)
+        self.initUI(htm, HTMGridViewer)
 
-    def initUI(self, htm):
+    def initUI(self, htm, HTMGridViewer):
         self.scene = QtGui.QGraphicsScene(self)
         self.scaleSize = 1
         self.setScene(self.scene)
@@ -180,8 +180,62 @@ class HTMInput(QtGui.QGraphicsView):
         self._mousePressed = False
         self._dragPos = None
 
+        # Connect up the slots and signals
+        self.connectSlots(HTMGridViewer)
+
         self.drawGrid(self.size)
         self.show()
+
+    def connectSlots(self, HTMGridVeiwer):
+        # Create and connect slots between the HTMGridVeiwer and this HTMInput Veiwer
+        # create a slot so if a column is selected in the HTMGridViewer this
+        # HTMInput can tell which column it was and highlight the
+        # grid input squares which are connected to that columns connected synapses.
+        HTMGridVeiwer.selectedColumn.connect(self.drawColumnInputs)
+
+    def drawColumnInputs(self, pos_x, pos_y):
+        #print "Selected pos_x = %s pos_y = %s" % (pos_x, pos_y)
+        red = QtGui.QColor(0xFF, 0, 0, 0xFF)
+        transpBlue = QtGui.QColor(0, 0, 0xFF, 0x30)
+        green = QtGui.QColor(0, 0xFF, 0, 0xFF)
+        darkGreen = QtGui.QColor(0, 0x80, 0x40, 0xFF)
+
+        #blue = QtGui.QColor(0x40, 0x30, 0xFF, 0xFF)
+        # Go through each column. If it is in the synapse list draw it otherwise don't
+        for col in self.columnItems:
+            color = QtGui.QColor(0xFF, 0, 0, 0xFF)
+            brush = QtGui.QBrush(QtCore.Qt.red)
+            inputConnected = False
+            #brush = QtGui.QBrush(transpBlue)   # Have to create a brush with a color
+            # Check each synapse and draw the connected columns
+            for syn in self.htm.HTMRegionArray[self.level].layerArray[self.layer].columns[pos_y][pos_x].connectedSynapses:
+                if syn.pos_x == col.pos_x and syn.pos_y == col.pos_y:
+                    print "     syn x, y= %s,%s Permanence = %s" % (col.pos_x, col.pos_y, syn.permanence)
+                    inputConnected = True
+            value = self.htm.HTMRegionArray[self.level].layerArray[self.layer].Input[col.pos_y][col.pos_x]
+            #color = darkGreen
+            if (value == 0 and inputConnected is False):
+                color = red
+            elif (value == 0 and inputConnected is True):
+                color = transpBlue
+            elif (value == 1 and inputConnected is False):
+                color = green
+            elif (value == 1 and inputConnected is True):
+                color = darkGreen
+
+            '''if value is False and inputConnected is False:
+                #brush.setColor(QtCore.Qt.red)
+                pass
+            if value is False and inputConnected is True:
+                #brush.setColor(transpBlue)
+                pass
+            if value is True and inputConnected is False:
+                brush.setColor(QtCore.Qt.green)
+            if value is True and inputConnected is True:
+                brush.setColor(darkGreen)'''
+            brush.setColor(color)
+            col.setBrush(brush)
+
 
     def scaleScene(self, scaleSize):
         self.scale(scaleSize, scaleSize)
@@ -284,6 +338,9 @@ class HTMInput(QtGui.QGraphicsView):
 
 
 class HTMGridViewer(QtGui.QGraphicsView):
+    # Create a signal used by the HTMInput veiwer to tell it which
+    # column was selected by the user.
+    selectedColumn = QtCore.pyqtSignal(int, int)
 
     def __init__(self, htm):
         super(HTMGridViewer, self).__init__()
@@ -405,7 +462,7 @@ class HTMGridViewer(QtGui.QGraphicsView):
             # Check each synapse and draw the connected columns
             for syn in self.htm.HTMRegionArray[self.level].layerArray[self.layer].columns[pos_y][pos_x].connectedSynapses:
                 if syn.pos_x == column_pos_x and syn.pos_y == column_pos_y:
-                    print "     syn x, y= %s,%s Permanence = %s" % (column_pos_x, column_pos_y, syn.permanence)
+                    #print "     syn x, y= %s,%s Permanence = %s" % (column_pos_x, column_pos_y, syn.permanence)
                     brush.setColor(darkGreen)
             self.columnItems[i].setBrush(brush)
             #self.columnItems[i].setPen(pen)
@@ -515,8 +572,9 @@ class HTMGridViewer(QtGui.QGraphicsView):
             if item.__class__.__name__ == "HTMColumn":
                 print"column"
                 print "pos_x, pos_y = %s, %s" % (item.pos_x, item.pos_y)
-                # Draw the columns synapses.
-                self.drawSingleColumn(item.pos_x, item.pos_y)
+                # Create and emit a signal to tell the HTMInput viewer to draw the
+                # input grid squares which are connected by the selected columns connected synapses.
+                self.selectedColumn.emit(item.pos_x, item.pos_y)
         if event.buttons() == QtCore.Qt.RightButton:
             # Toggle the view from predicted, learn and active cells.
             if self.showActiveCells is True:
@@ -614,15 +672,16 @@ class HTMNetwork(QtGui.QWidget):
         self.inputHeight = self.height
 
         # Create the input class
-        self.InputCreator = Inverted_Pendulum.InvertedPendulum(self.inputWidth, self.inputHeight)
+        self.InputCreator = Inverted_Pendulum.InvertedPendulum(int(self.inputWidth*2.5), int(self.inputHeight*2.5))
 
         # Create HTM network with an initialized input
         self.htm = HTM_V.HTM(self.numLevels, self.InputCreator.createInput(), self.width, self.height, self.numCells)
 
         # Create the HTM grid veiwer widget.
         self.HTMNetworkGrid = HTMGridViewer(self.htm)
+
         # Create the input veiwer widget.
-        self.inputGrid = HTMInput(self.htm)
+        self.inputGrid = HTMInput(self.htm, self.HTMNetworkGrid)
 
         # Used to create and save new views
         self.markedHTMViews = []
