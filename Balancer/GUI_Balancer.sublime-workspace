@@ -1,0 +1,545 @@
+{
+	"auto_complete":
+	{
+		"selected_items":
+		[
+			[
+				"Asser",
+				"assert	(keyword, instance)"
+			],
+			[
+				"mo",
+				"mock_check_output	(local, instance)"
+			],
+			[
+				"potential",
+				"potentialSynapses	(local, instance)"
+			]
+		]
+	},
+	"buffers":
+	[
+		{
+			"file": "GUI_Balancer.py",
+			"settings":
+			{
+				"buffer_size": 44214,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "HTM_Balancer.py",
+			"settings":
+			{
+				"buffer_size": 60872,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "Inverted_Pendulum.py",
+			"settings":
+			{
+				"buffer_size": 5724,
+				"line_ending": "Unix"
+			}
+		}
+	],
+	"build_system": "",
+	"command_palette":
+	{
+		"height": 47.0,
+		"selected_items":
+		[
+			[
+				"install",
+				"Package Control: Install Package"
+			],
+			[
+				"list",
+				"Package Control: List Packages"
+			],
+			[
+				"javasc",
+				"Set Syntax: JavaScript"
+			],
+			[
+				"coffee ds",
+				"Coffee: Display JavaScript"
+			],
+			[
+				"pack list",
+				"Package Control: List Packages"
+			],
+			[
+				"cofee ",
+				"Coffee: Display Parse Tree"
+			],
+			[
+				"coffee",
+				"Coffee: Display Lexer Tokens"
+			],
+			[
+				"coffee dis",
+				"Coffee: Display JavaScript"
+			],
+			[
+				"compil",
+				"Coffee: Compile File"
+			],
+			[
+				"compile",
+				"Coffee: Compile File"
+			],
+			[
+				"Package Contr",
+				"Package Control: List Packages"
+			],
+			[
+				"list pack",
+				"Package Control: List Packages"
+			],
+			[
+				"Install",
+				"Package Control: Install Package"
+			],
+			[
+				"Instal",
+				"Package Control: Install Package"
+			],
+			[
+				"ss coff",
+				"Set Syntax: CoffeeScript"
+			],
+			[
+				"packa",
+				"Preferences: Browse Packages"
+			]
+		],
+		"width": 593.0
+	},
+	"console":
+	{
+		"height": 177.0,
+		"history":
+		[
+			"which",
+			"a = 3",
+			"python",
+			"import urllib.request,os,hashlib; h = '7183a2d3e96f11eeadd761d777e62404' + 'e330c659d4bb41d3bdf022e94cab3cd0'; pf = 'Package Control.sublime-package'; ipp = sublime.installed_packages_path(); urllib.request.install_opener( urllib.request.build_opener( urllib.request.ProxyHandler()) ); by = urllib.request.urlopen( 'http://sublime.wbond.net/' + pf.replace(' ', '%20')).read(); dh = hashlib.sha256(by).hexdigest(); print('Error validating download (got %s instead of %s), please try manual install' % (dh, h)) if dh != h else open(os.path.join( ipp, pf), 'wb' ).write(by)"
+		]
+	},
+	"distraction_free":
+	{
+		"menu_visible": true,
+		"show_minimap": false,
+		"show_open_files": false,
+		"show_tabs": false,
+		"side_bar_visible": false,
+		"status_bar_visible": false
+	},
+	"file_history":
+	[
+		"/Users/calum/Documents/Gramercy/hpflsk3/hpflsk/view_mixins.py",
+		"/Users/calum/Documents/Gramercy/hpflsk3/hpflsk/tests/test_user.py",
+		"/Users/calum/Documents/Gramercy/hpflsk3/hpflsk/serializers.py",
+		"/Users/calum/Documents/Gramercy/hpflsk3/hpflsk/urls.py",
+		"/Users/calum/Documents/Gramercy/entecho/entecho-config/StateEstimation.conf",
+		"/Users/calum/Documents/Gramercy/entecho/entecho-config/State.conf",
+		"/Users/calum/Documents/Gramercy/entecho/entecho-config/Hardware.conf",
+		"/Users/calum/Documents/Gramercy/entecho/entecho-config/CraftParameters.conf",
+		"/Users/calum/Documents/Gramercy/entecho/entecho-config/ActuatorHierarchy.conf",
+		"/Users/calum/Google Drive/FlightComputer",
+		"/Users/calum/Documents/Gramercy/hpflsk3/hpflsk/tests/__init__.py",
+		"/Users/calum/Documents/Gramercy/hpflsk3/hpflsk/management/commands/__init__.py",
+		"/Users/calum/Documents/Gramercy/hpflsk3/hpflsk/management/__init__.py",
+		"/Users/calum/Documents/HTM_project/HTM/examples/HTM.py",
+		"/Users/calum/Documents/HTM_project/HTM/examples/GUI_HTM.py",
+		"/Users/calum/Documents/HTM_project/HTM/examples/Create_Inputs.py",
+		"/Users/calum/Documents/HTM_project/HTM/Balancer/HTM_Balancer.py",
+		"/Users/calum/Library/Application Support/Sublime Text 3/Packages/User/SublimePython.sublime-settings",
+		"/Users/calum/Library/Application Support/Sublime Text 3/Packages/SublimePythonIDE/SublimePython.sublime-settings",
+		"/Users/calum/Google Drive/Yo! I made a.txt",
+		"/Users/calum/Documents/HTM_project/HTM/Balancer/GUI_Balancer.py",
+		"/Users/calum/Documents/Gramercy/Ghost blog/Ghost/content/data/README.md",
+		"/Users/calum/Documents/Gramercy/Ghost blog/Ghost/core/server/models/post.js",
+		"/Users/calum/Documents/Gramercy/Ghost blog/Ghost/config.bak",
+		"/Users/calum/Documents/Gramercy/entecho/Entecho/Code/MAIN/setenv.bat",
+		"/Users/calum/Documents/Gramercy/Ghost blog/Ghost/Procfile",
+		"/Users/calum/Documents/Gramercy/Ghost blog/Ghost/config.js",
+		"/Users/calum/Documents/Gramercy/Ghost blog/Ghost/bower.json",
+		"/Users/calum/Library/Application Support/Sublime Text 3/Packages/User/Preferences.sublime-settings",
+		"/Users/calum/Documents/Gramercy/PyQuickMac/3bf6768ab947913606c4/PyQuickMac",
+		"/Users/calum/Documents/Gramercy/Ghost blog/Ghost/node_modules/mysql/node_modules/bignumber.js/perf/bigtime-OOM.js",
+		"/Users/calum/Documents/projects/spacetriangle/src/js/game.coffee",
+		"/Users/calum/Documents/Gramercy/Ghost blog/Ghost/npm-debug.log",
+		"/Users/calum/Library/Application Support/Sublime Text 3/Packages/User/CoffeeCompile.sublime-settings",
+		"/Users/calum/Library/Application Support/Sublime Text 3/Packages/CoffeeCompile/CoffeeCompile.sublime-settings",
+		"/Users/calum/Documents/Gramercy/entecho/setenv.bat",
+		"/Users/calum/Documents/HTM_project/HTM/Balancer/Inverted_Pendulum.py",
+		"/Users/calum/Documents/HTM_project/HTM/.git/COMMIT_EDITMSG",
+		"/Users/calum/Documents/Gramercy/entecho/windows_paths.txt",
+		"/Users/calum/Documents/Gramercy/entecho/Entecho/Code/.git/COMMIT_EDITMSG",
+		"/Users/calum/Documents/Gramercy/entecho/Entecho/Code/MAIN/FlightController/.cproject",
+		"/Users/calum/Documents/Gramercy/entecho/envir.bat",
+		"/Users/calum/Documents/Gramercy/entecho/Code/.git/COMMIT_EDITMSG",
+		"/Users/calum/Documents/Gramercy/envir.bat",
+		"/Users/calum/Documents/Gramercy/entecho/MAIN/FlightController/FlightController/FlightController.cpp",
+		"/Users/calum/Documents/Gramercy/entecho/MAIN/FlightController/FlightController/CombinedAttitudeActuator.cpp",
+		"/Users/calum/.bash_profile",
+		"/Users/calum/Documents/Gramercy/fishcv/src/css/style.sass",
+		"/Users/calum/Documents/Gramercy/fishcv/README.md",
+		"/Users/calum/Documents/Gramercy/fishcv/Gruntfile.coffee",
+		"/Users/calum/Documents/Gramercy/fishcv/src/js/compat.coffee",
+		"/Users/calum/Documents/Gramercy/fishcv/src/index.html",
+		"/Users/calum/Documents/Gramercy/fishcv/src/js/fishcv.coffee",
+		"/Users/calum/Dropbox/Henry_Work/good tutorials.txt",
+		"/Volumes/MATLAB_801 R2013/readme.txt",
+		"/Users/calum/Documents/Gramercy/fishcv/src/js/jquery.min.js",
+		"/Users/calum/Documents/Gramercy/fishcv/dist/js/fishcv.js"
+	],
+	"find":
+	{
+		"height": 35.0
+	},
+	"find_in_files":
+	{
+		"height": 93.0,
+		"where_history":
+		[
+		]
+	},
+	"find_state":
+	{
+		"case_sensitive": false,
+		"find_history":
+		[
+			"InputCreator",
+			"BaseViewSet",
+			"Event",
+			"serializers.ModelSerializer",
+			"GEO",
+			"self.desiredLocalActivity",
+			"getBestMatchingSegment",
+			"self.minScoreThreshold",
+			"highestScoredCell",
+			"that",
+			"highestScore",
+			"highestScoredCell",
+			"self.minScoreThreshold",
+			"self.minNumberPredCells",
+			"self.btn4",
+			"inv",
+			"self.invPen",
+			"self.angle",
+			"invertPen",
+			"db_user",
+			"db_url",
+			"import",
+			"	",
+			"mock",
+			"port",
+			"config",
+			"arrows",
+			"m",
+			"settings",
+			"directory",
+			"and",
+			"Package",
+			"shortcuts",
+			"Layout",
+			"cmd",
+			"Columns",
+			"Search",
+			"Columns",
+			"manager",
+			"	\n",
+			"5",
+			"Columns",
+			"search",
+			"updatePotentialSynapses",
+			"colInputRatioWidth",
+			"updateInput",
+			"regionCommandOutput",
+			"activeCellGrid",
+			"activeStateArray",
+			"activeCellGrid",
+			"updatePotentialSynapses",
+			"HTMNetworkGrid",
+			"toolbar",
+			"menubar",
+			"btn1",
+			"numComm",
+			"commandRow",
+			"        \n",
+			"commandRow",
+			"self.angleInputHeight",
+			"angleInputHeight",
+			"command",
+			"numCommRows",
+			"inputSpace",
+			"predictedCommand",
+			"setInput",
+			"inputSpace",
+			"lowerLevelOutput",
+			"commandSuccessful",
+			"output",
+			"inSpaceOutput",
+			"[y][x]",
+			"[x][y]",
+			"[y][x]",
+			"[x][y]",
+			"layer",
+			"HTMGridViewer",
+			"setInput",
+			"angleInputHeight",
+			"width",
+			"angleInputHeight",
+			"input",
+			"potentialSynapses",
+			"commandSuccessful",
+			"commandRow",
+			"HTMRegionArray",
+			"updateOutput",
+			"commandRow",
+			"potentialRadius",
+			"updateConnectedSynapses",
+			"self.Input",
+			"input",
+			"close_columns",
+			"commandRow",
+			"cells_per_column",
+			"columnArrayHeight",
+			"column_array_height",
+			"column_array_width",
+			"commandRow",
+			"connectedPerm",
+			"== True",
+			"== False",
+			"> =",
+			"< =",
+			"= <",
+			"= >",
+			"= =",
+			"\\s\\+]",
+			"^(?:[\\t ]*(?:\\r?\\n|\\r))+",
+			"[\\s]*$(?![\\w\\W])",
+			"^\\n",
+			"ExecuteUpdate",
+			"EstimateState",
+			"Video",
+			"ctx2",
+			"canvas2",
+			"@ctx2",
+			"background",
+			"difference",
+			"d3",
+			"average_background",
+			"background",
+			"background.data",
+			"img_u8",
+			"bg_f"
+		],
+		"highlight": true,
+		"in_selection": false,
+		"preserve_case": false,
+		"regex": true,
+		"replace_history":
+		[
+			"closeColumns",
+			"cellsPerColumn",
+			"columnArrayHeight",
+			"columnArrayWidth",
+			"is True",
+			"is False",
+			">=",
+			"<=",
+			"==",
+			""
+		],
+		"reverse": false,
+		"show_context": true,
+		"use_buffer2": true,
+		"whole_word": false,
+		"wrap": true
+	},
+	"groups":
+	[
+		{
+			"selected": 1,
+			"sheets":
+			[
+				{
+					"buffer": 0,
+					"file": "GUI_Balancer.py",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 44214,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								42004,
+								42016
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Python/Python.tmLanguage",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 16803.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 1,
+					"type": "text"
+				},
+				{
+					"buffer": 1,
+					"file": "HTM_Balancer.py",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 60872,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								0,
+								0
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Python/Python.tmLanguage",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 19012.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 0,
+					"type": "text"
+				},
+				{
+					"buffer": 2,
+					"file": "Inverted_Pendulum.py",
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 5724,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								4283,
+								4295
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Python/Python.tmLanguage",
+							"tab_size": 4,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 1481.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 2,
+					"type": "text"
+				}
+			]
+		}
+	],
+	"incremental_find":
+	{
+		"height": 26.0
+	},
+	"input":
+	{
+		"height": 0.0
+	},
+	"layout":
+	{
+		"cells":
+		[
+			[
+				0,
+				0,
+				1,
+				1
+			]
+		],
+		"cols":
+		[
+			0.0,
+			1.0
+		],
+		"rows":
+		[
+			0.0,
+			1.0
+		]
+	},
+	"menu_visible": true,
+	"output.find_results":
+	{
+		"height": 0.0
+	},
+	"project": "GUI_Balancer.sublime-project",
+	"replace":
+	{
+		"height": 48.0
+	},
+	"save_all_on_build": true,
+	"select_file":
+	{
+		"height": 0.0,
+		"selected_items":
+		[
+			[
+				"bootstrap",
+				"core/bootstrap.js"
+			]
+		],
+		"width": 0.0
+	},
+	"select_project":
+	{
+		"height": 0.0,
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"select_symbol":
+	{
+		"height": 0.0,
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"settings":
+	{
+	},
+	"show_minimap": true,
+	"show_open_files": false,
+	"show_tabs": true,
+	"side_bar_visible": true,
+	"side_bar_width": 235.0,
+	"status_bar_visible": true,
+	"template_settings":
+	{
+	}
+}

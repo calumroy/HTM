@@ -85,7 +85,7 @@ class Column:
         #This parameters value is automatically reset.
         self.inhibitionRadius = 1
         # The max distance that Synapses can be made at
-        self.potentialRadius = 2
+        self.potentialRadius = 1
         self.permanenceInc = 0.1
         self.permanenceDec = 0.02
         self.minDutyCycle = 0.01   # The minimum firing rate of the column
@@ -179,7 +179,7 @@ class HTMLayer:
         # the desiredLocalActivity parameter
         # are observed in the inhibition radius.
         # How many cells within the inhibition radius are active
-        self.desiredLocalActivity = 2
+        self.desiredLocalActivity = 1
         self.cellsPerColumn = cellsPerColumn
         self.connectPermanence = 0.3
         # Should be smaller than activationThreshold
@@ -1078,6 +1078,8 @@ class HTMRegion:
             self.layerArray = np.append(self.layerArray,
                                         HTMLayer(lowerOutput, self.width,
                                         self.height, self.cellsPerColumn))
+
+        # Test
 
     def updateRegionInput(self, input):
         # Update the input and outputs of the layers.
