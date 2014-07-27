@@ -223,16 +223,6 @@ class HTMInput(QtGui.QGraphicsView):
             elif (value == 1 and inputConnected is True):
                 color = darkGreen
 
-            '''if value is False and inputConnected is False:
-                #brush.setColor(QtCore.Qt.red)
-                pass
-            if value is False and inputConnected is True:
-                #brush.setColor(transpBlue)
-                pass
-            if value is True and inputConnected is False:
-                brush.setColor(QtCore.Qt.green)
-            if value is True and inputConnected is True:
-                brush.setColor(darkGreen)'''
             brush.setColor(color)
             col.setBrush(brush)
 

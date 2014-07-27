@@ -194,7 +194,9 @@ class HTMLayer:
         self.activationThreshold = 5
         self.dutyCycleAverageLength = 1000
         self.timeStep = 0
-        self.output = np.array([[0 for i in range(self.width)] for j in range(self.height)])
+        # The output is a 2D grid representing the cells states.
+        # It is larger then the input by a factor of the number of cells per column
+        self.output = np.array([[0 for i in range(self.width * self.cellsPerColumn)] for j in range(self.height)])
         self.activeColumns = np.array([], dtype=object)
         self.averageReceptiveFeildSizeArray = np.array([])
         # Create the array storing the columns
@@ -226,14 +228,20 @@ class HTMLayer:
 
     def updateOutput(self):
         # Update the output array.
-        # Initialise all outputs as zero first then set the active columns as 1.
+        # The output array is the output from all the cells. The cells form a new 2d input grid
+        # this way temporal information is not lost between layers and levels.
+        # Initialise all outputs as zero first then set the cells as 1.
         for i in range(len(self.output)):
             for j in range(len(self.output[i])):
                 self.output[i][j] = 0
-        for i in range(len(self.activeColumns)):
-            x = self.activeColumns[i].pos_x
-            y = self.activeColumns[i].pos_y
-            self.output[y][x] = 1
+        for c in self.activeColumns:
+            x = c.pos_x
+            y = c.pos_y
+            for k in range(self.cellsPerColumn):
+                # The first element is the last time the cells was active.
+                # If it equals the current time then the cells is active now.
+                if c.activeStateArray[k][0] == self.timeStep:
+                    self.output[y][x*self.cellsPerColumn+k] = 1
 
     def updatePotentialSynapses(self, c):
         # Update the locations of the potential synapses for column c.
@@ -859,7 +867,7 @@ class HTMLayer:
                 #All columns have the same inhibition radius
                 if c.overlapDutyCycle < c.minDutyCycle:
                     self.increasePermanence(c, 0.1*self.connectPermanence)
-        self.updateOutput()
+
 
     def updateActiveState(self, timeStep):
         # First function called to update the sequence pooler.
@@ -1055,6 +1063,8 @@ class HTMLayer:
                     # is used to identify each segment and this
                     #changes when segments are deleted.
                     self.deleteEmptySegments(c, i)
+        # Update the output of the layer
+        self.updateOutput()
 
 
 class HTMRegion:
@@ -1076,10 +1086,25 @@ class HTMRegion:
         for i in range(1, self.numLayers):
             lowerOutput = self.layerArray[i-1].output
             self.layerArray = np.append(self.layerArray,
-                                        HTMLayer(lowerOutput, self.width,
-                                        self.height, self.cellsPerColumn))
+                                        HTMLayer(lowerOutput,
+                                                 self.width,
+                                                 self.height,
+                                                 self.cellsPerColumn))
+            # Set the potential radius of column in higher levels to a larger value base on the cells per column.
+            # This is done because the input to higher layers are larger then the lower layers inputs.
+            if i != 0:
+                # TODO
+                # Make this more elegant. transfer potential radius parameter to the HTM layer not column.
+                # Get the potential radius of the first column in the lowest layer
+                basePotentialRadius = self.layerArray[0].columns[0][0].potentialRadius
+                baseCellsperColumn = self.layerArray[0].cellsPerColumn
 
-        # Test
+                potentialRadius = basePotentialRadius+int(baseCellsperColumn/2)
+                for k in range(len(self.layerArray[i].columns)):
+                    for c in self.layerArray[i].columns[k]:
+                        c.potentialRadius = potentialRadius
+                        # Update the potential synapses since the potential radius has changed
+                        self.layerArray[i].updatePotentialSynapses(c)
 
     def updateRegionInput(self, input):
         # Update the input and outputs of the layers.
