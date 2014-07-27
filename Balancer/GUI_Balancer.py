@@ -195,6 +195,8 @@ class HTMInput(QtGui.QGraphicsView):
 
     def drawColumnInputs(self, pos_x, pos_y):
         #print "Selected pos_x = %s pos_y = %s" % (pos_x, pos_y)
+        column = self.htm.HTMRegionArray[self.level].layerArray[self.layer].columns[pos_y][pos_x]
+        print "     overlap = %s" % column.overlap
         red = QtGui.QColor(0xFF, 0, 0, 0xFF)
         transpBlue = QtGui.QColor(0, 0, 0xFF, 0x30)
         green = QtGui.QColor(0, 0xFF, 0, 0xFF)
@@ -942,7 +944,8 @@ class HTMNetwork(QtGui.QWidget):
         ############################################
         print "PART 1"
         # Update the input class
-        self.InputCreator.step(random.randint(-1, 1))
+        #self.InputCreator.step(random.randint(-1, 1))
+        self.InputCreator.step(int(self.iteration % 15/5)-1)
 
         # PART 2 RUN THE NEW INPUT THROUGHT THE HTM
         #####################################################################

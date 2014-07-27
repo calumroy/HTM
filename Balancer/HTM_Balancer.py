@@ -179,7 +179,7 @@ class HTMLayer:
         # the desiredLocalActivity parameter
         # are observed in the inhibition radius.
         # How many cells within the inhibition radius are active
-        self.desiredLocalActivity = 1
+        self.desiredLocalActivity = 2
         self.cellsPerColumn = cellsPerColumn
         self.connectPermanence = 0.3
         # Should be smaller than activationThreshold
@@ -247,6 +247,8 @@ class HTMLayer:
         # Update the locations of the potential synapses for column c.
         # If the input is larger than the number of columns then
         # the columns are evenly spaced out over the input.
+        # First initialize the list to null
+        c.potentialSynapses = np.array([])
         inputHeigth = len(self.Input)
         inputWidth = len(self.Input[0])
         columnHeight = len(self.columns)
@@ -1099,7 +1101,7 @@ class HTMRegion:
                 basePotentialRadius = self.layerArray[0].columns[0][0].potentialRadius
                 baseCellsperColumn = self.layerArray[0].cellsPerColumn
 
-                potentialRadius = basePotentialRadius+int(baseCellsperColumn/2)
+                potentialRadius = basePotentialRadius+baseCellsperColumn
                 for k in range(len(self.layerArray[i].columns)):
                     for c in self.layerArray[i].columns[k]:
                         c.potentialRadius = potentialRadius
