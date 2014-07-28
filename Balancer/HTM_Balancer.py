@@ -79,7 +79,7 @@ class Column:
         self.pos_x = pos_x
         self.pos_y = pos_y
         self.overlap = 0.0
-        self.minOverlap = 4
+        self.minOverlap = 3
         self.boost = 1
         # The max distance a column can inhibit another column.
         #This parameters value is automatically reset.
@@ -179,14 +179,14 @@ class HTMLayer:
         # the desiredLocalActivity parameter
         # are observed in the inhibition radius.
         # How many cells within the inhibition radius are active
-        self.desiredLocalActivity = 2
+        self.desiredLocalActivity = 1
         self.cellsPerColumn = cellsPerColumn
         self.connectPermanence = 0.3
         # Should be smaller than activationThreshold
         self.minThreshold = 4
         # The minimum score needed by a cell to be added
         # to the alternative sequence.
-        self.minScoreThreshold = 3
+        self.minScoreThreshold = 5
         # This limits the activeSynapse array to this length. Should be renamed
         self.newSynapseCount = 10
         # More than this many synapses on a segment must be active for
@@ -1045,19 +1045,22 @@ class HTMLayer:
                     #print "predictiveStateArray for x,y,i =
                     #%s,%s,%s is latest time = %s"%(c.pos_x,c.pos_y,i,
                         #c.predictiveStateArray[i,0])
-                    if self.learnState(c, i, timeStep) is True:
+                    if ((self.learnState(c, i, timeStep) is True)):
+                        #    (self.activeState(c, i, timeStep-1) is False)):
                         #print "learn state for x,y,cell =
                         #%s,%s,%s"%(c.pos_x,c.pos_y,i)
                         self.adaptSegments(c, i, True)
+                    else:
+                        self.adaptSegments(c, i, False)
                     # Trying a different method to the CLA white pages
                     #if self.activeState(c,i,timeStep) ==
                     #False and self.predictiveState(c,i,timeStep-1) is True:
-                    # Same method as the CLA white pages.
-                    if (self.predictiveState(c, i, timeStep-1) is True
-                            and self.activeState(c, i, timeStep) is False):
+                    # Similar method as the CLA white pages.
+                    #if (self.predictiveState(c, i, timeStep-1) is True):
+                            #and self.activeState(c, i, timeStep) is False):
                         #print "INCORRECT predictive
                         #state for x,y,cell = %s,%s,%s"%(c.pos_x,c.pos_y,i)
-                        self.adaptSegments(c, i, False)
+                        #self.adaptSegments(c, i, False)
                     # After the learning delete any segments
                     #that have zero synapses in them.
                     # This must be done after learning since
@@ -1101,7 +1104,7 @@ class HTMRegion:
                 basePotentialRadius = self.layerArray[0].columns[0][0].potentialRadius
                 baseCellsperColumn = self.layerArray[0].cellsPerColumn
 
-                potentialRadius = basePotentialRadius+baseCellsperColumn
+                potentialRadius = basePotentialRadius+int(baseCellsperColumn/2)
                 for k in range(len(self.layerArray[i].columns)):
                     for c in self.layerArray[i].columns[k]:
                         c.potentialRadius = potentialRadius
