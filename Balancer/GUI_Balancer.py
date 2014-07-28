@@ -659,7 +659,7 @@ class HTMNetwork(QtGui.QWidget):
         self.numLevels = 1  # The number of levels.
         self.numCells = 3  # The number of cells in a column.
         self.width = 8  # The width of the columns in the HTM 2D array
-        self.height = 20  # The height of the columns in the HTM 2D array
+        self.height = 26  # The height of the columns in the HTM 2D array
         self.inputWidth = self.width
         self.inputHeight = self.height
 
@@ -945,7 +945,11 @@ class HTMNetwork(QtGui.QWidget):
         print "PART 1"
         # Update the input class
         #self.InputCreator.step(random.randint(-1, 1))
-        self.InputCreator.step(int(self.iteration % 15/5)-1)
+        # Just use a simple changing acc for now
+        if self.iteration % 10 < 5:
+            self.InputCreator.step(-1)
+        elif self.iteration % 10 >= 5:
+            self.InputCreator.step(1)
 
         # PART 2 RUN THE NEW INPUT THROUGHT THE HTM
         #####################################################################
