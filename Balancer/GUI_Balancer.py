@@ -801,6 +801,9 @@ class HTMNetwork(QtGui.QWidget):
         self.markedHTMViews[-1].showActiveCells = self.HTMNetworkGrid.showActiveCells
         self.markedHTMViews[-1].showLearnCells = self.HTMNetworkGrid.showLearnCells
         self.markedHTMViews[-1].showPredictCells = self.HTMNetworkGrid.showPredictCells
+        # Set the current level and region to draw
+        self.markedHTMViews[-1].level = self.HTMNetworkGrid.level
+        self.markedHTMViews[-1].layer = self.HTMNetworkGrid.layer
         # Redraw the new view
         self.markedHTMViews[-1].updateHTMGrid()
 
