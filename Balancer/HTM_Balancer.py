@@ -29,7 +29,7 @@ class Synapse:
             self.pos_x = pos_x
             # The end of the synapse. The start is at a column or cells position
             self.pos_y = pos_y
-            self.permanence = 0.38
+            self.permanence = 0.4
             #If the permanence value for a synapse is greater than this
             #value, it is said to be connected.
             self.connectPermanence = 0.3
@@ -659,14 +659,11 @@ class HTMLayer:
                         bestSegment = h
                         bestCellFound = True
         if bestCellFound is True:
-            #print "returned from GETBESTMATCHINGCELL the cell
-            #i=%s with the best segment s=%s"%(bestCell,bestSegment)
+            print "returned from GETBESTMATCHINGCELL the cell i=%s with the best segment s=%s"%(bestCell,bestSegment)
             return (bestCell, bestSegment)
         else:
             # Return the first segment from the cell with the fewest segments
-            #print "returned from getBestMatchingCell cell i=%s
-            #with the fewest number of segments
-            #num=%s"%(fewestSegments,len(c.cells[fewestSegments].segments))
+            print "returned from getBestMatchingCell cell i=%s with the fewest number of segments num=%s"%(fewestSegments,len(c.cells[fewestSegments].segments))
             return (fewestSegments, -1)
 
     def getSegmentActiveSynapses(self, c, i, timeStep, s, newSynapses=False):
@@ -737,8 +734,7 @@ class HTMLayer:
                 #%s,%s,%s,%s"%(c.pos_x,c.pos_y,i,c.cells
                     #[i].segmentUpdateList[j]['index'])
                 for s in c.cells[i].segmentUpdateList[j]['activeSynapses']:
-                    # For each synapse in the segments activeSynapse
-                    #list increment or
+                    # For each synapse in the segments activeSynapse list increment or
                     # decrement their permanence values.
                     # The synapses in the update segment
                     #structure are already in the segment. The
@@ -964,8 +960,7 @@ class HTMLayer:
                 for i in range(self.cellsPerColumn):
                     self.activeStateAdd(c, i, timeStep)
             if lcChosen is False:
-                #print "lcChosen Getting the best matching
-                #cell to set as learning cell"
+                print "lcChosen Getting the best matching cell to set as learning cell"
                 # The best matching cell for timeStep-1
                 #is found since we want to find the
                 # cell whose segment was most active one timestep
@@ -1045,22 +1040,20 @@ class HTMLayer:
                     #print "predictiveStateArray for x,y,i =
                     #%s,%s,%s is latest time = %s"%(c.pos_x,c.pos_y,i,
                         #c.predictiveStateArray[i,0])
-                    if ((self.learnState(c, i, timeStep) is True)):
-                        #    (self.activeState(c, i, timeStep-1) is False)):
+                    if ((self.learnState(c, i, timeStep) is True)
+                            and (self.learnState(c, i, timeStep-1) is False)):
                         #print "learn state for x,y,cell =
                         #%s,%s,%s"%(c.pos_x,c.pos_y,i)
                         self.adaptSegments(c, i, True)
-                    else:
-                        self.adaptSegments(c, i, False)
                     # Trying a different method to the CLA white pages
                     #if self.activeState(c,i,timeStep) ==
                     #False and self.predictiveState(c,i,timeStep-1) is True:
-                    # Similar method as the CLA white pages.
-                    #if (self.predictiveState(c, i, timeStep-1) is True):
-                            #and self.activeState(c, i, timeStep) is False):
+                    if ((self.predictiveState(c, i, timeStep-1) is True
+                            and self.predictiveState(c, i, timeStep) is False
+                            and self.activeState(c, i, timeStep) is False)):
                         #print "INCORRECT predictive
                         #state for x,y,cell = %s,%s,%s"%(c.pos_x,c.pos_y,i)
-                        #self.adaptSegments(c, i, False)
+                        self.adaptSegments(c, i, False)
                     # After the learning delete any segments
                     #that have zero synapses in them.
                     # This must be done after learning since
@@ -1104,7 +1097,7 @@ class HTMRegion:
                 basePotentialRadius = self.layerArray[0].columns[0][0].potentialRadius
                 baseCellsperColumn = self.layerArray[0].cellsPerColumn
 
-                potentialRadius = basePotentialRadius+int(baseCellsperColumn/2)
+                potentialRadius = basePotentialRadius+int(baseCellsperColumn)
                 for k in range(len(self.layerArray[i].columns)):
                     for c in self.layerArray[i].columns[k]:
                         c.potentialRadius = potentialRadius
