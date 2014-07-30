@@ -191,7 +191,7 @@ class HTMLayer:
         self.newSynapseCount = 10
         # More than this many synapses on a segment must be active for
         # the segment to be active
-        self.activationThreshold = 5
+        self.activationThreshold = 4
         self.dutyCycleAverageLength = 1000
         self.timeStep = 0
         # The output is a 2D grid representing the cells states.
@@ -217,13 +217,35 @@ class HTMLayer:
         # activeCellGrid of 10*3 = 15 columns and 10 rows.
         output = np.array([[0 for i in range(self.width*self.cellsPerColumn)]
                           for j in range(self.height)])
-        for k in range(len(self.columns)):
-            for p in range(len(self.columns[k])):
-                c = self.columns[k][p]
-                for i in range(len(c.cells)):
-                    if c.activeStateArray[i] == self.timeStep:
-                        output[k][p*self.cellsPerColumn+i] = 1
-        print "output = ", output
+        for c in self.activeColumns:
+            x = c.pos_x
+            y = c.pos_y
+            cellsActive = 0
+            cellNumber = None
+            for k in range(len(c.cells)):
+                # Count the number of cells in the column that where active.
+                if c.activeStateArray[k][0] == self.timeStep:
+                    cellsActive += 1
+                    cellNumber = k
+                if cellsActive > 1:
+                    break
+            if cellsActive == 1 and cellNumber is not None:
+                output[y][x*self.cellsPerColumn+cellNumber] = 1
+        #print "output = ", output
+        return output
+
+    def predictiveCellGrid(self):
+        # Return a grid representing the cells in the columns which are predicting.
+        output = np.array([[0 for i in range(self.width*self.cellsPerColumn)]
+                          for j in range(self.height)])
+        for y in range(len(self.columns)):
+            for x in range(len(self.columns[i])):
+                c = self.columns[y][x]
+                for k in range(len(c.cells)):
+                    # Count the number of cells in the column that are predicting now
+                    if c.predictiveStateArray[i][0] == self.timeStep-1:
+                        output[y][x*self.cellsPerColumn+k] = 1
+        #print "output = ", output
         return output
 
     def updateOutput(self):
@@ -364,12 +386,6 @@ class HTMLayer:
             if maxActiveDutyCycle < c.activeDutyCycle:
                 maxActiveDutyCycle = c.activeDutyCycle
         return maxActiveDutyCycle
-
-    def Cell(c, i):
-        pass
-
-    def activeColumns(t):
-        pass
 
     def deleteEmptySegments(self, c, i):
         # Delete the segments that have no synapses in them.
@@ -659,11 +675,11 @@ class HTMLayer:
                         bestSegment = h
                         bestCellFound = True
         if bestCellFound is True:
-            print "returned from GETBESTMATCHINGCELL the cell i=%s with the best segment s=%s"%(bestCell,bestSegment)
+            #print "returned from GETBESTMATCHINGCELL the cell i=%s with the best segment s=%s"%(bestCell,bestSegment)
             return (bestCell, bestSegment)
         else:
             # Return the first segment from the cell with the fewest segments
-            print "returned from getBestMatchingCell cell i=%s with the fewest number of segments num=%s"%(fewestSegments,len(c.cells[fewestSegments].segments))
+            #print "returned from getBestMatchingCell cell i=%s with the fewest number of segments num=%s"%(fewestSegments,len(c.cells[fewestSegments].segments))
             return (fewestSegments, -1)
 
     def getSegmentActiveSynapses(self, c, i, timeStep, s, newSynapses=False):
@@ -807,6 +823,7 @@ class HTMLayer:
 
     def inhibition(self, timeStep):
         # Phase two for the spatial pooler
+        #print "length active columns before deleting = %s" % len(self.activeColumns)
         self.activeColumns = np.array([], dtype=object)
         #print "actve cols before %s" %self.activeColumns
         for i in range(len(self.columns)):
@@ -960,7 +977,7 @@ class HTMLayer:
                 for i in range(self.cellsPerColumn):
                     self.activeStateAdd(c, i, timeStep)
             if lcChosen is False:
-                print "lcChosen Getting the best matching cell to set as learning cell"
+                #print "lcChosen Getting the best matching cell to set as learning cell"
                 # The best matching cell for timeStep-1
                 #is found since we want to find the
                 # cell whose segment was most active one timestep
@@ -1067,6 +1084,10 @@ class HTMLayer:
 
 class HTMRegion:
     def __init__(self, input, columnArrayWidth, columnArrayHeight, cellsPerColumn):
+        # The HTMRegion is an object holding multiple HTMLayers. The region consists of
+        # a simulated cortex layer 3 (input and previous command compare layer) and a
+        # simulated cortex layer 6 (motor or command output layer).
+
         self.quit = False
         # The class contains multiple HTM layers stacked on one another
         self.width = columnArrayWidth
@@ -1088,7 +1109,7 @@ class HTMRegion:
                                                  self.width,
                                                  self.height,
                                                  self.cellsPerColumn))
-            # Set the potential radius of column in higher levels to a larger value base on the cells per column.
+            # Set the potential radius of column in higher levels to a larger value based on the cells per column.
             # This is done because the input to higher layers are larger then the lower layers inputs.
             if i != 0:
                 # TODO
@@ -1106,11 +1127,18 @@ class HTMRegion:
 
     def updateRegionInput(self, input):
         # Update the input and outputs of the layers.
-        # Layer 0 receives the new input. The higher layers
-        # receive inputs from the lower layer outputs
+        # Layer 0 receives the new input.
         self.layerArray[0].updateInput(input)
-        for i in range(1, self.numLayers):
+        # The middle layers receive inputs from the lower layer outputs
+        for i in range(1, self.numLayers-1):
             self.layerArray[i].updateInput(self.layerArray[i-1].output)
+        # The highest layer is the command output layer.
+        # It receives an input from the layer below it but the input only
+        # consists of non bursted cells.
+        commandLayer = self.numLayers-1
+        # Get the input from the layer below the command layer.
+        commandLayerInput = self.layerArray[commandLayer-1].activeCellGrid()
+        self.layerArray[commandLayer].updateInput(commandLayerInput)
 
     def regionOutput(self):
         # Return the regions output from its highest layer.
@@ -1119,9 +1147,9 @@ class HTMRegion:
 
     def regionCommandOutput(self):
         # Return the regions command output from its command layer (the highest layer).
-        # The command output is the grid of the active non bursted cells.
+        # The command output is the grid of the predictive non bursted cells.
         highestLayer = self.numLayers-1
-        return self.layerArray[highestLayer].activeCellGrid()
+        return self.layerArray[highestLayer].predictiveCellGrid()
 
     def spatialTemporal(self):
         i = 0
@@ -1185,6 +1213,7 @@ class HTM:
         # Level 0 receives the new input. The higher levels
         # receive inputs from the lower levels outputs
         self.HTMRegionArray[0].updateRegionInput(input)
+
         for i in range(1, self.numLevels):
             lowerLevel = i-1
             lowerLevelOutput = self.HTMRegionArray[lowerLevel].regionOutput()
