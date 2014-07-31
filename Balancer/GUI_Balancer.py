@@ -949,10 +949,13 @@ class HTMNetwork(QtGui.QWidget):
         # Update the input class
         #self.InputCreator.step(random.randint(-1, 1))
         # Just use a simple changing acc for now
-        if self.iteration % 10 < 5:
-            self.InputCreator.step(-1)
-        elif self.iteration % 10 >= 5:
-            self.InputCreator.step(1)
+        # Get the command output in the form of an SDR.
+        # For now just use the output from the lowest level.
+        commandGrid = self.htm.levelCommandOutput(0)
+        # Use the output from the motor layer to create an acceleration input to the simulation.
+        acceleration = self.InputCreator.convertSDRtoAcc(commandGrid)
+        # Run the acceleration through the simulator to get the new input
+        self.InputCreator.step(acceleration)
 
         # PART 2 RUN THE NEW INPUT THROUGHT THE HTM
         #####################################################################

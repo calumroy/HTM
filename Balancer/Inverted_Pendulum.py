@@ -54,13 +54,14 @@ class InvertedPendulum():
         self.x = 0.0
         self.y = self.length
         self.angle = int(gridWidth/2)      # 90 deg is upright
-        self.vel = 0
+        self.vel = 1
 
         self.gridWidth = gridWidth
         self.gridHeight = gridHeight
         self.angleOverlap = 2
         self.minAngle = 0
         self.maxAngle = gridWidth
+        self.minAcc = -1
         self.maxAcc = 1
 
     def step(self, acc):
@@ -102,6 +103,31 @@ class InvertedPendulum():
                     angleInput[row][col] = 1
         #print "grid = ",angleInput
         return angleInput
+
+    def convertSDRtoAcc(self, cellGrid):
+        # Convert a sparse distributed representation into an acceleration
+        acceleration = 0
+        height = len(cellGrid)
+        width = len(cellGrid[0])
+        accRange = abs(self.minAcc - self.maxAcc)
+        numActiveCells = 0
+        for row in range(len(cellGrid)):
+            for col in range(len(cellGrid[0])):
+                if cellGrid[row][col] == 1:
+                    # Calculate the amount of additional acceleration a single activeCell is worth.
+                    # Width minus one since col starts at 0 and the width is the total number of columns.
+                    accCell = float(accRange)/float(width-1) * col + self.minAcc
+                    #print "accCell = %s accRange = %s width = %s col = %s self.minAcc = %s" % (accCell, accRange, width, col, self.minAcc)
+                    # Add to the total calculated acceleration
+                    acceleration += accCell
+                    # Calculate the total number of active cells
+                    numActiveCells += 1
+        # Prevent divide by zero!
+        if numActiveCells != 0:
+            acceleration = round(float(acceleration)/float(numActiveCells))
+        print "Acceleration Command = %s" % acceleration
+        return acceleration
+
 
 class InputCreator:
 

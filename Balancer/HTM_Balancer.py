@@ -243,7 +243,7 @@ class HTMLayer:
                 c = self.columns[y][x]
                 for k in range(len(c.cells)):
                     # Count the number of cells in the column that are predicting now
-                    if c.predictiveStateArray[i][0] == self.timeStep-1:
+                    if c.predictiveStateArray[k][0] == self.timeStep:
                         output[y][x*self.cellsPerColumn+k] = 1
         #print "output = ", output
         return output
@@ -1118,7 +1118,7 @@ class HTMRegion:
                 basePotentialRadius = self.layerArray[0].columns[0][0].potentialRadius
                 baseCellsperColumn = self.layerArray[0].cellsPerColumn
 
-                potentialRadius = basePotentialRadius+int(baseCellsperColumn)
+                potentialRadius = basePotentialRadius+int(baseCellsperColumn/2)
                 for k in range(len(self.layerArray[i].columns)):
                     for c in self.layerArray[i].columns[k]:
                         c.potentialRadius = potentialRadius
@@ -1144,6 +1144,11 @@ class HTMRegion:
         # Return the regions output from its highest layer.
         highestLayer = self.numLayers-1
         return self.layerArray[highestLayer].output
+
+    def regionCommandOutput(self):
+        #Return the command output from the regions command layer
+        highestLayer = self.numLayers-1
+        return self.layerArray[highestLayer].predictiveCellGrid()
 
     def regionCommandOutput(self):
         # Return the regions command output from its command layer (the highest layer).
@@ -1221,7 +1226,7 @@ class HTM:
 
     def levelCommandOutput(self, level):
         # Return the command output of the desired level.
-        return self.HTMRegionArray[0].regionOutput()
+        return self.HTMRegionArray[level].regionCommandOutput()
 
     def spatialTemporal(self, input):
         # Update the spatial and temporal pooler.
