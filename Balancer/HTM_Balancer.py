@@ -209,6 +209,22 @@ class HTMLayer:
             for c in self.columns[i]:
                 self.updatePotentialSynapses(c)
 
+    def columnActiveNotBursting(self, col, timeStep):
+        # Calculate which cell in a given column at the given time was active but not bursting.
+        cellsActive = 0
+        cellNumber = None
+        for k in range(len(col.cells)):
+            # Count the number of cells in the column that where active.
+            if self.activeState(col, k, self.timeStep-1) is True:
+                cellsActive += 1
+                cellNumber = k
+            if cellsActive > 1:
+                break
+        if cellsActive == 1 and cellNumber is not None:
+            return cellNumber
+        else:
+            return None
+
     def activeCellGrid(self):
         ############### TODO ############
         # Return a grid representing the cells in the columns which are active but
@@ -256,14 +272,24 @@ class HTMLayer:
         for i in range(len(self.output)):
             for j in range(len(self.output[i])):
                 self.output[i][j] = 0
-        for c in self.activeColumns:
-            x = c.pos_x
-            y = c.pos_y
-            for k in range(self.cellsPerColumn):
-                # The first element is the last time the cells was active.
-                # If it equals the current time then the cells is active now.
-                if c.activeStateArray[k][0] == self.timeStep:
-                    self.output[y][x*self.cellsPerColumn+k] = 1
+        for k in range(len(self.columns)):
+            for c in self.columns[k]:
+                x = c.pos_x
+                y = c.pos_y
+                # If the column is active now
+                if self.columnActiveState(c, self.timeStep) is True:
+                    for i in range(self.cellsPerColumn):
+                        # The first element is the last time the cells was active.
+                        # If it equals the current time then the cell is active now.
+                        if c.activeStateArray[i][0] == self.timeStep:
+                            self.output[y][x*self.cellsPerColumn+i] = 1
+                # If the column is was active one timestep ago
+                if self.columnActiveState(c, self.timeStep-1) is True:
+                    # Temporal pooling is added to the output.
+                    # Included in the output the cells which had not burst in the previous timestep.
+                    cellIndex = self.columnActiveNotBursting(c, self.timeStep-1)
+                    if cellIndex is not None:
+                        self.output[y][x*self.cellsPerColumn+cellIndex] = 1
 
     def updatePotentialSynapses(self, c):
         # Update the locations of the potential synapses for column c.
@@ -450,7 +476,7 @@ class HTMLayer:
 
     def columnActiveState(self, c, timeStep):
         # Search the history of the columnActive to find if the
-        # column was predicting at time timeStep
+        # column was active at time timeStep
         for j in range(len(c.columnActive)):
             if c.columnActive[j] == timeStep:
                 return True
