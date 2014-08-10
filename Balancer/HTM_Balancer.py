@@ -1130,15 +1130,15 @@ class HTMRegion:
         # Layer 0 receives the new input.
         self.layerArray[0].updateInput(input)
         # The middle layers receive inputs from the lower layer outputs
-        for i in range(1, self.numLayers-1):
+        for i in range(1, self.numLayers):
             self.layerArray[i].updateInput(self.layerArray[i-1].output)
         # The highest layer is the command output layer.
         # It receives an input from the layer below it but the input only
         # consists of non bursted cells.
-        commandLayer = self.numLayers-1
+        #commandLayer = self.numLayers-1
         # Get the input from the layer below the command layer.
-        commandLayerInput = self.layerArray[commandLayer-1].activeCellGrid()
-        self.layerArray[commandLayer].updateInput(commandLayerInput)
+        #commandLayerInput = self.layerArray[commandLayer-1].activeCellGrid()
+        #self.layerArray[commandLayer].updateInput(commandLayerInput)
 
     def regionOutput(self):
         # Return the regions output from its highest layer.
@@ -1146,7 +1146,8 @@ class HTMRegion:
         return self.layerArray[highestLayer].output
 
     def regionCommandOutput(self):
-        #Return the command output from the regions command layer
+        # Return the command output from the regions command layer.
+        # The highest layer is the command layer.
         highestLayer = self.numLayers-1
         return self.layerArray[highestLayer].predictiveCellGrid()
 
