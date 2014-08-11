@@ -272,24 +272,16 @@ class HTMLayer:
         for i in range(len(self.output)):
             for j in range(len(self.output[i])):
                 self.output[i][j] = 0
-        for k in range(len(self.columns)):
-            for c in self.columns[k]:
-                x = c.pos_x
-                y = c.pos_y
-                # If the column is active now
-                if self.columnActiveState(c, self.timeStep) is True:
-                    for i in range(self.cellsPerColumn):
-                        # The first element is the last time the cells was active.
-                        # If it equals the current time then the cell is active now.
-                        if c.activeStateArray[i][0] == self.timeStep:
-                            self.output[y][x*self.cellsPerColumn+i] = 1
-                # If the column is was active one timestep ago
-                if self.columnActiveState(c, self.timeStep-1) is True:
-                    # Temporal pooling is added to the output.
-                    # Included in the output the cells which had not burst in the previous timestep.
-                    cellIndex = self.columnActiveNotBursting(c, self.timeStep-1)
-                    if cellIndex is not None:
-                        self.output[y][x*self.cellsPerColumn+cellIndex] = 1
+        for c in self.activeColumns:
+            x = c.pos_x
+            y = c.pos_y
+            # If the column is active now
+            if self.columnActiveState(c, self.timeStep) is True:
+                for i in range(self.cellsPerColumn):
+                    # The first element is the last time the cells was active.
+                    # If it equals the current time then the cell is active now.
+                    if c.activeStateArray[i][0] == self.timeStep:
+                        self.output[y][x*self.cellsPerColumn+i] = 1
 
     def updatePotentialSynapses(self, c):
         # Update the locations of the potential synapses for column c.
@@ -370,11 +362,11 @@ class HTMLayer:
 
     def kthScore(self, cols, kth):
         if len(cols) > 0 and kth > 0 and kth < (len(cols)-1):
-            orderedScore = np.array(cols[0].overlap)
-            #print cols[0].overlap
-            for i in range(1, len(cols)):
             #Add the overlap values to a single list
-                orderedScore = np.append(orderedScore, [cols[i].overlap])
+            orderedScore = np.array([0 for i in range(len(cols))])
+            for i in range(len(orderedScore)):
+                orderedScore[i] = cols[i].overlap
+            #print cols[0].overlap
             orderedScore = np.sort(orderedScore)
             #print orderedScore
             return orderedScore[-kth]       # Minus since list starts at lowest
@@ -840,6 +832,12 @@ class HTMLayer:
                     #print "input width = %s input height = %s" % (len(self.Input[0]), len(self.Input))
                     inputActive = self.Input[s.pos_y][s.pos_x]
                     c.overlap = c.overlap + inputActive
+
+                # Temporal pooling is done here by increasing the overlap for
+                # columns that where active but not bursting one timestep ago.
+                if self.columnActiveNotBursting(c, self.timeStep-1) is not None:
+                    c.overlap = c.overlap + 1
+
                 if c.overlap < c.minOverlap:
                     c.overlap = 0.0
                 else:
@@ -852,9 +850,12 @@ class HTMLayer:
         #print "length active columns before deleting = %s" % len(self.activeColumns)
         self.activeColumns = np.array([], dtype=object)
         #print "actve cols before %s" %self.activeColumns
+
         for i in range(len(self.columns)):
             for c in self.columns[i]:
+
                 c.activeState = False
+
                 if c.overlap > 0:
                     minLocalActivity = self.kthScore(self.neighbours(c), self.desiredLocalActivity)
                     #print "current column = (%s,%s)"%(c.pos_x,c.pos_y)
@@ -1120,7 +1121,7 @@ class HTMRegion:
         self.height = columnArrayHeight
         self.cellsPerColumn = cellsPerColumn
 
-        self.numLayers = 2  # The number of HTM layer that make up a region.
+        self.numLayers = 3  # The number of HTM layer that make up a region.
 
         self.layerArray = np.array([], dtype=object)
         # Set up the inputs to the HTM layers.
@@ -1141,10 +1142,10 @@ class HTMRegion:
                 # TODO
                 # Make this more elegant. transfer potential radius parameter to the HTM layer not column.
                 # Get the potential radius of the first column in the lowest layer
-                basePotentialRadius = self.layerArray[0].columns[0][0].potentialRadius
-                baseCellsperColumn = self.layerArray[0].cellsPerColumn
+                lowerPotentialRadius = self.layerArray[i-1].columns[0][0].potentialRadius
+                lowerCellsperColumn = self.layerArray[i-1].cellsPerColumn
 
-                potentialRadius = basePotentialRadius+int(baseCellsperColumn/2)
+                potentialRadius = lowerPotentialRadius+int(lowerCellsperColumn)
                 for k in range(len(self.layerArray[i].columns)):
                     for c in self.layerArray[i].columns[k]:
                         c.potentialRadius = potentialRadius
