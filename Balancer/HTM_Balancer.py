@@ -83,9 +83,9 @@ class Column:
         self.boost = 1
         # The max distance a column can inhibit another column.
         #This parameters value is automatically reset.
-        self.inhibitionRadius = 1
+        self.inhibitionRadius = 3
         # The max distance that Synapses can be made at
-        self.potentialRadius = 1
+        self.potentialRadius = 4
         self.permanenceInc = 0.1
         self.permanenceDec = 0.02
         self.minDutyCycle = 0.01   # The minimum firing rate of the column
@@ -179,14 +179,14 @@ class HTMLayer:
         # the desiredLocalActivity parameter
         # are observed in the inhibition radius.
         # How many cells within the inhibition radius are active
-        self.desiredLocalActivity = 1
+        self.desiredLocalActivity = 2
         self.cellsPerColumn = cellsPerColumn
         self.connectPermanence = 0.3
         # Should be smaller than activationThreshold
         self.minThreshold = 4
         # The minimum score needed by a cell to be added
         # to the alternative sequence.
-        self.minScoreThreshold = 5
+        self.minScoreThreshold = 1000
         # This limits the activeSynapse array to this length. Should be renamed
         self.newSynapseCount = 10
         # More than this many synapses on a segment must be active for
@@ -833,14 +833,18 @@ class HTMLayer:
                     inputActive = self.Input[s.pos_y][s.pos_x]
                     c.overlap = c.overlap + inputActive
 
-                # Temporal pooling is done here by increasing the overlap for
-                # columns that where active but not bursting one timestep ago.
-                if self.columnActiveNotBursting(c, self.timeStep-1) is not None:
-                    c.overlap = c.overlap + 1
-
                 if c.overlap < c.minOverlap:
                     c.overlap = 0.0
                 else:
+
+                    # Temporal pooling is done here by increasing the overlap for
+                    # columns that where active but not bursting one timestep ago.
+                    if self.columnActiveNotBursting(c, self.timeStep-1) is not None:
+                        # Add the potenial (2*radius+1)^2 as this is the maximum
+                        # overlap a column could have.
+                        maxOverlap = math.pow(2*c.potentialRadius+1,2)
+                        c.overlap = c.overlap + maxOverlap
+
                     c.overlap = c.overlap*c.boost
                     self.updateOverlapDutyCycle(c)
                 #print "%d %d %d" %(c.overlap,c.minOverlap,c.boost)
@@ -863,9 +867,11 @@ class HTMLayer:
                         self.activeColumns = np.append(self.activeColumns, c)
                         c.activeState = True
                         self.columnActiveAdd(c, timeStep)
-                        #print "ACTIVE COLUMN x,y = %s,%s overlap
-                        #= %d min = %d" %(c.pos_x,c.pos_y,
-                            #c.overlap,minLocalActivity)
+                        print "ACTIVE COLUMN x,y = %s,%s overlap = %d min = %d" %(c.pos_x,c.pos_y,
+                                                                                  c.overlap,minLocalActivity)
+                    #TODO
+                    # Fix bug in this code. more then the desiredLocal activity
+                    # number of columns can become active if overlap < max local overlap.
                     if c.overlap == minLocalActivity:
                         # Check the active columns array and see how many columns
                         # near the current one are already active.
@@ -876,7 +882,7 @@ class HTMLayer:
                         # if less then the desired local activity have been set as active
                         # then activate this column as well
                         if numNeighbours < self.desiredLocalActivity:
-                            #print "Activated column numNeighbours = %s" % numNeighbours
+                            print "Activated column x,y = %s, %s numNeighbours = %s" % (c.pos_x, c.pos_y, numNeighbours)
                             self.activeColumns = np.append(self.activeColumns, c)
                             c.activeState = True
                             self.columnActiveAdd(c, timeStep)
@@ -1121,7 +1127,7 @@ class HTMRegion:
         self.height = columnArrayHeight
         self.cellsPerColumn = cellsPerColumn
 
-        self.numLayers = 3  # The number of HTM layer that make up a region.
+        self.numLayers = 2  # The number of HTM layer that make up a region.
 
         self.layerArray = np.array([], dtype=object)
         # Set up the inputs to the HTM layers.
