@@ -389,13 +389,16 @@ class HTMGridViewer(QtGui.QGraphicsView):
         # Clear the cellItems and columnItems arrays
         self.cellItems = []   # Stores all the cell items in the scene
         self.columnItems = []  # Stores all the column items in the scene
-        rows = self.htm.HTMRegionArray[self.level].layerArray[self.layer].height
-        cols = self.htm.HTMRegionArray[self.level].layerArray[self.layer].width
+        layer = self.htm.HTMRegionArray[self.level].layerArray[self.layer]
+        rows = layer.height
+        cols = layer.width
         pen = QtGui.QPen(QtGui.QColor(QtCore.Qt.black))
         brush = QtGui.QBrush(pen.color().darker(150))
         for x in range(cols):
                 for y in range(rows):
-                    value = self.htm.HTMRegionArray[self.level].layerArray[self.layer].columns[y][x].activeState
+                    column = layer.columns[y][x]
+                    # Check if the column is active now
+                    value = layer.columnActiveState(column, layer.timeStep)
                     if value is False:
                             brush.setColor(QtCore.Qt.red)
                     if value is True:
@@ -487,16 +490,19 @@ class HTMGridViewer(QtGui.QGraphicsView):
             self.cellItems[i].setPen(pen)
 
     def updateHTMGrid(self):
+        layer = self.htm.HTMRegionArray[self.level].layerArray[self.layer]
         for i in range(len(self.columnItems)):
             brush = QtGui.QBrush(QtCore.Qt.green)
             brush.setStyle(QtCore.Qt.SolidPattern)
             pos_x = self.columnItems[i].pos_x
             pos_y = self.columnItems[i].pos_y
-            value = self.htm.HTMRegionArray[self.level].layerArray[self.layer].columns[pos_y][pos_x].activeState
-            if value == 0:
+            column = layer.columns[pos_y][pos_x]
+            # Check if the column is active now
+            value = layer.columnActiveState(column, layer.timeStep)
+            if value is False:
                     brush.setColor(QtCore.Qt.red)
                     self.columnItems[i].setBrush(brush)
-            if value == 1:
+            if value is True:
                     brush.setColor(QtCore.Qt.green)
                     self.columnItems[i].setBrush(brush)
         self.updateCells()

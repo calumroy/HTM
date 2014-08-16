@@ -94,7 +94,6 @@ class Column:
         # All columns start as active. It stores the
         #numInhibition time when the column was active
         self.activeDutyCycle = 0.0  # the firing rate of the column
-        self.activeState = False
         # The rate at which the overlap is larger then the min overlap
         self.overlapDutyCycle = 0.0
         # Keeps track of when the colums overlap was larger then the minoverlap
@@ -383,7 +382,8 @@ class HTMLayer:
         return int(math.sqrt(np.average(self.averageReceptiveFeildSizeArray))/2)
 
     def updateActiveDutyCycle(self, c):
-        if c.activeState is True:
+        # If the column is active now
+        if self.columnActiveState(c, self.timeStep) is True:
             # Append the current time call to the list of times that the column was active for
             c.activeDutyCycleArray = np.append(c.activeDutyCycleArray, self.timeStep)
         for i in range(len(c.activeDutyCycleArray)):
@@ -433,8 +433,8 @@ class HTMLayer:
     def columnActiveAdd(self, c, timeStep):
         # We add the new time to the start of the array
         # then delete the time at the end of the array.
-        # All the times should be in order from highest
-        # (most recent) to lowest (oldest).
+        # All the times should be in order from
+        # most recent to oldest.
         newArray = np.insert(c.columnActive, 0, timeStep)
         newArray = np.delete(newArray, len(newArray)-1)
         c.columnActive = newArray
@@ -442,8 +442,8 @@ class HTMLayer:
     def activeStateAdd(self, c, i, timeStep):
         # We add the new time to the start of
         # the array then delete the time at the end of the array.
-        # All the times should be in order from highest
-        # (most recent) to lowest (oldest).
+        # All the times should be in order from
+        # most recent to oldest.
         newArray = np.insert(c.activeStateArray[i], 0, timeStep)
         newArray = np.delete(newArray, len(newArray)-1)
         c.activeStateArray[i] = newArray
@@ -452,7 +452,7 @@ class HTMLayer:
         # We add the new time to the start of the array
         # then delete the time at the end of the array.
         # All the times should be in order from
-        # highest (most recent) to lowest (oldest).
+        # most recent to oldest.
         newArray = np.insert(c.predictiveStateArray[i], 0, timeStep)
         newArray = np.delete(newArray, len(newArray)-1)
         c.predictiveStateArray[i] = newArray
@@ -460,8 +460,8 @@ class HTMLayer:
     def learnStateAdd(self, c, i, timeStep):
         # We add the new time to the start of the
         # array then delete the time at the end of the array.
-        # All the times should be in order from highest
-        # (most recent) to lowest (oldest).
+        # All the times should be in order from
+        # most recent to oldest.
         newArray = np.insert(c.learnStateArray[i], 0, timeStep)
         newArray = np.delete(newArray, len(newArray)-1)
         c.learnStateArray[i] = newArray
@@ -857,34 +857,27 @@ class HTMLayer:
 
         for i in range(len(self.columns)):
             for c in self.columns[i]:
-
-                c.activeState = False
-
                 if c.overlap > 0:
                     minLocalActivity = self.kthScore(self.neighbours(c), self.desiredLocalActivity)
                     #print "current column = (%s,%s)"%(c.pos_x,c.pos_y)
                     if c.overlap > minLocalActivity:
                         self.activeColumns = np.append(self.activeColumns, c)
-                        c.activeState = True
                         self.columnActiveAdd(c, timeStep)
-                        print "ACTIVE COLUMN x,y = %s,%s overlap = %d min = %d" %(c.pos_x,c.pos_y,
-                                                                                  c.overlap,minLocalActivity)
-                    #TODO
-                    # Fix bug in this code. more then the desiredLocal activity
-                    # number of columns can become active if overlap < max local overlap.
+                        #print "ACTIVE COLUMN x,y = %s, %s overlap = %d min = %d" % (c.pos_x, c.pos_y,
+                        #                                                            c.overlap, minLocalActivity)
                     if c.overlap == minLocalActivity:
-                        # Check the active columns array and see how many columns
-                        # near the current one are already active.
-                        numNeighbours = 0
-                        for d in self.activeColumns:
-                            if self.areNeighbours(c, d) is True:
-                                numNeighbours += 1
-                        # if less then the desired local activity have been set as active
-                        # then activate this column as well
-                        if numNeighbours < self.desiredLocalActivity:
-                            print "Activated column x,y = %s, %s numNeighbours = %s" % (c.pos_x, c.pos_y, numNeighbours)
+                        # Check the neighbours and see how many have an overlap
+                        # larger then the minLocalctivity or are already active.
+                        # These columns will be set active.
+                        numActiveNeighbours = 0
+                        for d in self.neighbours(c):
+                            if (d.overlap > minLocalActivity or self.columnActiveState(d, self.timeStep) is True):
+                                numActiveNeighbours += 1
+                        # if less then the desired local activity have been set
+                        # or will be set as active then activate this column as well.
+                        if numActiveNeighbours < self.desiredLocalActivity:
+                            #print "Activated column x,y = %s, %s numActiveNeighbours = %s" % (c.pos_x, c.pos_y, numActiveNeighbours)
                             self.activeColumns = np.append(self.activeColumns, c)
-                            c.activeState = True
                             self.columnActiveAdd(c, timeStep)
                 self.updateActiveDutyCycle(c)
                 # Update the active duty cycle variable of every column
