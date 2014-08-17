@@ -65,7 +65,7 @@ class Cell:
         # dendrite segments
         #self.numInitSegments = 1    # Must be greater then zero
         self.score = 0     # The current score for the cell.
-        self.segments = np.array([], dtype=object)
+        self.segments = []
         #for i in range(self.numInitSegments):
         #    self.segments = np.hstack((self.segments,[Segment()]))
         # Create a dictionary to store the segmentUpdate structures
@@ -87,9 +87,7 @@ class Cell:
 
 class Column:
     def __init__(self, length, pos_x, pos_y, input):
-        self.cells = np.array([], dtype=object)
-        for i in range(length):
-            self.cells = np.hstack((self.cells, [Cell()]))
+        self.cells = [Cell() for i in range(length)]
         self.pos_x = pos_x
         self.pos_y = pos_y
         self.overlap = 0.0
@@ -424,12 +422,14 @@ class HTMLayer:
         # This should only be done before or after learning
         deleteEmptySegments = []
         # This is a list of the indicies of the segments that will be deleted
+        #print "Delete seg in Cell i = %s" % i
         for s in range(len(c.cells[i].segments)):
-            if len(c.cells[i].segments[s].synapses) == 0:
-                deleteEmptySegments.append(s)
-        if len(deleteEmptySegments) > 0:  # Used for printing only
-            print "Deleted %s segments from x, y, i=%s, %s, %s segindex = %s"%(len(deleteEmptySegments), c.pos_x,c.pos_y,i,deleteEmptySegments)
-        c.cells[i].segments = np.delete(c.cells[i].segments, deleteEmptySegments)
+            if len(c.cells[i].segments[s].synapses) != 0:
+                deleteEmptySegments.append(c.cells[i].segments[s])
+        #if len(deleteEmptySegments) > 0:  # Used for printing only
+        #    print "Deleted %s segments from x, y, i=%s, %s, %s segindex = %s"%(len(deleteEmptySegments), c.pos_x,c.pos_y,i,deleteEmptySegments)
+        for d in deleteEmptySegments:
+            c.cells[i].segments.remove(d)
 
     def deleteWeakSynapses(self, c, i, segIndex):
         # Delete the synapses that have a permanence
@@ -819,7 +819,7 @@ class HTMLayer:
             else:
                 newSegment = Segment()
                 newSegment.synapses = c.cells[i].segmentUpdateList[j]['newSynapses']
-                c.cells[i].segments = np.append(c.cells[i].segments, newSegment)
+                c.cells[i].segments.append(newSegment)
                 #print "     new segment added for x,y,cell,seg =
                 #%s,%s,%s,%s"%(c.pos_x,c.pos_y,i,len(c.cells[i].segments)-1)
                 #for s in c.cells[i].segments[len(c.cells[i].
