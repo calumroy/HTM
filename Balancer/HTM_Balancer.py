@@ -3,8 +3,8 @@
 # Author: Calum Meiklejohn
 # Development phase: alpha
 
-#import HTM_draw
-#import pygame
+import cProfile
+
 import numpy as np
 import random
 import math
@@ -18,6 +18,20 @@ SegmentUpdate = {'index': '-1',
                  'activeSynapses': '0',
                  'sequenceSegment': 0,
                  'createdAtTime': 0}
+
+
+# Profiling function
+def do_cprofile(func):
+    def profiled_func(*args, **kwargs):
+        profile = cProfile.Profile()
+        try:
+            profile.enable()
+            result = func(*args, **kwargs)
+            profile.disable()
+            return result
+        finally:
+            profile.print_stats()
+    return profiled_func
 
 
 class Synapse:
@@ -1255,6 +1269,7 @@ class HTM:
         # Return the command output of the desired level.
         return self.HTMRegionArray[level].regionCommandOutput()
 
+    #@do_cprofile
     def spatialTemporal(self, input):
         # Update the spatial and temporal pooler.
         # Find spatial and temporal patterns from the input.
