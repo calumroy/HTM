@@ -147,9 +147,11 @@ class Column:
 
     def updateConnectedSynapses(self):
         self.connectedSynapses = np.array([], dtype=object)
+        connSyn = []
         for i in range(len(self.potentialSynapses)):
             if self.potentialSynapses[i].permanence > self.potentialSynapses[i].connectPermanence:
-                self.connectedSynapses = np.append(self.connectedSynapses, self.potentialSynapses[i])
+                connSyn.append(self.potentialSynapses[i])
+        self.connectedSynapses = np.append(self.connectedSynapses, connSyn)
 ##    def input(self,input):
 ##        # Update the selected synapses inputs
 ##        for i in range(len(self.potentialSynapses)):
