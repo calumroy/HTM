@@ -327,14 +327,14 @@ class HTMLayer:
 
     def neighbours(self, c):
         # returns a list of the columns that are within the inhibitionRadius of c
-        closeColumns = np.array([], dtype=object)
+        closeColumns = []
         # Add one to the c.pos_y+c.inhibitionRadius because for example range(0,2)=(0,1)
         for i in range(int(c.pos_y-c.inhibitionRadius), int(c.pos_y+c.inhibitionRadius)+1):
             if i >= 0 and i < (len(self.columns)):
                 for j in range(int(c.pos_x-c.inhibitionRadius), int(c.pos_x+c.inhibitionRadius)+1):
                     if j >= 0 and j < (len(self.columns[0])):
-                        closeColumns = np.append(closeColumns, self.columns[i][j])
-        return closeColumns
+                        closeColumns.append(self.columns[i][j])
+        return np.array(closeColumns)
 
     def areNeighbours(self, c, d):
         # Checks to see if two columns are neighbours.
