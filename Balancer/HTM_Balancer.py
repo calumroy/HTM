@@ -514,6 +514,15 @@ class HTMLayer:
                 return True
         return False
 
+    def findActiveCell(self, c, timeStep):
+        # Return the cell that was active in the column c at
+        # the timeStep provided.
+        # If no cell was active then return -1
+        for i in range(self.cellsPerColumn):
+            if self.activeState(c, i, timeStep) is True:
+                return i
+        return -1
+
     def randomActiveSynapses(self, c, i, s, timeStep):
         # Randomly add self.newSynapseCount-len(synapses) number of Synapses
         # that connect with cells that are active
@@ -829,8 +838,30 @@ class HTMLayer:
     def updateInput(self, input):
         self.Input = input
 
+    def temporalPool(self, c):
+        # Temporal pooling is done here by increasing the overlap for
+        # columns that where active but not bursting one timestep ago.
+        if self.columnActiveNotBursting(c, self.timeStep-1) is not None:
+            # Add the potenial (2*radius+1)^2 as this is the maximum
+            # overlap a column could have.
+            maxOverlap = math.pow(2*c.potentialRadius+1, 2)
+            c.overlap = c.overlap + maxOverlap
+
+
     def Overlap(self):
         # Phase one for the spatial pooler
+        """
+        This function also includes the new temporal pooling agorithm.
+        The temporal pooler works in the spatial pooler by keeping columns
+        active that where active but not bursting on the previous time step.
+
+        This is done so the columns learn to activate on multiple input patterns
+        keeping them activated throughout a sequence of patterns.
+
+        Note the temporal pooling is very dependent on the potential radius.
+        a larger potential radius allows the temporal pooler to pool over a larger
+        number of columns.
+        """
         for i in range(len(self.columns)):
             for c in self.columns[i]:
                 c.overlap = 0.0
@@ -849,11 +880,7 @@ class HTMLayer:
 
                     # Temporal pooling is done here by increasing the overlap for
                     # columns that where active but not bursting one timestep ago.
-                    if self.columnActiveNotBursting(c, self.timeStep-1) is not None:
-                        # Add the potenial (2*radius+1)^2 as this is the maximum
-                        # overlap a column could have.
-                        maxOverlap = math.pow(2*c.potentialRadius+1,2)
-                        c.overlap = c.overlap + maxOverlap
+                    self.temporalPool(c)
 
                     c.overlap = c.overlap*c.boost
                     self.updateOverlapDutyCycle(c)
@@ -942,89 +969,94 @@ class HTMLayer:
         # This is different to CLA paper.
         # First we calculate the score for each cell in the active column
         for c in self.activeColumns:
-            #print "\n ACTIVE COLUMN x,y = %s,%s time =
-            #%s"%(c.pos_x,c.pos_y,timeStep)
-            #print "columnActive =",c.columnActive
-            highestScore = 0        # Remember the highest score in the column
-            c.highestScoredCell = None
-            # Remember the index of the cell with
-            #the highest score in the column
-            for i in range(self.cellsPerColumn):
-                # Check the cell to find a best matching
-                #segment active due to active columns.
-                bestMatchSeg = self.getBestMatchingSegment(c, i, timeStep-1, False)
-                if bestMatchSeg != -1:
-                    c.cells[i].score = 1+self.segmentHighestScore(c.cells[i].segments[bestMatchSeg], timeStep-1)
-                    #print"Cell x,y,i = %s,%s,%s bestSeg = %s score = %s"%(c.pos_x,c.pos_y,i,
-                    #                                                       bestMatchSeg,c.cells[i].score)
-                    if c.cells[i].score > highestScore:
-                        highestScore = c.cells[i].score
-                        c.highestScoredCell = i
-                else:
-                    c.cells[i].score = 0
+            #print "\n ACTIVE COLUMN x,y = %s,%s time = %s"%(c.pos_x,c.pos_y,timeStep)
+            # Only udate the scores for columns that have changed state from not active to active
+            if self.columnActiveState(c, self.timeStep-1) is False:
+                highestScore = 0        # Remember the highest score in the column
+                c.highestScoredCell = None
+                # Remember the index of the cell with
+                #the highest score in the column
+                for i in range(self.cellsPerColumn):
+                    # Check the cell to find a best matching
+                    #segment active due to active columns.
+                    bestMatchSeg = self.getBestMatchingSegment(c, i, timeStep-1, False)
+                    if bestMatchSeg != -1:
+                        c.cells[i].score = 1+self.segmentHighestScore(c.cells[i].segments[bestMatchSeg], timeStep-1)
+                        #print"Cell x,y,i = %s,%s,%s bestSeg = %s score = %s"%(c.pos_x,c.pos_y,i,
+                        #                                                       bestMatchSeg,c.cells[i].score)
+                        if c.cells[i].score > highestScore:
+                            highestScore = c.cells[i].score
+                            c.highestScoredCell = i
+                    else:
+                        c.cells[i].score = 0
         # According to the CLA paper
         for c in self.activeColumns:
-            buPredicted = False
-            lcChosen = False
-            for i in range(self.cellsPerColumn):
-                # Update the cells according to the CLA paper
-                if self.predictiveState(c, i, timeStep-1) is True:
-                    s = self.getActiveSegment(c, i, timeStep-1)
-                    # If a segment was found then continue
-                    if s != -1:
-                        # Since we get the active segments
-                        #from 1 time step ago then we need to
-                        # find which of these where sequence
-                        #segments 1 time step ago. This means they
-                        # were predicting that the cell would be active now.
-                        if s.sequenceSegment == timeStep-1:
-                            buPredicted = True
-                            self.activeStateAdd(c, i, timeStep)
-                            #learnState = 2
-                            #if self.segmentActive(s,timeStep-1,learnState) > 0:
-                            lcChosen = True
-                            self.learnStateAdd(c, i, timeStep)
-            # Different to CLA paper
-            # If the column is about to burst because no cell was predicting
-            # check the cell with the highest score.
-            if c.highestScoredCell is not None:
-                if buPredicted is False and c.cells[c.highestScoredCell].score >= self.minScoreThreshold:
-                    print"best SCORE active x, y, i = %s, %s, %s score = %s"%(c.pos_x, c.pos_y,c.highestScoredCell, c.cells[c.highestScoredCell].score)
+            # Only update columns that have changed state from not active to active
+            # Any columns that are still active from the last step keep the same
+            # state of cells ie. the learning and active cells stay the same.
+            if self.columnActiveState(c, self.timeStep-1) is True:
+                prevActiveCellIndex = self.findActiveCell(c, self.timeStep-1)
+                if prevActiveCellIndex >= 0:
+                    self.activeStateAdd(c, prevActiveCellIndex, timeStep)
                     buPredicted = True
-                    self.activeStateAdd(c, c.highestScoredCell, timeStep)
+                    self.learnStateAdd(c, prevActiveCellIndex, timeStep)
                     lcChosen = True
-                    self.learnStateAdd(c, c.highestScoredCell, timeStep)
-                    # Add a new Segment
-                    sUpdate = self.getSegmentActiveSynapses(c, c.highestScoredCell, timeStep-1, -1, True)
-                    sUpdate['sequenceSegment'] = timeStep
-                    c.cells[c.highestScoredCell].segmentUpdateList.append(sUpdate)
-                if lcChosen is False and c.cells[c.highestScoredCell].score >= self.minScoreThreshold:
-                    print"best SCORE learn x,y,i = %s,%s,%s score = %s" % (c.pos_x, c.pos_y, c.highestScoredCell, c.cells[c.highestScoredCell].score)
-                    lcChosen = True
-                    self.learnStateAdd(c, c.highestScoredCell, timeStep)
-                    # Add a new Segment
-                    sUpdate = self.getSegmentActiveSynapses(c, c.highestScoredCell, timeStep-1, -1, True)
-                    sUpdate['sequenceSegment'] = timeStep
-                    c.cells[c.highestScoredCell].segmentUpdateList.append(sUpdate)
-
-            # According to the CLA paper
-            if buPredicted is False:
-                #print "No cell in this column predicted"
+                else:
+                    print "     ERROR the prevActiveCellIndex was not a cell index"
+            else:
+                buPredicted = False
+                lcChosen = False
                 for i in range(self.cellsPerColumn):
-                    self.activeStateAdd(c, i, timeStep)
-            if lcChosen is False:
-                #print "lcChosen Getting the best matching cell to set as learning cell"
-                # The best matching cell for timeStep-1
-                #is found since we want to find the
-                # cell whose segment was most active one timestep
-                #ago and hence was most predicting.
-                (cell, s) = self.getBestMatchingCell(c, timeStep-1)
-                self.learnStateAdd(c, cell, timeStep)
-                sUpdate = self.getSegmentActiveSynapses(c, cell, timeStep-1, s, True)
-                sUpdate['sequenceSegment'] = timeStep
-                c.cells[cell].segmentUpdateList.append(sUpdate)
-                #print "Length of cells updatelist =
-                #%s"%len(c.cells[cell].segmentUpdateList)
+                    # Update the cells according to the CLA paper
+                    if self.predictiveState(c, i, timeStep-1) is True:
+                        s = self.getActiveSegment(c, i, timeStep-1)
+                        # If a segment was found then continue
+                        if s != -1:
+                            # Since we get the active segments
+                            #from 1 time step ago then we need to
+                            # find which of these where sequence
+                            #segments 1 time step ago. This means they
+                            # were predicting that the cell would be active now.
+                            if s.sequenceSegment == timeStep-1:
+                                buPredicted = True
+                                self.activeStateAdd(c, i, timeStep)
+                                #learnState = 2
+                                #if self.segmentActive(s,timeStep-1,learnState) > 0:
+                                lcChosen = True
+                                self.learnStateAdd(c, i, timeStep)
+                # Different to CLA paper
+                # If the column is about to burst because no cell was predicting
+                # check the cell with the highest score.
+                if c.highestScoredCell is not None:
+                    if buPredicted is False and c.cells[c.highestScoredCell].score >= self.minScoreThreshold:
+                        print"best SCORE active x, y, i = %s, %s, %s score = %s"%(c.pos_x, c.pos_y,c.highestScoredCell, c.cells[c.highestScoredCell].score)
+                        buPredicted = True
+                        self.activeStateAdd(c, c.highestScoredCell, timeStep)
+                        lcChosen = True
+                        self.learnStateAdd(c, c.highestScoredCell, timeStep)
+                        # Add a new Segment
+                        sUpdate = self.getSegmentActiveSynapses(c, c.highestScoredCell, timeStep-1, -1, True)
+                        sUpdate['sequenceSegment'] = timeStep
+                        c.cells[c.highestScoredCell].segmentUpdateList.append(sUpdate)
+
+                # According to the CLA paper
+                if buPredicted is False:
+                    #print "No cell in this column predicted"
+                    for i in range(self.cellsPerColumn):
+                        self.activeStateAdd(c, i, timeStep)
+                if lcChosen is False:
+                    #print "lcChosen Getting the best matching cell to set as learning cell"
+                    # The best matching cell for timeStep-1
+                    #is found since we want to find the
+                    # cell whose segment was most active one timestep
+                    #ago and hence was most predicting.
+                    (cell, s) = self.getBestMatchingCell(c, timeStep-1)
+                    self.learnStateAdd(c, cell, timeStep)
+                    sUpdate = self.getSegmentActiveSynapses(c, cell, timeStep-1, s, True)
+                    sUpdate['sequenceSegment'] = timeStep
+                    c.cells[cell].segmentUpdateList.append(sUpdate)
+                    #print "Length of cells updatelist =
+                    #%s"%len(c.cells[cell].segmentUpdateList)
 
     def updatePredictiveState(self, timeStep):
         # The second function call for the sequence pooler.
