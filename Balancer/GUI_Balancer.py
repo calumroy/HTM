@@ -666,11 +666,11 @@ class HTMNetwork(QtGui.QWidget):
         self.numCells = 3  # The number of cells in a column.
         self.width = 8  # The width of the columns in the HTM 2D array
         self.height = 26  # The height of the columns in the HTM 2D array
-        self.inputWidth = self.width
-        self.inputHeight = self.height
+        self.inputWidth = 8
+        self.inputHeight = 26
 
         # Create the input class
-        self.InputCreator = Inverted_Pendulum.InvertedPendulum(int(self.inputWidth*2.5), int(self.inputHeight*2.5))
+        self.InputCreator = Inverted_Pendulum.InvertedPendulum(int(self.inputWidth), int(self.inputHeight))
 
         # Create HTM network with an initialized input
         self.htm = HTM_V.HTM(self.numLevels, self.InputCreator.createInput(), self.width, self.height, self.numCells)

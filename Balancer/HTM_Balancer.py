@@ -97,7 +97,7 @@ class Column:
         #This parameters value is automatically reset.
         self.inhibitionRadius = 3
         # The max distance that Synapses can be made at
-        self.potentialRadius = 4
+        self.potentialRadius = 2
         self.permanenceInc = 0.1
         self.permanenceDec = 0.02
         self.minDutyCycle = 0.01   # The minimum firing rate of the column
@@ -199,7 +199,7 @@ class HTMLayer:
         self.minThreshold = 4
         # The minimum score needed by a cell to be added
         # to the alternative sequence.
-        self.minScoreThreshold = 1000
+        self.minScoreThreshold = 3
         # This limits the activeSynapse array to this length. Should be renamed
         self.newSynapseCount = 10
         # More than this many synapses on a segment must be active for
@@ -934,11 +934,11 @@ class HTMLayer:
 
         If the score of a cell is larger then minScoreThreshold and no predictive cell was in the
         active column then instead of bursting the column this cell becomes active.
-        This active cell means it has been part of an alternative sequence that that was also
+        This active cell means it has been part of an alternative sequence that was also
         being predicted by HTM layer.
         """
         # First reset the active cells calculated from the previous time step.
-        print "       1st TEMPORAL FUNCTION"
+        print "       1st SEQUENCE FUNCTION"
         # This is different to CLA paper.
         # First we calculate the score for each cell in the active column
         for c in self.activeColumns:
@@ -1029,7 +1029,7 @@ class HTMLayer:
     def updatePredictiveState(self, timeStep):
         # The second function call for the sequence pooler.
         # Updates the predictive state of cells.
-        print "\n       2nd TEMPORAL FUNCTION "
+        print "\n       2nd SEQUENCE FUNCTION "
         for k in range(len(self.columns)):
             for c in self.columns[k]:
                 mostPredCellSynCount = 0
@@ -1083,10 +1083,10 @@ class HTMLayer:
                     #(c,i,timeStep-1,predSegment,True)
                     #c.cells[i].segmentUpdateList.append(predUpdate)
 
-    def temporalLearning(self, timeStep):
+    def sequenceLearning(self, timeStep):
         # Third function called for the sequence pooler.
         # The update structures are implemented on the cells
-        print "\n       3rd TEMPORAL FUNCTION "
+        print "\n       3rd SEQUENCE FUNCTION "
         for k in range(len(self.columns)):
             for c in self.columns[k]:
                 for i in range(len(c.cells)):
@@ -1155,6 +1155,7 @@ class HTMRegion:
                 lowerCellsperColumn = self.layerArray[i-1].cellsPerColumn
 
                 potentialRadius = lowerPotentialRadius+int(lowerCellsperColumn)
+                self.layerArray[i].desiredLocalActivity = 4
                 for k in range(len(self.layerArray[i].columns)):
                     for c in self.layerArray[i].columns[k]:
                         c.potentialRadius = potentialRadius
@@ -1208,7 +1209,7 @@ class HTMRegion:
             # This Updates the temporal pooler
             layer.updateActiveState(layer.timeStep)
             layer.updatePredictiveState(layer.timeStep)
-            layer.temporalLearning(layer.timeStep)
+            layer.sequenceLearning(layer.timeStep)
 
 
 class HTM:
@@ -1265,7 +1266,7 @@ class HTM:
         # Return the command output of the desired level.
         return self.HTMRegionArray[level].regionCommandOutput()
 
-    @do_cprofile
+    #@do_cprofile  # For profiling
     def spatialTemporal(self, input):
         # Update the spatial and temporal pooler.
         # Find spatial and temporal patterns from the input.

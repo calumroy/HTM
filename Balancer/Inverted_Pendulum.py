@@ -58,7 +58,7 @@ class InvertedPendulum():
 
         self.gridWidth = gridWidth
         self.gridHeight = gridHeight
-        self.angleOverlap = 2
+        self.angleOverlap = 1
         self.minAngle = 0
         self.maxAngle = gridWidth
         self.minAcc = -1
