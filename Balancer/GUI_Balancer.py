@@ -847,6 +847,11 @@ class HTMNetwork(QtGui.QWidget):
             self.HTMNetworkGrid.showPredictCells = False
         self.HTMNetworkGrid.updateHTMGrid()
 
+    def keyPressEvent(self, event):
+        # Spacebar is perform next step
+        if event.key() == QtCore.Qt.Key_Space:
+            self.step(True)
+
     def HTMzoomIn(self):
         #self.HTMNetworkGrid.scale = self.HTMNetworkGrid.scale*1.2
         #self.HTMNetworkGrid.update()
