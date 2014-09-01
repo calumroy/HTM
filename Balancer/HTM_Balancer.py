@@ -110,7 +110,7 @@ class Column:
         self.overlapDutyCycle = 0.0
         # Keeps track of when the colums overlap was larger then the minoverlap
         self.overlapDutyCycleArray = np.array([0])
-        self.boostStep = 0.1
+        self.boostStep = 0
         # This determines how many previous timeSteps are stored in
         #actve predictive and learn state arrays.
         self.historyLength = 2
@@ -143,7 +143,6 @@ class Column:
         #    self.scoreArray = np.vstack((self.scoreArray,[0 for i in range(self.historyLength)]))
         # An array storing the last timeSteps when the column was active.
         self.columnActive = np.array([0 for i in range(self.historyLength)])
-    # POSSIBLY MOVE THESE FUNCTIONS TO THE HTMLayer CLASS?
 
     def updateConnectedSynapses(self):
         self.connectedSynapses = np.array([], dtype=object)
@@ -152,10 +151,6 @@ class Column:
             if self.potentialSynapses[i].permanence > self.potentialSynapses[i].connectPermanence:
                 connSyn.append(self.potentialSynapses[i])
         self.connectedSynapses = np.append(self.connectedSynapses, connSyn)
-##    def input(self,input):
-##        # Update the selected synapses inputs
-##        for i in range(len(self.potentialSynapses)):
-##            self.potentialSynapses[i].updateInput(input)
 
     def updateBoost(self):
         if self.activeDutyCycle < self.minDutyCycle:
@@ -165,18 +160,6 @@ class Column:
             # %(self.activeDutyCycle,self.minDutyCycle)
             self.boost = 1.0
         #print self.boost
-
-    #def updateArray(self,timeStep,array):
-        ## This function will be used if activeArray ends up storing more
-        # than just the last active time.
-        # This function is used to update the predict, active and
-        #learn state arrays.
-        # It adds the new time to the start of the list and deletes the
-        # last item in the list.
-        # This way the newest times are always at the start of the list.
-        #array.insert(0,timeStep)
-        #del(array[len(array)-1])
-        #return array
 
 
 class HTMLayer:
@@ -369,9 +352,6 @@ class HTMLayer:
         for i in range(len(c.potentialSynapses)):
             # Increase the permance by a scale factor
             c.potentialSynapses[i].permanence = min(1.0, (1+scale)*(c.potentialSynapses[i].permanence))
-
-    def boostFunction(c):
-        pass
 
     def kthScore(self, cols, kth):
         if len(cols) > 0 and kth > 0 and kth < (len(cols)-1):
