@@ -481,10 +481,12 @@ class HTMGridViewer(QtGui.QGraphicsView):
             cell_cell = self.cellItems[i].cell
             column = self.htm.HTMRegionArray[self.level].layerArray[self.layer].columns[pos_y][pos_x]
             brush = QtGui.QBrush(transpBlue)   # Have to create a brush with a color
-            # Check each synapse and draw the connected cells
+            # Check each synapse and draw the connected cells.
             for syn in column.cells[cell].segments[segment].synapses:
+                # Save the synapses end cells active times so they can be displayed.
+                synEndColumn = self.htm.HTMRegionArray[self.level].layerArray[self.layer].columns[syn.pos_y][syn.pos_x]
                 if syn.pos_x == cell_pos_x and syn.pos_y == cell_pos_y and syn.cell == cell_cell:
-                    print "     syn x,y,cell= %s,%s,%s Permanence = %s, active times = %s" % (cell_pos_x, cell_pos_y, cell_cell, syn.permanence, column.activeStateArray[syn.cell])
+                    print "     syn x,y,cell= %s,%s,%s Permanence = %s, active times = %s" % (cell_pos_x, cell_pos_y, cell_cell, syn.permanence, synEndColumn.activeStateArray[syn.cell])
                     brush.setColor(blue)
             self.cellItems[i].setBrush(brush)
             self.cellItems[i].setPen(pen)
