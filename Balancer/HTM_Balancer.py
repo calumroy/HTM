@@ -495,13 +495,15 @@ class HTMLayer:
         return False
 
     def findActiveCell(self, c, timeStep):
-        # Return the cell that was active in the column c at
+        # Return the cell index that was active in the column c at
         # the timeStep provided.
-        # If no cell was active then return -1
+        # If all cells are active (ie bursting was occuring) then return
+        # all indicies. If no cell was active then return None
+        activeCellsArray = []
         for i in range(self.cellsPerColumn):
             if self.activeState(c, i, timeStep) is True:
-                return i
-        return -1
+                activeCellsArray.append(i)
+        return activeCellsArray
 
     def randomActiveSynapses(self, c, i, s, timeStep):
         # Randomly add self.newSynapseCount-len(synapses) number of Synapses
@@ -969,21 +971,30 @@ class HTMLayer:
                             c.highestScoredCell = i
                     else:
                         c.cells[i].score = 0
-        # According to the CLA paper
+
         for c in self.activeColumns:
-            # Only update columns that have changed state from not active to active
+            # Only update columns that have changed state from not active to active.
             # Any columns that are still active from the last step keep the same
             # state of cells ie. the learning and active cells stay the same.
             if self.columnActiveState(c, self.timeStep-1) is True:
                 prevActiveCellIndex = self.findActiveCell(c, self.timeStep-1)
-                if prevActiveCellIndex >= 0:
-                    self.activeStateAdd(c, prevActiveCellIndex, timeStep)
-                    buPredicted = True
-                    self.learnStateAdd(c, prevActiveCellIndex, timeStep)
-                    lcChosen = True
+                if len(prevActiveCellIndex) > 0:
+                    if len(prevActiveCellIndex) == 1:
+                        self.activeStateAdd(c, prevActiveCellIndex, timeStep)
+                        buPredicted = True
+                        self.learnStateAdd(c, prevActiveCellIndex, timeStep)
+                        lcChosen = True
+                    elif len(prevActiveCellIndex) == self.cellsPerColumn:
+                        # The column bursted on the previous timestep.
+                        # Leave all cells in the column active.
+                        for i in range(self.cellsPerColumn):
+                            self.activeStateAdd(c, i, timeStep)
+                    else:
+                        print " ERROR findActiveCell returned %s cells active for column x,y = %s,%s" % (len(prevActiveCellIndex),c.pos_x, c.posy)
                 else:
-                    print "     ERROR the prevActiveCellIndex was not a cell index"
+                    print " ERROR column x,y = %s,%s was active but no cells are recorded as active" % (c.pos_x, c.posy)
             else:
+                # According to the CLA paper
                 buPredicted = False
                 lcChosen = False
                 for i in range(self.cellsPerColumn):
@@ -1022,6 +1033,7 @@ class HTMLayer:
                 # According to the CLA paper
                 if buPredicted is False:
                     #print "No cell in this column predicted"
+                    # No prediction so the column "bursts".
                     for i in range(self.cellsPerColumn):
                         self.activeStateAdd(c, i, timeStep)
                 if lcChosen is False:
