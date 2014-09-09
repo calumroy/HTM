@@ -86,7 +86,7 @@ class Cell:
 
 
 class Column:
-    def __init__(self, length, pos_x, pos_y, input):
+    def __init__(self, length, pos_x, pos_y):
         self.cells = [Cell() for i in range(length)]
         self.pos_x = pos_x
         self.pos_y = pos_y
@@ -196,7 +196,7 @@ class HTMLayer:
         self.activeColumns = np.array([], dtype=object)
         self.averageReceptiveFeildSizeArray = np.array([])
         # Create the array storing the columns
-        self.columns = np.array([[Column(self.cellsPerColumn, i, j, input) for
+        self.columns = np.array([[Column(self.cellsPerColumn, i, j) for
                                 i in range(columnArrayWidth)] for
                                 j in range(columnArrayHeight)], dtype=object)
         # Initialise the columns potential synapses.
