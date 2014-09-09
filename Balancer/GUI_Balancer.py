@@ -664,7 +664,7 @@ class HTMNetwork(QtGui.QWidget):
     def initUI(self):
         self.iteration = 0
         self.origIteration = 0  # Stores the iteration for the previous saved HTM
-        self.numLevels = 1  # The number of levels.
+        self.numLevels = 2  # The number of levels.
         self.numCells = 3  # The number of cells in a column.
         self.width = 8  # The width of the columns in the HTM 2D array
         self.height = 26  # The height of the columns in the HTM 2D array
