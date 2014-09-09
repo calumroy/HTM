@@ -505,6 +505,16 @@ class HTMLayer:
                 activeCellsArray.append(i)
         return activeCellsArray
 
+    def findLearnCell(self, c, timeStep):
+        # Return the cell index that was in the learn state in the column c at
+        # the timeStep provided.
+        # If no cell was in the learn state then return None
+        learnCell = None
+        for i in range(self.cellsPerColumn):
+            if self.learnState(c, i, timeStep) is True:
+                learnCell = i
+        return learnCell
+
     def randomActiveSynapses(self, c, i, s, timeStep):
         # Randomly add self.newSynapseCount-len(synapses) number of Synapses
         # that connect with cells that are active
@@ -981,7 +991,6 @@ class HTMLayer:
                 if len(prevActiveCellIndex) > 0:
                     if len(prevActiveCellIndex) == 1:
                         self.activeStateAdd(c, prevActiveCellIndex, timeStep)
-                        buPredicted = True
                         self.learnStateAdd(c, prevActiveCellIndex, timeStep)
                         lcChosen = True
                     elif len(prevActiveCellIndex) == self.cellsPerColumn:
@@ -989,6 +998,10 @@ class HTMLayer:
                         # Leave all cells in the column active.
                         for i in range(self.cellsPerColumn):
                             self.activeStateAdd(c, i, timeStep)
+                        # Leave the previous learn cell in the learn state
+                        prevLearnCellIndex = self.findLearnCell(c, self.timeStep-1)
+                        self.learnStateAdd(c, prevLearnCellIndex, timeStep)
+                        lcChosen = True
                     else:
                         print " ERROR findActiveCell returned %s cells active for column x,y = %s,%s" % (len(prevActiveCellIndex),c.pos_x, c.posy)
                 else:
