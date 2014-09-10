@@ -1,6 +1,6 @@
 from mock import MagicMock
 from mock import patch
-from HTM_Balancer import HTMLayer, Column
+from HTM_Balancer import HTMLayer, HTMRegion, Column
 import numpy as np
 
 
@@ -40,3 +40,19 @@ class test_HTMLayer:
     #    timestep = 0
     #    column = Column(3, 0, 0)
     #    self.htmlayer.getBestMatchingCell(column, timeStep)
+
+
+class test_HTMRegion:
+    def setUp(self):
+        self.width = 10
+        self.height = 10
+        self.cellsPerColumn = 3
+        self.input = np.array([[0 for i in range(self.width * self.cellsPerColumn)] for j in range(self.height)])
+        self.htmRegion = HTMRegion(self.input, self.width, self.height, self.cellsPerColumn)
+
+    def test_joinInputArrays(self):
+        input1 = np.array([[0 for i in range(self.width * self.cellsPerColumn)] for j in range(self.height)])
+        input2 = np.array([[0 for i in range(self.width)] for j in range(self.height)])
+        output = self.htmRegion.joinInputArrays(input1, input2)
+        assert len(output) == len(input1) + len(input2)
+        assert len(output[0]) == self.width * self.cellsPerColumn

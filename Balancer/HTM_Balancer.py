@@ -222,7 +222,6 @@ class HTMLayer:
             return None
 
     def activeCellGrid(self):
-        ############### TODO ############
         # Return a grid representing the cells in the columns which are active but
         # not bursting. Cells in a column are placed in adjacent grid cells right of each other.
         # Eg. A HTM layer with 10 rows, 5 columns and 3 cells per column would produce an
@@ -1199,10 +1198,47 @@ class HTMRegion:
                         # Update the potential synapses since the potential radius has changed
                         self.layerArray[i].updatePotentialSynapses(c)
 
+    def joinInputArrays(self, input1, input2):
+        # Join two input 2D arrays together vstack them.
+        # First check that both inputs have the same width.
+        output = np.array([])
+        if len(input1) > 0 and len(input2) > 0:
+            if len(input1[0]) > len(input2[0]):
+                # Since input2 is smaller we will pad the array with zeros.
+                pad = np.array([0])
+                for x in range(len(input1[0]) - len(input2[0]) - 1):
+                    pad = np.append(pad, [0])
+                pad1 = pad
+                for y in range(len(input1)-1):
+                    pad = np.vstack([pad, pad1])
+                # Now add the padding to input2
+                input2 = np.hstack([input2, pad])
+            elif len(input2[0]) > len(input1[0]):
+                # Since input1 is smaller we will pad the array with zeros.
+                pad = np.array([0])
+                for x in range(len(input2[0]) - len(input1[0]) - 1):
+                    pad = np.append(pad, [0])
+                pad1 = pad
+                for y in range(len(input2)-1):
+                    pad = np.vstack([pad, pad1])
+                # Now add the padding to input1
+                input1 = np.hstack([input1, pad])
+            # The arrays should be the same size so now we can vstack them.
+            if len(input1[0]) == len(input2[0]):
+                # The input arrays have the same width so they can directly be vstacked.
+                output = np.vstack([input1, input2])
+        return output
+
     def updateRegionInput(self, input):
         # Update the input and outputs of the layers.
         # Layer 0 receives the new input.
-        self.layerArray[0].updateInput(input)
+        # Remember the new inputs are a combination of the new input plus
+        # the output from the command layers.
+        # First get the output from the command layer
+        commandOutput = regionCommandOutput()
+        newInput = self.joinInputArrays(commandedOutput, input)
+        # Set the input for the layer to this new joint input.
+        self.layerArray[0].updateInput(newInput)
         # The middle layers receive inputs from the lower layer outputs
         for i in range(1, self.numLayers):
             self.layerArray[i].updateInput(self.layerArray[i-1].output)
@@ -1220,16 +1256,10 @@ class HTMRegion:
         return self.layerArray[highestLayer].output
 
     def regionCommandOutput(self):
-        # Return the command output from the regions command layer.
-        # The highest layer is the command layer.
-        highestLayer = self.numLayers-1
-        return self.layerArray[highestLayer].predictiveCellGrid()
-
-    def regionCommandOutput(self):
         # Return the regions command output from its command layer (the highest layer).
-        # The command output is the grid of the predictive non bursted cells.
+        # The command output is the grid of the active non bursted cells.
         highestLayer = self.numLayers-1
-        return self.layerArray[highestLayer].predictiveCellGrid()
+        return self.layerArray[highestLayer].activeCellGrid()
 
     def spatialTemporal(self):
         i = 0
@@ -1293,7 +1323,6 @@ class HTM:
         # Level 0 receives the new input. The higher levels
         # receive inputs from the lower levels outputs
         self.HTMRegionArray[0].updateRegionInput(input)
-
         for i in range(1, self.numLevels):
             lowerLevel = i-1
             lowerLevelOutput = self.HTMRegionArray[lowerLevel].regionOutput()
