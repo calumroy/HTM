@@ -665,11 +665,11 @@ class HTMNetwork(QtGui.QWidget):
         self.iteration = 0
         self.origIteration = 0  # Stores the iteration for the previous saved HTM
         self.numLevels = 2  # The number of levels.
-        self.numCells = 5  # The number of cells in a column.
+        self.numCells = 3  # The number of cells in a column.
         self.width = 8  # The width of the columns in the HTM 2D array
         self.height = 26  # The height of the columns in the HTM 2D array
-        self.inputWidth = 8
-        self.inputHeight = 26
+        self.inputWidth = 24
+        self.inputHeight = 10
 
         # Create the input class
         self.InputCreator = Inverted_Pendulum.InvertedPendulum(int(self.inputWidth), int(self.inputHeight))

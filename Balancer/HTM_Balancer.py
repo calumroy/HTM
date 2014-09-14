@@ -97,7 +97,7 @@ class Column:
         #This parameters value is automatically reset.
         self.inhibitionRadius = 3
         # The max distance that Synapses can be made at
-        self.potentialRadius = 2
+        self.potentialRadius = 3
         self.permanenceInc = 0.1
         self.permanenceDec = 0.02
         self.minDutyCycle = 0.01   # The minimum firing rate of the column
@@ -175,7 +175,7 @@ class HTMLayer:
         # the desiredLocalActivity parameter
         # are observed in the inhibition radius.
         # How many cells within the inhibition radius are active
-        self.desiredLocalActivity = 2
+        self.desiredLocalActivity = 3
         self.cellsPerColumn = cellsPerColumn
         self.connectPermanence = 0.3
         # Should be smaller than activationThreshold
@@ -1159,21 +1159,24 @@ class HTMRegion:
         # The HTMRegion is an object holding multiple HTMLayers. The region consists of
         # a simulated cortex layer 3 (input and previous command compare layer) and a
         # simulated cortex layer 6 (motor or command output layer).
-
         self.quit = False
         # The class contains multiple HTM layers stacked on one another
         self.width = columnArrayWidth
         self.height = columnArrayHeight
         self.cellsPerColumn = cellsPerColumn
-
         self.numLayers = 2  # The number of HTM layer that make up a region.
-
         self.layerArray = np.array([], dtype=object)
+
         # Set up the inputs to the HTM layers.
         # Layer 0 gets the new input.
-        # The higher layers receive the lower layers output.
-        self.layerArray = np.append(self.layerArray, HTMLayer(input, self.width,
+        # The input must make room for the command feedback
+        commandFeedback = np.array([[0 for i in range(self.width*self.cellsPerColumn)]
+                                    for j in range(self.height)])
+        newInput = self.joinInputArrays(commandFeedback, input)
+        # Set the input for the new layer to this new joint input.
+        self.layerArray = np.append(self.layerArray, HTMLayer(newInput, self.width,
                                                               self.height, self.cellsPerColumn))
+        # The higher layers receive the lower layers output.
         for i in range(1, self.numLayers):
             lowerOutput = self.layerArray[i-1].output
             self.layerArray = np.append(self.layerArray,
@@ -1181,22 +1184,22 @@ class HTMRegion:
                                                  self.width,
                                                  self.height,
                                                  self.cellsPerColumn))
-            # Set the potential radius of column in higher levels to a larger value based on the cells per column.
-            # This is done because the input to higher layers are larger then the lower layers inputs.
-            if i != 0:
-                # TODO
-                # Make this more elegant. transfer potential radius parameter to the HTM layer not column.
-                # Get the potential radius of the first column in the lowest layer
-                lowerPotentialRadius = self.layerArray[i-1].columns[0][0].potentialRadius
-                lowerCellsperColumn = self.layerArray[i-1].cellsPerColumn
+            # # Set the potential radius of column in higher levels to a larger value based on the cells per column.
+            # # This is done because the input to higher layers are larger then the lower layers inputs.
+            # if i != 0:
+            #     # TODO
+            #     # Make this more elegant. transfer potential radius parameter to the HTM layer not column.
+            #     # Get the potential radius of the first column in the lowest layer
+            #     lowerPotentialRadius = self.layerArray[i-1].columns[0][0].potentialRadius
+            #     lowerCellsperColumn = self.layerArray[i-1].cellsPerColumn
 
-                potentialRadius = lowerPotentialRadius+int(lowerCellsperColumn)
-                self.layerArray[i].desiredLocalActivity = 4
-                for k in range(len(self.layerArray[i].columns)):
-                    for c in self.layerArray[i].columns[k]:
-                        c.potentialRadius = potentialRadius
-                        # Update the potential synapses since the potential radius has changed
-                        self.layerArray[i].updatePotentialSynapses(c)
+            #     potentialRadius = lowerPotentialRadius+int(lowerCellsperColumn)
+            #     self.layerArray[i].desiredLocalActivity = 4
+            #     for k in range(len(self.layerArray[i].columns)):
+            #         for c in self.layerArray[i].columns[k]:
+            #             c.potentialRadius = potentialRadius
+            #             # Update the potential synapses since the potential radius has changed
+            #             self.layerArray[i].updatePotentialSynapses(c)
 
     def joinInputArrays(self, input1, input2):
         # Join two input 2D arrays together vstack them.
@@ -1235,8 +1238,8 @@ class HTMRegion:
         # Remember the new inputs are a combination of the new input plus
         # the output from the command layers.
         # First get the output from the command layer
-        commandOutput = regionCommandOutput()
-        newInput = self.joinInputArrays(commandedOutput, input)
+        commandOutput = self.regionCommandOutput()
+        newInput = self.joinInputArrays(commandOutput, input)
         # Set the input for the layer to this new joint input.
         self.layerArray[0].updateInput(newInput)
         # The middle layers receive inputs from the lower layer outputs
