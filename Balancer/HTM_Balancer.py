@@ -175,19 +175,19 @@ class HTMLayer:
         # the desiredLocalActivity parameter
         # are observed in the inhibition radius.
         # How many cells within the inhibition radius are active
-        self.desiredLocalActivity = 3
+        self.desiredLocalActivity = 4
         self.cellsPerColumn = cellsPerColumn
         self.connectPermanence = 0.3
         # Should be smaller than activationThreshold
         self.minThreshold = 4
         # The minimum score needed by a cell to be added
         # to the alternative sequence.
-        self.minScoreThreshold = 3
+        self.minScoreThreshold = 4
         # This limits the activeSynapse array to this length. Should be renamed
         self.newSynapseCount = 10
         # More than this many synapses on a segment must be active for
         # the segment to be active
-        self.activationThreshold = 4
+        self.activationThreshold = 5
         self.dutyCycleAverageLength = 1000
         self.timeStep = 0
         # The output is a 2D grid representing the cells states.
@@ -1169,12 +1169,8 @@ class HTMRegion:
 
         # Set up the inputs to the HTM layers.
         # Layer 0 gets the new input.
-        # The input must make room for the command feedback
-        commandFeedback = np.array([[0 for i in range(self.width*self.cellsPerColumn)]
-                                    for j in range(self.height)])
-        newInput = self.joinInputArrays(commandFeedback, input)
         # Set the input for the new layer to this new joint input.
-        self.layerArray = np.append(self.layerArray, HTMLayer(newInput, self.width,
+        self.layerArray = np.append(self.layerArray, HTMLayer(input, self.width,
                                                               self.height, self.cellsPerColumn))
         # The higher layers receive the lower layers output.
         for i in range(1, self.numLayers):
@@ -1201,47 +1197,10 @@ class HTMRegion:
             #             # Update the potential synapses since the potential radius has changed
             #             self.layerArray[i].updatePotentialSynapses(c)
 
-    def joinInputArrays(self, input1, input2):
-        # Join two input 2D arrays together vstack them.
-        # First check that both inputs have the same width.
-        output = np.array([])
-        if len(input1) > 0 and len(input2) > 0:
-            if len(input1[0]) > len(input2[0]):
-                # Since input2 is smaller we will pad the array with zeros.
-                pad = np.array([0])
-                for x in range(len(input1[0]) - len(input2[0]) - 1):
-                    pad = np.append(pad, [0])
-                pad1 = pad
-                for y in range(len(input1)-1):
-                    pad = np.vstack([pad, pad1])
-                # Now add the padding to input2
-                input2 = np.hstack([input2, pad])
-            elif len(input2[0]) > len(input1[0]):
-                # Since input1 is smaller we will pad the array with zeros.
-                pad = np.array([0])
-                for x in range(len(input2[0]) - len(input1[0]) - 1):
-                    pad = np.append(pad, [0])
-                pad1 = pad
-                for y in range(len(input2)-1):
-                    pad = np.vstack([pad, pad1])
-                # Now add the padding to input1
-                input1 = np.hstack([input1, pad])
-            # The arrays should be the same size so now we can vstack them.
-            if len(input1[0]) == len(input2[0]):
-                # The input arrays have the same width so they can directly be vstacked.
-                output = np.vstack([input1, input2])
-        return output
-
     def updateRegionInput(self, input):
         # Update the input and outputs of the layers.
         # Layer 0 receives the new input.
-        # Remember the new inputs are a combination of the new input plus
-        # the output from the command layers.
-        # First get the output from the command layer
-        commandOutput = self.regionCommandOutput()
-        newInput = self.joinInputArrays(commandOutput, input)
-        # Set the input for the layer to this new joint input.
-        self.layerArray[0].updateInput(newInput)
+        self.layerArray[0].updateInput(input)
         # The middle layers receive inputs from the lower layer outputs
         for i in range(1, self.numLayers):
             self.layerArray[i].updateInput(self.layerArray[i-1].output)
@@ -1293,18 +1252,65 @@ class HTM:
         self.cellsPerColumn = cellsPerColumn
 
         self.HTMRegionArray = np.array([], dtype=object)
-        # The lowest region
+        # The lowest region input needs to make room for the command
+        # feedback from the higher level.
+        commandFeedback = np.array([[0 for i in range(self.width*self.cellsPerColumn)]
+                                    for j in range(self.height)])
+        newInput = self.joinInputArrays(commandFeedback, input)
         self.HTMRegionArray = np.append(self.HTMRegionArray,
-                                        HTMRegion(input, self.width, self.height,
+                                        HTMRegion(newInput, self.width, self.height,
                                                   self.cellsPerColumn))
         # The higher levels get inputs from the lower levels.
+        highestLevel = self.numLevels-1
         for i in range(1, numLevels):
             lowerOutput = self.HTMRegionArray[i-1].regionOutput()
+            if i != highestLevel:
+                newInput = self.joinInputArrays(commandFeedback, lowerOutput)
+            else:
+                # The highest level doesn't have a feedback command
+                newInput = lowerOutput
             self.HTMRegionArray = np.append(self.HTMRegionArray,
-                                            HTMRegion(lowerOutput, self.width, self.height,
+                                            HTMRegion(newInput, self.width, self.height,
                                                       self.cellsPerColumn))
         # create a place to store layers so they can be reverted.
         self.HTMOriginal = copy.deepcopy(self.HTMRegionArray)
+
+    def joinInputArrays(self, input1, input2):
+        # Join two input 2D arrays together vstack them.
+        # First check that both inputs have the same width.
+        output = np.array([])
+        if len(input1) > 0 and len(input2) > 0:
+            if len(input1[0]) > len(input2[0]):
+                # Since input2 is smaller we will pad the array with zeros.
+                pad = np.array([0])
+                for x in range(len(input1[0]) - len(input2[0]) - 1):
+                    pad = np.append(pad, [0])
+                pad1 = pad
+                for y in range(len(input1)-1):
+                    pad = np.vstack([pad, pad1])
+                # Now add the padding to input2
+                input2 = np.hstack([input2, pad])
+            elif len(input2[0]) > len(input1[0]):
+                # Since input1 is smaller we will pad the array with zeros.
+                pad = np.array([0])
+                for x in range(len(input2[0]) - len(input1[0]) - 1):
+                    pad = np.append(pad, [0])
+                pad1 = pad
+                for y in range(len(input2)-1):
+                    pad = np.vstack([pad, pad1])
+                # Now add the padding to input1
+                input1 = np.hstack([input1, pad])
+            # The arrays should be the same size so now we can vstack them.
+            if len(input1[0]) == len(input2[0]):
+                # The input arrays have the same width so they can directly be vstacked.
+                output = np.vstack([input1, input2])
+        elif len(input1) == 0 and len(input2) > 0:
+            output = input2
+        elif len(input2) == 0 and len(input1) > 0:
+            output = input1
+        else:
+            output = np.array([])
+        return output
 
     def saveRegions(self):
         # Save the HTM so it can be reloaded.
@@ -1325,11 +1331,26 @@ class HTM:
         # Update the input and outputs of the levels.
         # Level 0 receives the new input. The higher levels
         # receive inputs from the lower levels outputs
-        self.HTMRegionArray[0].updateRegionInput(input)
+
+        # The input must also include the command feedback from the higher layers.
+        commFeedbackLev1 = np.array([])
+        # The lowest levels lowest layer gets this new input.
+        # All other levels and layers get inputs from lower levels and layers.
+        if self.numLevels > 1:
+            commFeedbackLev1 = self.levelCommandOutput(1)
+        newInput = self.joinInputArrays(commFeedbackLev1, input)
+        self.HTMRegionArray[0].updateRegionInput(newInput)
+        # Update each levels input. Combine the command feedback to the input.
         for i in range(1, self.numLevels):
+            commFeedbackLevN = np.array([])
             lowerLevel = i-1
+            higherLevel = i+1
             lowerLevelOutput = self.HTMRegionArray[lowerLevel].regionOutput()
-            self.HTMRegionArray[i].updateRegionInput(lowerLevelOutput)
+            if higherLevel < self.numLevels:
+                # Get the feedback command from the higher level
+                commFeedbackLevN = self.levelCommandOutput(higherLevel)
+            newInput = self.joinInputArrays(commFeedbackLevN, lowerLevelOutput)
+            self.HTMRegionArray[i].updateRegionInput(newInput)
 
     def levelCommandOutput(self, level):
         # Return the command output of the desired level.
