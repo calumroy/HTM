@@ -491,6 +491,33 @@ class HTMGridViewer(QtGui.QGraphicsView):
             self.cellItems[i].setBrush(brush)
             self.cellItems[i].setPen(pen)
 
+    def drawColumnInhib(self, pos_x, pos_y):
+        # Draw the columns that are inhibited by the selected column at position x,y
+        column = self.htm.HTMRegionArray[self.level].layerArray[self.layer].columns[pos_y][pos_x]
+        htmlayer = self.htm.HTMRegionArray[self.level].layerArray[self.layer]
+        print " layers averageReceptiveFeildSize = %s" % (htmlayer.averageReceptiveFeildSize())
+        red = QtGui.QColor(0xFF, 0, 0, 0xFF)
+        transpBlue = QtGui.QColor(0, 0, 0xFF, 0x30)
+        green = QtGui.QColor(0, 0xFF, 0, 0xFF)
+        darkGreen = QtGui.QColor(0, 0x80, 0x40, 0xFF)
+
+        neighbourColumns = htmlayer.neighbours(column)
+        for colItem in self.columnItems:
+            colItem_pos_x = colItem.pos_x
+            colItem_pos_y = colItem.pos_y
+            for col in neighbourColumns:
+
+                if col.pos_x == colItem_pos_x and col.pos_y == colItem_pos_y:
+                    value = htmlayer.columnActiveState(col, htmlayer.timeStep)
+                    color = QtGui.QColor(0xFF, 0, 0, 0xFF)
+                    brush = QtGui.QBrush(QtCore.Qt.red)
+                    if (value is False):
+                        color = transpBlue
+                    elif (value is True):
+                        color = darkGreen
+                    brush.setColor(color)
+                    colItem.setBrush(brush)
+
     def updateHTMGrid(self):
         layer = self.htm.HTMRegionArray[self.level].layerArray[self.layer]
         for i in range(len(self.columnItems)):
@@ -572,6 +599,8 @@ class HTMGridViewer(QtGui.QGraphicsView):
             if item.__class__.__name__ == "HTMColumn":
                 print"column"
                 print "pos_x, pos_y = %s, %s" % (item.pos_x, item.pos_y)
+                self.updateHTMGrid()
+                self.drawColumnInhib(item.pos_x, item.pos_y)
                 # Create and emit a signal to tell the HTMInput viewer to draw the
                 # input grid squares which are connected by the selected columns connected synapses.
                 self.selectedColumn.emit(item.pos_x, item.pos_y)

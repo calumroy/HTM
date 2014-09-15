@@ -95,9 +95,9 @@ class Column:
         self.boost = 1
         # The max distance a column can inhibit another column.
         #This parameters value is automatically reset.
-        self.inhibitionRadius = 3
+        self.inhibitionRadius = 1
         # The max distance that Synapses can be made at
-        self.potentialRadius = 3
+        self.potentialRadius = 2
         self.permanenceInc = 0.1
         self.permanenceDec = 0.02
         self.minDutyCycle = 0.01   # The minimum firing rate of the column
@@ -175,7 +175,7 @@ class HTMLayer:
         # the desiredLocalActivity parameter
         # are observed in the inhibition radius.
         # How many cells within the inhibition radius are active
-        self.desiredLocalActivity = 4
+        self.desiredLocalActivity = 6
         self.cellsPerColumn = cellsPerColumn
         self.connectPermanence = 0.3
         # Should be smaller than activationThreshold
@@ -471,7 +471,7 @@ class HTMLayer:
 
     def activeState(self, c, i, timeStep):
         # Search the history of the activeStateArray to find if the
-        # cell was predicting at time timeStep
+        # cell was active at time timeStep
         for j in range(len(c.activeStateArray[i])):
             if c.activeStateArray[i, j] == timeStep:
                 return True
@@ -479,7 +479,7 @@ class HTMLayer:
 
     def predictiveState(self, c, i, timeStep):
         # Search the history of the predictiveStateArray to find if the
-        # cell was active at time timeStep
+        # cell was predicting at time timeStep
         for j in range(len(c.predictiveStateArray[i])):
             if c.predictiveStateArray[i, j] == timeStep:
                 return True
