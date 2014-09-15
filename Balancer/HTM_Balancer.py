@@ -1180,22 +1180,22 @@ class HTMRegion:
                                                  self.width,
                                                  self.height,
                                                  self.cellsPerColumn))
-            # # Set the potential radius of column in higher levels to a larger value based on the cells per column.
-            # # This is done because the input to higher layers are larger then the lower layers inputs.
-            # if i != 0:
-            #     # TODO
-            #     # Make this more elegant. transfer potential radius parameter to the HTM layer not column.
-            #     # Get the potential radius of the first column in the lowest layer
-            #     lowerPotentialRadius = self.layerArray[i-1].columns[0][0].potentialRadius
-            #     lowerCellsperColumn = self.layerArray[i-1].cellsPerColumn
+            # Set the potential radius of column in higher levels to a larger value based on the cells per column.
+            # This is done because the input to higher layers are larger then the lower layers inputs.
+            if i != 0:
+                # TODO
+                # Make this more elegant. transfer potential radius parameter to the HTM layer not column.
+                # Get the potential radius of the first column in the lowest layer
+                lowerPotentialRadius = self.layerArray[i-1].columns[0][0].potentialRadius
+                lowerCellsperColumn = self.layerArray[i-1].cellsPerColumn
 
-            #     potentialRadius = lowerPotentialRadius+int(lowerCellsperColumn)
-            #     self.layerArray[i].desiredLocalActivity = 4
-            #     for k in range(len(self.layerArray[i].columns)):
-            #         for c in self.layerArray[i].columns[k]:
-            #             c.potentialRadius = potentialRadius
-            #             # Update the potential synapses since the potential radius has changed
-            #             self.layerArray[i].updatePotentialSynapses(c)
+                potentialRadius = lowerPotentialRadius+int(lowerCellsperColumn)
+                #self.layerArray[i].desiredLocalActivity = 4
+                for k in range(len(self.layerArray[i].columns)):
+                    for c in self.layerArray[i].columns[k]:
+                        c.potentialRadius = potentialRadius
+                        # Update the potential synapses since the potential radius has changed
+                        self.layerArray[i].updatePotentialSynapses(c)
 
     def updateRegionInput(self, input):
         # Update the input and outputs of the layers.
