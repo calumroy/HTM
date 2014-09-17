@@ -3,8 +3,10 @@
 # Author: Calum Meiklejohn
 # Development phase: alpha
 
-import cProfile
+# Import the thalamus class
+from Thalamus import Thalamus
 
+import cProfile
 import numpy as np
 import random
 import math
@@ -1169,7 +1171,6 @@ class HTMRegion:
 
         # Set up the inputs to the HTM layers.
         # Layer 0 gets the new input.
-        # Set the input for the new layer to this new joint input.
         self.layerArray = np.append(self.layerArray, HTMLayer(input, self.width,
                                                               self.height, self.cellsPerColumn))
         # The higher layers receive the lower layers output.
@@ -1245,6 +1246,11 @@ class HTM:
     def __init__(self, numLevels, input, columnArrayWidth,
                  columnArrayHeight, cellsPerColumn):
         self.quit = False
+        # Create a thalamus class. Used to direct the HTM network.
+        self.thalamus = Thalamus(columnArrayWidth,
+                                 columnArrayHeight,
+                                 cellsPerColumn)
+
         # The class contains multiple HTM levels stacked on one another
         self.numLevels = numLevels   # The number of levels in the HTM network
         self.width = columnArrayWidth
@@ -1261,17 +1267,14 @@ class HTM:
                                         HTMRegion(newInput, self.width, self.height,
                                                   self.cellsPerColumn))
         # The higher levels get inputs from the lower levels.
-        highestLevel = self.numLevels-1
+        #highestLevel = self.numLevels-1
         for i in range(1, numLevels):
             lowerOutput = self.HTMRegionArray[i-1].regionOutput()
-            if i != highestLevel:
-                newInput = self.joinInputArrays(commandFeedback, lowerOutput)
-            else:
-                # The highest level doesn't have a feedback command
-                newInput = lowerOutput
+            newInput = self.joinInputArrays(commandFeedback, lowerOutput)
             self.HTMRegionArray = np.append(self.HTMRegionArray,
                                             HTMRegion(newInput, self.width, self.height,
                                                       self.cellsPerColumn))
+
         # create a place to store layers so they can be reverted.
         self.HTMOriginal = copy.deepcopy(self.HTMRegionArray)
 
@@ -1349,6 +1352,10 @@ class HTM:
             if higherLevel < self.numLevels:
                 # Get the feedback command from the higher level
                 commFeedbackLevN = self.levelCommandOutput(higherLevel)
+            else:
+                # This is the highest level so get the
+                # feedback command from the thalamus.
+                commFeedbackLevN = self.thalamus.returnMemory()
             newInput = self.joinInputArrays(commFeedbackLevN, lowerLevelOutput)
             self.HTMRegionArray[i].updateRegionInput(newInput)
 

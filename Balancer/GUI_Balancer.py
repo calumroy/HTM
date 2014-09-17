@@ -993,15 +993,15 @@ class HTMNetwork(QtGui.QWidget):
         # Just use a simple changing acc for now
         # Get the command output in the form of an SDR.
         # For now just use the output from the lowest level.
-        #commandGrid = self.htm.levelCommandOutput(0)
+        commandGrid = self.htm.levelCommandOutput(0)
         # Use the output from the motor layer to create an acceleration input to the simulation.
-        #acceleration = self.InputCreator.convertSDRtoAcc(commandGrid)
+        acceleration = self.InputCreator.convertSDRtoAcc(commandGrid)
 
         # Just use a simple changing acc for now
-        if self.iteration % 10 < 5:
-            acceleration = -1
-        elif self.iteration % 10 >= 5:
-            acceleration = 1
+        #if self.iteration % 10 < 5:
+        #    acceleration = -1
+        #elif self.iteration % 10 >= 5:
+        #    acceleration = 1
 
         # Run the acceleration through the simulator to get the new input
         self.InputCreator.step(acceleration)
