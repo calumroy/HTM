@@ -11,6 +11,7 @@ ouptus such that desired input states are reached.
 
 """
 import numpy as np
+import random
 
 
 class Thalamus:
@@ -25,4 +26,13 @@ class Thalamus:
                                 for j in range(self.height)])
 
     def returnMemory(self):
+        memWidth = self.width*self.cellsPerColumn
+        memHeight = self.height
+        memPos = random.randint(0, memWidth)
+        overlap = 1
+        for row in range(memHeight):
+            for col in range(memWidth):
+                self.memory[row][col] = 0
+                if col >= (round(memPos-overlap)) and col <= (round(memPos+overlap)):
+                    self.memory[row][col] = 1
         return self.memory

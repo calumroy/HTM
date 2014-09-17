@@ -1361,7 +1361,8 @@ class HTM:
 
     def levelCommandOutput(self, level):
         # Return the command output of the desired level.
-        return self.HTMRegionArray[level].regionCommandOutput()
+        #return self.HTMRegionArray[level].regionCommandOutput()
+        return self.HTMRegionArray[level].regionOutput()
 
     #@do_cprofile  # For profiling
     def spatialTemporal(self, input):
