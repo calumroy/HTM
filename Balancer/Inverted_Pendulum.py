@@ -49,7 +49,7 @@ def medianAcc(accGrid, minAcc, maxAcc):
 class InvertedPendulum():
     def __init__(self, gridWidth, gridHeight):
         self.length = 1.0
-        self.weigth = 1.0
+        self.weight = 1.0
         self.cartAcc = 1.0   # The carts acceleration in the horizontal direction m/s.
         self.x = 0.0
         self.y = self.length
@@ -61,8 +61,8 @@ class InvertedPendulum():
         self.angleOverlap = 1
         self.minAngle = 0
         self.maxAngle = gridWidth
-        self.minAcc = -1
-        self.maxAcc = 1
+        self.minAcc = -2
+        self.maxAcc = 2
 
     def step(self, acc):
         # Calculate the new position of the pendulum after applying the specified acceleration.

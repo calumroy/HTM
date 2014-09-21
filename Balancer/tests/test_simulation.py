@@ -41,5 +41,17 @@ class test_InvertedPendulum:
         #import ipdb; ipdb.set_trace()
         assert self.invertedPendulum.convertSDRtoAcc(self.input) == round((minAcc+maxAcc)/2)
 
-
+    def test_convertSDRtoAcc_min2(self):
+        width = 30
+        height = 20
+        invertedPendulum = InvertedPendulum(width, height)
+        input = np.array([[0 for i in range(width)] for j in range(height)])
+        invertedPendulum.minAcc = -1
+        invertedPendulum.maxAcc = 1
+        #import ipdb; ipdb.set_trace()
+        for y in range(len(input)):
+            for x in range(len(input[0])):
+                if (x >= 0 and x < 15):
+                    input[y][x] = 1
+        assert invertedPendulum.convertSDRtoAcc(input) == -1
 

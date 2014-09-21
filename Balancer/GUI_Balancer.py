@@ -19,6 +19,7 @@ import sys
 from PyQt4 import QtGui, QtCore
 #from PyQt4.QtCore import QObject
 import HTM_Balancer as HTM_V
+import Thalamus
 import math
 import copy
 
@@ -706,6 +707,9 @@ class HTMNetwork(QtGui.QWidget):
         # Create HTM network with an initialized input
         self.htm = HTM_V.HTM(self.numLevels, self.InputCreator.createInput(), self.width, self.height, self.numCells)
 
+        # Create a thalamus class
+        self.thalamus = Thalamus.Thalamus(self.width, self.height, self.numCells)
+
         # Create the HTM grid veiwer widget.
         self.HTMNetworkGrid = HTMGridViewer(self.htm)
 
@@ -992,10 +996,14 @@ class HTMNetwork(QtGui.QWidget):
         #self.InputCreator.step(random.randint(-1, 1))
         # Just use a simple changing acc for now
         # Get the command output in the form of an SDR.
-        # For now just use the output from the lowest level.
-        commandGrid = self.htm.levelCommandOutput(0)
+        commandGrid = self.htm.levelCommandOutput(1)
         # Use the output from the motor layer to create an acceleration input to the simulation.
         acceleration = self.InputCreator.convertSDRtoAcc(commandGrid)
+
+        # If the angle output has not been 0 for the last 10 timesteps
+        # then change the thalamus input command.
+        #if angleIsZero
+        self.thalamus.changeMemPos(random.randint(0, self.InputCreator.gridWidth))
 
         # Just use a simple changing acc for now
         #if self.iteration % 10 < 5:

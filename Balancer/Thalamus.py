@@ -22,17 +22,21 @@ class Thalamus:
         self.width = columnArrayWidth
         self.height = columnArrayHeight
         self.cellsPerColumn = cellsPerColumn
+        # The thalamus command position.
+        self.memPos = 0
         self.memory = np.array([[0 for i in range(self.width*self.cellsPerColumn)]
                                 for j in range(self.height)])
 
     def returnMemory(self):
         memWidth = self.width*self.cellsPerColumn
         memHeight = self.height
-        memPos = random.randint(0, memWidth)
-        overlap = 1
+        overlap = 2
         for row in range(memHeight):
             for col in range(memWidth):
                 self.memory[row][col] = 0
-                if col >= (round(memPos-overlap)) and col <= (round(memPos+overlap)):
+                if col >= (round(self.memPos-overlap)) and col <= (round(self.memPos+overlap)):
                     self.memory[row][col] = 1
         return self.memory
+
+    def changeMemPos(self, newMemPos):
+        self.memPos = newMemPos

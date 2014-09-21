@@ -3,9 +3,6 @@
 # Author: Calum Meiklejohn
 # Development phase: alpha
 
-# Import the thalamus class
-from Thalamus import Thalamus
-
 import cProfile
 import numpy as np
 import random
@@ -1166,7 +1163,7 @@ class HTMRegion:
         self.width = columnArrayWidth
         self.height = columnArrayHeight
         self.cellsPerColumn = cellsPerColumn
-        self.numLayers = 2  # The number of HTM layer that make up a region.
+        self.numLayers = 1  # The number of HTM layer that make up a region.
         self.layerArray = np.array([], dtype=object)
 
         # Set up the inputs to the HTM layers.
@@ -1246,10 +1243,10 @@ class HTM:
     def __init__(self, numLevels, input, columnArrayWidth,
                  columnArrayHeight, cellsPerColumn):
         self.quit = False
-        # Create a thalamus class. Used to direct the HTM network.
-        self.thalamus = Thalamus(columnArrayWidth,
-                                 columnArrayHeight,
-                                 cellsPerColumn)
+        # Create a thalamus command input to store thalamus commands.
+        # Used to direct the HTM network.
+        self.thalamusCommand = np.array([[0 for i in range(columnArrayWidth*cellsPerColumn)]
+                                for j in range(columnArrayHeight)])
 
         # The class contains multiple HTM levels stacked on one another
         self.numLevels = numLevels   # The number of levels in the HTM network
@@ -1355,14 +1352,14 @@ class HTM:
             else:
                 # This is the highest level so get the
                 # feedback command from the thalamus.
-                commFeedbackLevN = self.thalamus.returnMemory()
+                commFeedbackLevN = self.thalamusCommand
             newInput = self.joinInputArrays(commFeedbackLevN, lowerLevelOutput)
             self.HTMRegionArray[i].updateRegionInput(newInput)
 
     def levelCommandOutput(self, level):
         # Return the command output of the desired level.
-        #return self.HTMRegionArray[level].regionCommandOutput()
-        return self.HTMRegionArray[level].regionOutput()
+        return self.HTMRegionArray[level].regionCommandOutput()
+        #return self.HTMRegionArray[level].regionOutput()
 
     #@do_cprofile  # For profiling
     def spatialTemporal(self, input):
