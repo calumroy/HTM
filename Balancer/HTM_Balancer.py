@@ -1275,6 +1275,10 @@ class HTM:
         # create a place to store layers so they can be reverted.
         self.HTMOriginal = copy.deepcopy(self.HTMRegionArray)
 
+    def updateThalamusComm(self, newCommand):
+        # Update the thalamus command with the new one.
+        self.thalamusCommand = newCommand
+
     def joinInputArrays(self, input1, input2):
         # Join two input 2D arrays together vstack them.
         # First check that both inputs have the same width.

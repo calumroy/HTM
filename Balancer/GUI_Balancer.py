@@ -708,7 +708,8 @@ class HTMNetwork(QtGui.QWidget):
         self.htm = HTM_V.HTM(self.numLevels, self.InputCreator.createInput(), self.width, self.height, self.numCells)
 
         # Create a thalamus class
-        self.thalamus = Thalamus.Thalamus(self.width, self.height, self.numCells)
+        # He width of the the thalamus should match the width of the input grid.
+        self.thalamus = Thalamus.Thalamus(self.width*self.numCells, self.height)
 
         # Create the HTM grid veiwer widget.
         self.HTMNetworkGrid = HTMGridViewer(self.htm)
@@ -992,27 +993,21 @@ class HTMNetwork(QtGui.QWidget):
         # PART 1 MAKE NEW INPUT FOR LEVEL 0
         ############################################
         print "PART 1"
-        # Update the input class
-        #self.InputCreator.step(random.randint(-1, 1))
-        # Just use a simple changing acc for now
         # Get the command output in the form of an SDR.
         commandGrid = self.htm.levelCommandOutput(1)
         # Use the output from the motor layer to create an acceleration input to the simulation.
         acceleration = self.InputCreator.convertSDRtoAcc(commandGrid)
 
-        # If the angle output has not been 0 for the last 10 timesteps
-        # then change the thalamus input command.
-        #if angleIsZero
-        self.thalamus.changeMemPos(random.randint(0, self.InputCreator.gridWidth))
-
-        # Just use a simple changing acc for now
-        #if self.iteration % 10 < 5:
-        #    acceleration = -1
-        #elif self.iteration % 10 >= 5:
-        #    acceleration = 1
-
         # Run the acceleration through the simulator to get the new input
         self.InputCreator.step(acceleration)
+
+        # Add the new simulation state variables (angle) to the thalamus.
+        # The thalamus also updates it's command in this function.
+        self.thalamus.addToHistory(self.InputCreator.angle)
+        thalamusCommand = self.thalamus.returnMemory()
+
+        # Update the htm with the thalamus command
+        self.htm.updateThalamusComm(thalamusCommand)
 
         # PART 2 RUN THE NEW INPUT THROUGHT THE HTM
         #####################################################################
