@@ -114,6 +114,45 @@ class popup(QtGui.QWidget):
         dc = QtGui.QPainter(self)
 
 
+class HTMInfo(QtGui.QGraphicsItem):
+    # A class used to show which level and layer of the HTM network is displayed.
+    def __init__(self, x, y, squareSize, pen, brush):
+        super(HTMInfo, self).__init__()
+        self.initUI(x, y, squareSize, pen, brush)
+
+    def initUI(self, x, y, squareSize, pen, brush):
+        self.info = "Hello"
+        self.setPos(x, y)
+        self.width = squareSize
+        self.height = squareSize
+        #self.setScale(squareSize)
+        #self.setPen(pen)
+        #self.setBrush(brush)
+        #self.setRect(0, 0, squareSize, squareSize)
+        #self.setFlag(QtGui.QGraphicsItem.ItemIsMovable)
+
+    def updateInfo(self, info):
+        self.info = info
+        self.update()
+
+    def paint(self, painter, option, widget):
+        #qp = QtGui.QPainter()
+        #qp.drawText(event, qp)
+        painter.drawRect(0, 0, self.width, self.height)
+        painter.drawText(0, 0, self.width, self.height, QtCore.Qt.TextWordWrap, self.info)
+
+    def boundingRect(self):
+        #return QtCore.QRectF(self.x(), self.y(), self.width, self.height)
+        penWidth = 1
+        return QtCore.QRectF(-penWidth, - penWidth,
+                             self.width + penWidth, self.height + penWidth)
+
+    def drawText(self, event, qp):
+        qp.setPen(QtGui.QColor(255, 34, 3))
+        qp.setFont(QtGui.QFont(self.info, 10))
+        qp.drawText(event.rect(), QtCore.Qt.AlignCenter, self.text)
+
+
 class HTMColumn(QtGui.QGraphicsRectItem):
     # A class used to display the column of a HTM network
     def __init__(self, HTM_x, HTM_y, squareSize, pen, brush):
@@ -229,8 +268,8 @@ class HTMInput(QtGui.QGraphicsView):
             brush.setColor(color)
             col.setBrush(brush)
 
-
     def scaleScene(self, scaleSize):
+        self.scaleSize = self.scaleSize*scaleSize
         self.scale(scaleSize, scaleSize)
 
     def drawGrid(self, size):
@@ -276,9 +315,6 @@ class HTMInput(QtGui.QGraphicsView):
             if value == 1:
                     brush.setColor(QtCore.Qt.green)
                     self.columnItems[i].setBrush(brush)
-
-    def scaleScene(self, scaleSize):
-        self.scale(scaleSize, scaleSize)
 
     def mousePressEvent(self, event):
         if event.buttons() == QtCore.Qt.LeftButton:
@@ -327,7 +363,7 @@ class HTMInput(QtGui.QGraphicsView):
         factor = 1.2
         if event.delta() < 0:
             factor = 1.0 / factor
-        self.scale(factor, factor)
+        self.scaleScene(factor)
 
 
 class HTMGridViewer(QtGui.QGraphicsView):
@@ -353,6 +389,8 @@ class HTMGridViewer(QtGui.QGraphicsView):
         # Keep track of the right mouse button to move the view
         self.setDragMode(QtGui.QGraphicsView.RubberBandDrag)
         self._mousePressed = False
+        self.dragView = False
+        self.dragInfo = False
         self._dragPos = None
 
         # Store the htm so it can be referenced in other functions.
@@ -366,8 +404,10 @@ class HTMGridViewer(QtGui.QGraphicsView):
         self.scaleGridSize()
         self.cellItems = []   # Stores all the cell items in the scene
         self.columnItems = []  # Stores all the column items in the scene
+        self.infoItem = None    # Stores the info item in the scene
 
         self.drawGrid(self.size)
+        self.drawInfo()
         self.show()
 
     def selectedSegmentIndex(self, index):
@@ -378,6 +418,20 @@ class HTMGridViewer(QtGui.QGraphicsView):
         # Scale the size of the grid so the cells can be shown if there are too many cells
         while (int(math.ceil(self.numCells ** 0.5)) > self.size/2):
             self.size = self.size*2
+
+    def drawInfo(self):
+        # Create an info item which doisoplayes info about the HTM network
+        transpRed = QtGui.QColor(0x00, 0, 0xFF, 0xA0)
+        pen = QtGui.QPen(QtGui.QColor(transpRed))
+        brush = QtGui.QBrush(pen.color().darker(150))
+        self.infoItem = HTMInfo(-100, 0, 3*self.size, pen, brush)
+        self.updateInfo()
+        #self.infoItem.setFlag(QtGui.QGraphicsItem.ItemIsMovable)
+        self.scene.addItem(self.infoItem)
+
+    def updateInfo(self):
+        if self.infoItem is not None:
+            self.infoItem.updateInfo("layer = %s level = %s" % (self.layer, self.level))
 
     def drawGrid(self, size):
         # Used to initialise the graphics scene with columns and cells
@@ -411,6 +465,9 @@ class HTMGridViewer(QtGui.QGraphicsView):
                     self.columnItems.append(columnItem)
                     self.scene.addItem(columnItem)
                     self.drawCells(self.numCells, x, y, size)
+        # Update the info
+        self.updateInfo()
+
 
     def drawCells(self, numCells, pos_x, pos_y, size):
         # Used to initialise the graphics scene with cells
@@ -574,15 +631,29 @@ class HTMGridViewer(QtGui.QGraphicsView):
             self.cellItems[i].setPen(pen)
 
     def scaleScene(self, scaleSize):
+        self.scaleSize = self.scaleSize*scaleSize
+        #print "ScaleSize = %s" % self.scaleSize
         self.scale(scaleSize, scaleSize)
 
     def mousePressEvent(self, event):
+
         if event.buttons() == QtCore.Qt.LeftButton:
-            self._mousePressed = True
-            self.setCursor(QtCore.Qt.ClosedHandCursor)
-            self._dragPos = event.pos()
-            event.accept()
             item = self.itemAt(event.x(), event.y())
+            self._mousePressed = True
+
+            # If the info item was not clicked then let the user scroll around with the mouse
+            if item.__class__.__name__ != "HTMInfo":
+                self.dragView = True
+                self.setCursor(QtCore.Qt.ClosedHandCursor)
+                self._dragPos = event.pos()
+                event.accept()
+
+            # The info item can be dragged to be repositioned in the screen
+            if item.__class__.__name__ == "HTMInfo":
+                self.dragInfo = True
+                self._dragPos = event.pos()
+                event.accept()
+
             if item.__class__.__name__ == "HTMCell":
                 print "cell"
                 print "pos_x,pos_y,cell = %s,%s,%s" % (item.pos_x, item.pos_y, item.cell)
@@ -605,6 +676,7 @@ class HTMGridViewer(QtGui.QGraphicsView):
                 # Create and emit a signal to tell the HTMInput viewer to draw the
                 # input grid squares which are connected by the selected columns connected synapses.
                 self.selectedColumn.emit(item.pos_x, item.pos_y)
+
         if event.buttons() == QtCore.Qt.RightButton:
             # Toggle the view from predicted, learn and active cells.
             if self.showActiveCells is True:
@@ -624,13 +696,21 @@ class HTMGridViewer(QtGui.QGraphicsView):
             self.updateHTMGrid()
 
     def mouseMoveEvent(self, event):
-        if self._mousePressed:
+        if self.dragView is True:
             newPos = event.pos()
             diff = newPos - self._dragPos
             self._dragPos = newPos
             self.horizontalScrollBar().setValue(self.horizontalScrollBar().value() - diff.x())
             self.verticalScrollBar().setValue(self.verticalScrollBar().value() - diff.y())
             event.accept()
+        elif self.dragInfo is True:
+            # Enable Dragging of the info widget around the screen
+            newPos = event.pos()
+            # When the view is zoomed in you need to scale how much the info item
+            # moves so it keeps pace with the mouse pointer
+            diff = (1/float(self.scaleSize)) * (newPos - self._dragPos)
+            self._dragPos = newPos
+            self.infoItem.setPos(self.infoItem.pos() + diff)
         else:
             super(HTMGridViewer, self).mouseMoveEvent(event)
 
@@ -640,7 +720,9 @@ class HTMGridViewer(QtGui.QGraphicsView):
                 self.setCursor(QtCore.Qt.OpenHandCursor)
             else:
                 self.setCursor(QtCore.Qt.ArrowCursor)
-            #self._mousePressed = False
+            self.dragView = False
+            self._mousePressed = False
+            self.dragInfo = False
         #if event.button() == QtCore.Qt.RightButton:
         #        super(HTMGridViewer, self).mouseReleaseEvent(event)
         super(HTMGridViewer, self).mouseReleaseEvent(event)
@@ -649,39 +731,23 @@ class HTMGridViewer(QtGui.QGraphicsView):
         pass
 
     def keyPressEvent(self, event):
-        if event.key() == QtCore.Qt.Key_Control and not self._mousePressed:
+        if event.key() == QtCore.Qt.Key_Control and not self.dragView:
             self.setCursor(QtCore.Qt.OpenHandCursor)
         else:
             super(HTMGridViewer, self).keyPressEvent(event)
 
     def keyReleaseEvent(self, event):
         if event.key() == QtCore.Qt.Key_Control:
-            if not self._mousePressed:
+            if not self.dragView:
                 self.setCursor(QtCore.Qt.ArrowCursor)
         else:
             super(HTMGridViewer, self).keyPressEvent(event)
-        # Toggle through the differnt regions (layers) in the HTM
-        if event.key() == QtCore.Qt.Key_R:
-            self.layer += 1
-            if self.layer >= self.htm.HTMRegionArray[self.level].numLayers:
-                self.layer = 0
-            print "Layer %s" % self.layer
-            self.drawGrid(self.size)
-            self.updateHTMGrid()
-        # Toggle through the differnt levels in the HTM
-        if event.key() == QtCore.Qt.Key_L:
-            self.level += 1
-            if self.level >= self.htm.numLevels:
-                self.level = 0
-            print "Level %s" % self.level
-            self.drawGrid(self.size)
-            self.updateHTMGrid()
 
     def wheelEvent(self, event):
         factor = 1.2
         if event.delta() < 0:
             factor = 1.0 / factor
-        self.scale(factor, factor)
+        self.scaleScene(factor)
 
 
 class HTMNetwork(QtGui.QWidget):
@@ -826,7 +892,7 @@ class HTMNetwork(QtGui.QWidget):
         # Create and connect a Slot to the signal from the check box
         self.layerList.levelSelectedSignal.connect(self.setLayer)
         # Add the dropdown menu to the screens top frame
-        self.grid.addWidget(self.btn15, 1, 2, 1, 1)
+        self.grid.addWidget(self.btn15, 1, 2, 1, 2)
 
     def showAllHTM(self):
         # Draw the entire HTM netwrok. This is used if previously just a
@@ -887,6 +953,21 @@ class HTMNetwork(QtGui.QWidget):
         # Spacebar is perform next step
         if event.key() == QtCore.Qt.Key_Space:
             self.step(True)
+        # Toggle through the differnt regions (layers) in the HTM
+        if event.key() == QtCore.Qt.Key_R:
+            layer = self.HTMNetworkGrid.layer + 1
+            if layer >= self.htm.HTMRegionArray[self.HTMNetworkGrid.level].numLayers:
+                layer = 0
+            #print "Layer %s" % layer
+            #Update the HTM veiwer
+            self.setLayer(layer)
+        # Toggle through the differnt levels in the HTM
+        if event.key() == QtCore.Qt.Key_L:
+            level = self.HTMNetworkGrid.level + 1
+            if level >= self.htm.numLevels:
+                level = 0
+            #print "Level %s" % level
+            self.setLevel(level)
 
     def HTMzoomIn(self):
         #self.HTMNetworkGrid.scale = self.HTMNetworkGrid.scale*1.2

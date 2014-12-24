@@ -1163,7 +1163,7 @@ class HTMRegion:
         self.width = columnArrayWidth
         self.height = columnArrayHeight
         self.cellsPerColumn = cellsPerColumn
-        self.numLayers = 1  # The number of HTM layer that make up a region.
+        self.numLayers = 2  # The number of HTM layer that make up a region.
         self.layerArray = np.array([], dtype=object)
 
         # Set up the inputs to the HTM layers.
@@ -1217,9 +1217,9 @@ class HTMRegion:
 
     def regionCommandOutput(self):
         # Return the regions command output from its command layer (the highest layer).
-        # The command output is the grid of the active non bursted cells.
         highestLayer = self.numLayers-1
-        return self.layerArray[highestLayer].activeCellGrid()
+        #return self.layerArray[highestLayer].activeCellGrid()
+        return self.layerArray[highestLayer].output
 
     def spatialTemporal(self):
         i = 0
@@ -1248,7 +1248,7 @@ class HTM:
         self.thalamusCommand = np.array([[0 for i in range(columnArrayWidth*cellsPerColumn)]
                                 for j in range(columnArrayHeight)])
 
-        # The class contains multiple HTM levels stacked on one another
+        # This class contains multiple HTM levels stacked on one another
         self.numLevels = numLevels   # The number of levels in the HTM network
         self.width = columnArrayWidth
         self.height = columnArrayHeight
@@ -1338,18 +1338,26 @@ class HTM:
 
         # The input must also include the command feedback from the higher layers.
         commFeedbackLev1 = np.array([])
+
+        ### LEVEL 0 Update
+        ##########################################################################
         # The lowest levels lowest layer gets this new input.
         # All other levels and layers get inputs from lower levels and layers.
         if self.numLevels > 1:
             commFeedbackLev1 = self.levelCommandOutput(1)
         newInput = self.joinInputArrays(commFeedbackLev1, input)
         self.HTMRegionArray[0].updateRegionInput(newInput)
+
+        ### HIGHER LEVELS UPDATE
+        ##########################################################################
         # Update each levels input. Combine the command feedback to the input.
         for i in range(1, self.numLevels):
             commFeedbackLevN = np.array([])
             lowerLevel = i-1
             higherLevel = i+1
+            # Set the output of the lower level
             lowerLevelOutput = self.HTMRegionArray[lowerLevel].regionOutput()
+            # Check to make sure this isn't the highest level
             if higherLevel < self.numLevels:
                 # Get the feedback command from the higher level
                 commFeedbackLevN = self.levelCommandOutput(higherLevel)
@@ -1357,6 +1365,8 @@ class HTM:
                 # This is the highest level so get the
                 # feedback command from the thalamus.
                 commFeedbackLevN = self.thalamusCommand
+
+            # Update the newInput for the current level in the HTM
             newInput = self.joinInputArrays(commFeedbackLevN, lowerLevelOutput)
             self.HTMRegionArray[i].updateRegionInput(newInput)
 
