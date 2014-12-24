@@ -788,6 +788,7 @@ class HTMNetwork(QtGui.QWidget):
 
         self.scaleFactor = 0.2    # How much to scale the grids by
         self.grid = None    # This is the layout holding the frames.
+        self.frameSplitter = None # This allows widgets to be resized by dragging the mouse
         self.frame1 = None
         self.frame2 = None
         self.frame3 = None
@@ -996,16 +997,22 @@ class HTMNetwork(QtGui.QWidget):
         #self.frame3.setLineWidth(3)
         #self.frame3.setFrameStyle(QtGui.QFrame.Box|QtGui.QFrame.Sunken)
         self.grid = QtGui.QGridLayout()
+        self.frameSplitter = QtGui.QSplitter(self)
         self.grid.setSpacing(1)
         # addWidget(QWidget, row, column, rowSpan, columnSpan)
         #self.grid.addWidget(self.HTMNetworkGrid,3,5,10,4)
-        self.grid.addWidget(self.inputGrid, 3, 1, 2, 8)
-        self.grid.addWidget(self.HTMNetworkGrid, 6, 1, 10, 8)
+        #self.grid.addWidget(self.inputGrid, 3, 1, 2, 8)
+        #self.grid.addWidget(self.HTMNetworkGrid, 6, 1, 10, 8)
         # Set the minimum size for the HTM veiwer (row , minsize in pixels)
         self.grid.setRowMinimumHeight(6, self.height*20)
+        # addWidget(QWidget, row, column, rowSpan, columnSpan)
         #self.grid.addWidget(self.frame1, 1, 1, 2, 8)
         #self.grid.addWidget(self.frame2, 3, 1, 10, 4)
-        #self.grid.addWidget(self.frame3, 3, 5, 10, 4)
+        self.grid.addWidget(self.frameSplitter, 3, 1, 4, 8)
+
+        for i in range(self.numLevels):
+            self.frameSplitter.addWidget(self.inputGrid)
+            self.frameSplitter.addWidget(self.HTMNetworkGrid)
         self.setLayout(self.grid)
 
     def setLevel(self, level):
