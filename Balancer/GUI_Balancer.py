@@ -772,27 +772,29 @@ class HTMNetwork(QtGui.QWidget):
 
         # Create HTM network with an initialized input
         self.htm = HTM_V.HTM(self.numLevels, self.InputCreator.createInput(), self.width, self.height, self.numCells)
+        # get the number of layers in a level so each layer can be displayed
+        self.numLayers = self.htm.HTMRegionArray[0].numLayers
 
         # Create a thalamus class
-        # He width of the the thalamus should match the width of the input grid.
+        # The width of the the thalamus should match the width of the input grid.
         self.thalamus = Thalamus.Thalamus(self.width*self.numCells, self.height)
 
         # Create the HTM grid veiwer widgets.
         # Each one views a different level of the htm
-        self.HTMNetworkGrid = [HTMGridViewer(self.htm) for i in range(self.numLevels)]
+        self.HTMNetworkGrid = [HTMGridViewer(self.htm) for i in range(self.numLevels*self.numLayers)]
 
         # Create the input veiwer widgets.
         # Each one views the input to a different level of the htm
         self.inputGrid = [HTMInput(self.htm, self.HTMNetworkGrid[i])
-                           for i in range(self.numLevels)]
+                          for i in range(self.numLevels*self.numLayers)]
 
         # Used to create and save new views
         self.markedHTMViews = []
 
         self.scaleFactor = 0.2    # How much to scale the grids by
         self.grid = None    # This is the layout holding the frames.
-        self.frameSplitter = None # This allows widgets to be resized by dragging the mouse
-        self.frameSplitter2 = None
+        self.frameSplitter = None  # This allows widgets to be resized by dragging the mouse
+        self.frameSplitterH = None
         self.frame1 = None
         self.frame2 = None
         self.frame3 = None
@@ -1001,6 +1003,7 @@ class HTMNetwork(QtGui.QWidget):
         self.grid = QtGui.QGridLayout()
         self.grid.setSpacing(1)
         # Create multiple frame splitters to store each of the HTMviews
+        # Their is one horizontal splitter for each level
         self.frameSplitter = QtGui.QSplitter(self)
         self.frameSplitter.setOrientation(QtCore.Qt.Vertical)
         self.frameSplitterH = [QtGui.QSplitter(self) for i in range(self.numLevels)]
@@ -1010,10 +1013,14 @@ class HTMNetwork(QtGui.QWidget):
         self.grid.setRowMinimumHeight(6, self.height*20)
         self.grid.addWidget(self.frameSplitter, 3, 1, 4, 8)
 
+        # Add each pair of input and HTM layer views to the splitter frames
+        # There is an input and htm view for each layer in every level.
         for i in range(self.numLevels):
             self.frameSplitterH[i].setOrientation(QtCore.Qt.Horizontal)
-            self.frameSplitterH[i].addWidget(self.inputGrid[i])
-            self.frameSplitterH[i].addWidget(self.HTMNetworkGrid[i])
+            for j in range(self.numLayers):
+                # Add to each horizontal splitter every layer in a particular level
+                self.frameSplitterH[i].addWidget(self.inputGrid[i*self.numLayers+j])
+                self.frameSplitterH[i].addWidget(self.HTMNetworkGrid[i*self.numLayers+j])
             #Add each horizontal frame splitter to the vertical one
             self.frameSplitter.addWidget(self.frameSplitterH[i])
 
@@ -1113,7 +1120,7 @@ class HTMNetwork(QtGui.QWidget):
 
         # Check if the view should be updated
         if updateViewer is True:
-            for i in range(self.numLevels):
+            for i in range(self.numLevels*self.numLayers):
                 # Set the input viewers array to self.input
                 self.inputGrid[i].updateInput()
                 # Update the columns and cells of the HTM viewers
