@@ -302,7 +302,7 @@ class HTMInput(QtGui.QGraphicsView):
                     self.columnItems.append(columnItem)
                     self.scene.addItem(columnItem)
 
-    def updateInput(self):
+    def updateGrid(self):
         for i in range(len(self.columnItems)):
             brush = QtGui.QBrush(QtCore.Qt.green)
             brush.setStyle(QtCore.Qt.SolidPattern)
@@ -576,7 +576,7 @@ class HTMGridViewer(QtGui.QGraphicsView):
                     brush.setColor(color)
                     colItem.setBrush(brush)
 
-    def updateHTMGrid(self):
+    def updateGrid(self):
         layer = self.htm.HTMRegionArray[self.level].layerArray[self.layer]
         for i in range(len(self.columnItems)):
             brush = QtGui.QBrush(QtCore.Qt.green)
@@ -671,7 +671,7 @@ class HTMGridViewer(QtGui.QGraphicsView):
             if item.__class__.__name__ == "HTMColumn":
                 print"column"
                 print "pos_x, pos_y = %s, %s" % (item.pos_x, item.pos_y)
-                self.updateHTMGrid()
+                self.updateGrid()
                 self.drawColumnInhib(item.pos_x, item.pos_y)
                 # Create and emit a signal to tell the HTMInput viewer to draw the
                 # input grid squares which are connected by the selected columns connected synapses.
@@ -693,7 +693,7 @@ class HTMGridViewer(QtGui.QGraphicsView):
                 self.showLearnCells = False
             else:
                 self.showActiveCells = True
-            self.updateHTMGrid()
+            self.updateGrid()
 
     def mouseMoveEvent(self, event):
         if self.dragView is True:
@@ -788,6 +788,9 @@ class HTMNetwork(QtGui.QWidget):
         self.inputGrid = [HTMInput(self.htm, self.HTMNetworkGrid[i])
                           for i in range(self.numLevels*self.numLayers)]
 
+        # Initialise each htm and input view to display different layers and levels
+        self.setupViews()
+
         # Used to create and save new views
         self.markedHTMViews = []
 
@@ -817,6 +820,21 @@ class HTMNetwork(QtGui.QWidget):
         self.makeButtons()
         #self.setWindowTitle('Main window')
         self.show()
+
+    def setupViews(self):
+        # Initialise each htm and input view to display different layers and levels
+        # Workout which htm view and input view should show which layer in which level
+        # Just initialise them in order
+        # TODO
+        # Fix this please. It must initialise the views to display.
+        for i in range(len(self.HTMNetworkGrid)):
+            pass
+            displayLevel = math.floor(i/self.numLevels)
+            displayLayer = i % self.numLayers
+            self.setLevel(self.HTMNetworkGrid[i], displayLevel)
+            self.setLevel(self.inputGrid[i], displayLevel)
+            self.setLayer(self.HTMNetworkGrid[i], displayLayer)
+            self.setLayer(self.inputGrid[i], displayLayer)
 
     def setInput(self, width, height):
         input = np.array([[0 for i in range(width)] for j in range(height)])
@@ -906,7 +924,7 @@ class HTMNetwork(QtGui.QWidget):
         # single cells segment connection was being shown
         for i in range(self.numLevels):
             self.HTMNetworkGrid[i].showAllHTM = True
-            self.HTMNetworkGrid[i].updateHTMGrid()
+            self.HTMNetworkGrid[i].updateGrid()
 
     def markHTM(self):
         # Mark the current state of the HTM by creatng an new view to view the current state.
@@ -922,7 +940,7 @@ class HTMNetwork(QtGui.QWidget):
             self.markedHTMViews[-1].level = self.HTMNetworkGrid[i].level
             self.markedHTMViews[-1].layer = self.HTMNetworkGrid[i].layer
             # Redraw the new view
-            self.markedHTMViews[-1].updateHTMGrid()
+            self.markedHTMViews[-1].updateGrid()
 
     def showActiveCells(self):
         # Toggle between showing the active cells or not
@@ -935,7 +953,7 @@ class HTMNetwork(QtGui.QWidget):
                 self.HTMNetworkGrid[i].showPredictCells = False
                 self.HTMNetworkGrid[i].showLearnCells = False
             # Update the HTMnetworkgrid veiwer
-            self.HTMNetworkGrid[i].updateHTMGrid()
+            self.HTMNetworkGrid[i].updateGrid()
 
     def showPredictCells(self):
         # Toggle between showing the predicting cells or not
@@ -948,7 +966,7 @@ class HTMNetwork(QtGui.QWidget):
                 self.HTMNetworkGrid[i].showActiveCells = False
                 self.HTMNetworkGrid[i].showLearnCells = False
             # Update the HTMnetworkgrid veiwer
-            self.HTMNetworkGrid[i].updateHTMGrid()
+            self.HTMNetworkGrid[i].updateGrid()
 
     def showLearnCells(self):
         # Toggle between showing the learning cells or not
@@ -961,7 +979,7 @@ class HTMNetwork(QtGui.QWidget):
                 self.HTMNetworkGrid[i].showActiveCells = False
                 self.HTMNetworkGrid[i].showPredictCells = False
             # Update the HTMnetworkgrid veiwer
-            self.HTMNetworkGrid[i].updateHTMGrid()
+            self.HTMNetworkGrid[i].updateGrid()
 
     def keyPressEvent(self, event):
         # Spacebar is perform next step
@@ -1026,37 +1044,27 @@ class HTMNetwork(QtGui.QWidget):
 
         self.setLayout(self.grid)
 
-    def setLevel(self, level):
-        pass
-        # # Set the level for the HTMVeiwer to draw.
-        # print "Level set to %s" % level
+    def setLevel(self, view, level):
+        # Set the given view to display the given level.
+        # The view can be for the htm or the input.
+        # Set the level for the HTMVeiwer to draw.
+        print "Level set to %s" % level
 
-        # # Update the columns and cells of the HTM viewer
-        # self.HTMNetworkGrid.level = level
-        # self.HTMNetworkGrid.drawGrid(self.HTMNetworkGrid.size)
-        # self.HTMNetworkGrid.updateHTMGrid()
+        # Update the columns and cells of the viewer
+        view.level = level
+        view.drawGrid(view.size)
+        view.updateGrid()
 
-        # # Update the columns and cells of the input viewer
-        # # Redraw the grid as the input size could have changed.
-        # self.inputGrid.level = level
-        # self.inputGrid.drawGrid(self.inputGrid.size)
-        # self.inputGrid.updateInput()
+    def setLayer(self, view, layer):
+        # Set the given view to display the given layer.
+        # The view can be for the htm or the input.
+        # Set the layer for the HTMVeiwer to draw.
+        print "Layer set to %s" % layer
 
-    def setLayer(self, layer):
-        pass
-        # # Set the layer for the HTMVeiwer to draw.
-        # print "Layer set to %s" % layer
-
-        # # Update the columns and cells of the HTM viewer
-        # self.HTMNetworkGrid.layer = layer
-        # self.HTMNetworkGrid.drawGrid(self.HTMNetworkGrid.size)
-        # self.HTMNetworkGrid.updateHTMGrid()
-
-        # # Update the columns and cells of the input viewer
-        # # Set the layer for the HTMInput to draw.
-        # self.inputGrid.layer = layer
-        # self.inputGrid.drawGrid(self.inputGrid.size)
-        # self.inputGrid.updateInput()
+        # Update the columns and cells of the viewer
+        view.layer = layer
+        view.drawGrid(view.size)
+        view.updateGrid()
 
     def saveHTM(self):
         self.htm.saveRegions()
@@ -1122,9 +1130,9 @@ class HTMNetwork(QtGui.QWidget):
         if updateViewer is True:
             for i in range(self.numLevels*self.numLayers):
                 # Set the input viewers array to self.input
-                self.inputGrid[i].updateInput()
+                self.inputGrid[i].updateGrid()
                 # Update the columns and cells of the HTM viewers
-                self.HTMNetworkGrid[i].updateHTMGrid()
+                self.HTMNetworkGrid[i].updateGrid()
 
         print "------------------------------------------"
 
