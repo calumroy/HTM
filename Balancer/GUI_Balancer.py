@@ -920,7 +920,7 @@ class HTMNetwork(QtGui.QWidget):
     def showAllHTM(self):
         # Draw the entire HTM netwrok. This is used if previously just a
         # single cells segment connection was being shown
-        for i in range(self.numLevels):
+        for i in range(len(self.HTMNetworkGrid)):
             self.HTMNetworkGrid[i].showAllHTM = True
             self.HTMNetworkGrid[i].updateGrid()
 
@@ -945,7 +945,7 @@ class HTMNetwork(QtGui.QWidget):
 
     def showActiveCells(self):
         # Toggle between showing the active cells or not
-        for i in range(self.numLevels):
+        for i in range(len(self.HTMNetworkGrid)):
             if self.HTMNetworkGrid[i].showActiveCells is True:
                 self.HTMNetworkGrid[i].showActiveCells = False
             else:
@@ -958,7 +958,7 @@ class HTMNetwork(QtGui.QWidget):
 
     def showPredictCells(self):
         # Toggle between showing the predicting cells or not
-        for i in range(self.numLevels):
+        for i in range(len(self.HTMNetworkGrid)):
             if self.HTMNetworkGrid[i].showPredictCells is True:
                 self.HTMNetworkGrid[i].showPredictCells = False
             else:
@@ -971,7 +971,7 @@ class HTMNetwork(QtGui.QWidget):
 
     def showLearnCells(self):
         # Toggle between showing the learning cells or not
-        for i in range(self.numLevels):
+        for i in range(len(self.HTMNetworkGrid)):
             if self.HTMNetworkGrid[i].showLearnCells is True:
                 self.HTMNetworkGrid[i].showLearnCells = False
             else:
@@ -1077,8 +1077,11 @@ class HTMNetwork(QtGui.QWidget):
         origHTM = self.htm.loadRegions()
         self.htm.HTMRegionArray = origHTM
         self.iteration = self.origIteration
-        for i in range(self.numLevels):
+        for i in range(len(self.HTMNetworkGrid)):
             self.HTMNetworkGrid[i].iteration = self.origIteration
+            # Update the veiws to display the newly loaded htm network.
+            self.HTMNetworkGrid[i].updateGrid()
+            self.inputGrid[i].updateGrid()
         print "loaded HTM layers"
 
     def oneStep(self):
