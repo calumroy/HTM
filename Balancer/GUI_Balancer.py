@@ -825,8 +825,6 @@ class HTMNetwork(QtGui.QWidget):
         # Initialise each htm and input view to display different layers and levels
         # Workout which htm view and input view should show which layer in which level
         # Just initialise them in order
-        # TODO
-        # Fix this please. It must initialise the views to display.
         for i in range(len(self.HTMNetworkGrid)):
             # Add one to i since i starts at zero
             displayLevel = int(math.floor((i+1)/self.numLevels))
@@ -928,17 +926,20 @@ class HTMNetwork(QtGui.QWidget):
 
     def markHTM(self):
         # Mark the current state of the HTM by creatng an new view to view the current state.
-        for i in range(self.numLevels):
+        for HTMView in self.HTMNetworkGrid:
             self.markedHTMViews.append(HTMGridViewer(self.htm))
+            # Get the newest veiw added to the end of the array
+            newHTMView = self.markedHTMViews[-1]
             # Use the HTMGridVeiw objects that has been appended to the end of the list
-            self.markedHTMViews[-1].htm = copy.deepcopy(self.htm)
+            newHTMView.htm = copy.deepcopy(self.htm)
             # Update the view settings
-            self.markedHTMViews[-1].showActiveCells = self.HTMNetworkGrid[i].showActiveCells
-            self.markedHTMViews[-1].showLearnCells = self.HTMNetworkGrid[i].showLearnCells
-            self.markedHTMViews[-1].showPredictCells = self.HTMNetworkGrid[i].showPredictCells
+            newHTMView.showActiveCells = HTMView.showActiveCells
+            newHTMView.showLearnCells = HTMView.showLearnCells
+            newHTMView.showPredictCells = HTMView.showPredictCells
             # Set the current level and region to draw
-            self.markedHTMViews[-1].level = self.HTMNetworkGrid[i].level
-            self.markedHTMViews[-1].layer = self.HTMNetworkGrid[i].layer
+            self.setLayer(newHTMView, HTMView.layer)
+            self.setLevel(newHTMView, HTMView.level)
+
             # Redraw the new view
             self.markedHTMViews[-1].updateGrid()
 
