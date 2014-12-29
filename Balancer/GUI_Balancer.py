@@ -431,7 +431,11 @@ class HTMGridViewer(QtGui.QGraphicsView):
 
     def updateInfo(self):
         if self.infoItem is not None:
-            self.infoItem.updateInfo("layer = %s level = %s" % (self.layer, self.level))
+            timeStep = self.htm.HTMRegionArray[self.level].layerArray[self.layer].timeStep
+            self.infoItem.updateInfo("""layer = %s level = %s time = %s"""
+                                     % (self.layer,
+                                        self.level,
+                                        timeStep))
 
     def drawGrid(self, size):
         # Used to initialise the graphics scene with columns and cells
@@ -593,6 +597,8 @@ class HTMGridViewer(QtGui.QGraphicsView):
                     brush.setColor(QtCore.Qt.green)
                     self.columnItems[i].setBrush(brush)
         self.updateCells()
+        # Update the info
+        self.updateInfo()
 
     def updateCells(self):
         # Redraw the cells.
