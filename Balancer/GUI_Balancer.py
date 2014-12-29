@@ -828,8 +828,8 @@ class HTMNetwork(QtGui.QWidget):
         # TODO
         # Fix this please. It must initialise the views to display.
         for i in range(len(self.HTMNetworkGrid)):
-            pass
-            displayLevel = math.floor(i/self.numLevels)
+            # Add one to i since i starts at zero
+            displayLevel = math.floor((i+1)/self.numLevels)
             displayLayer = i % self.numLayers
             self.setLevel(self.HTMNetworkGrid[i], displayLevel)
             self.setLevel(self.inputGrid[i], displayLevel)
