@@ -739,6 +739,22 @@ class HTMGridViewer(QtGui.QGraphicsView):
     def keyPressEvent(self, event):
         if event.key() == QtCore.Qt.Key_Control and not self.dragView:
             self.setCursor(QtCore.Qt.OpenHandCursor)
+        # Toggle through the differnt regions (layers) in the HTM
+        elif event.key() == QtCore.Qt.Key_R:
+            self.layer = self.layer + 1
+            if self.layer >= self.htm.HTMRegionArray[self.level].numLayers:
+                self.layer = 0
+            #print "Layer %s" % layer
+            #Update the HTM veiwer
+            self.updateGrid()
+        # Toggle through the differnt levels in the HTM
+        elif event.key() == QtCore.Qt.Key_L:
+            self.level = self.level + 1
+            if self.level >= self.htm.numLevels:
+                self.level = 0
+            #print "Level %s" % level
+            #Update the HTM veiwer
+            self.updateGrid()
         else:
             super(HTMGridViewer, self).keyPressEvent(event)
 
@@ -832,8 +848,7 @@ class HTMNetwork(QtGui.QWidget):
         # Workout which htm view and input view should show which layer in which level
         # Just initialise them in order
         for i in range(len(self.HTMNetworkGrid)):
-            # Add one to i since i starts at zero
-            displayLevel = int(math.floor((i+1)/self.numLevels))
+            displayLevel = int(math.floor(i/self.numLevels))
             displayLayer = i % self.numLayers
             self.setLevel(self.HTMNetworkGrid[i], displayLevel)
             self.setLevel(self.inputGrid[i], displayLevel)
@@ -934,7 +949,7 @@ class HTMNetwork(QtGui.QWidget):
         # Mark the current state of the HTM by creatng an new view to view the current state.
         for HTMView in self.HTMNetworkGrid:
             self.markedHTMViews.append(HTMGridViewer(self.htm))
-            # Get the newest veiw added to the end of the array
+            # Get the newest view added to the end of the array
             newHTMView = self.markedHTMViews[-1]
             # Use the HTMGridVeiw objects that has been appended to the end of the list
             newHTMView.htm = copy.deepcopy(self.htm)
@@ -947,7 +962,7 @@ class HTMNetwork(QtGui.QWidget):
             self.setLevel(newHTMView, HTMView.level)
 
             # Redraw the new view
-            self.markedHTMViews[-1].updateGrid()
+            newHTMView.updateGrid()
 
     def showActiveCells(self):
         # Toggle between showing the active cells or not
@@ -992,21 +1007,6 @@ class HTMNetwork(QtGui.QWidget):
         # Spacebar is perform next step
         if event.key() == QtCore.Qt.Key_Space:
             self.step(True)
-        # # Toggle through the differnt regions (layers) in the HTM
-        # if event.key() == QtCore.Qt.Key_R:
-        #     layer = self.HTMNetworkGrid.layer + 1
-        #     if layer >= self.htm.HTMRegionArray[self.HTMNetworkGrid.level].numLayers:
-        #         layer = 0
-        #     #print "Layer %s" % layer
-        #     #Update the HTM veiwer
-        #     self.setLayer(layer)
-        # # Toggle through the differnt levels in the HTM
-        # if event.key() == QtCore.Qt.Key_L:
-        #     level = self.HTMNetworkGrid.level + 1
-        #     if level >= self.htm.numLevels:
-        #         level = 0
-        #     #print "Level %s" % level
-        #     self.setLevel(level)
 
     def HTMzoomIn(self):
         for i in range(self.numLevels):
