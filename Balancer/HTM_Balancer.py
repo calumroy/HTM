@@ -1163,7 +1163,7 @@ class HTMRegion:
         self.width = columnArrayWidth
         self.height = columnArrayHeight
         self.cellsPerColumn = cellsPerColumn
-        self.numLayers = 2  # The number of HTM layer that make up a region.
+        self.numLayers = 1  # The number of HTM layer that make up a region.
         self.layerArray = np.array([], dtype=object)
 
         # Set up the inputs to the HTM layers.
@@ -1253,13 +1253,15 @@ class HTM:
         self.width = columnArrayWidth
         self.height = columnArrayHeight
         self.cellsPerColumn = cellsPerColumn
-
         self.HTMRegionArray = np.array([], dtype=object)
+
+        ### Setup the inputs and outputs between levels
         # The lowest region input needs to make room for the command
         # feedback from the higher level.
         commandFeedback = np.array([[0 for i in range(self.width*self.cellsPerColumn)]
                                     for j in range(self.height)])
         newInput = self.joinInputArrays(commandFeedback, input)
+        # Setup the new htm region with the input and size parameters defined.
         self.HTMRegionArray = np.append(self.HTMRegionArray,
                                         HTMRegion(newInput, self.width, self.height,
                                                   self.cellsPerColumn))
@@ -1345,6 +1347,11 @@ class HTM:
         # All other levels and layers get inputs from lower levels and layers.
         if self.numLevels > 1:
             commFeedbackLev1 = self.levelCommandOutput(1)
+        # If there is only one level then the thalamus input is added to the input.
+        if self.numLevels == 1:
+            # This is the highest level so get the
+            # feedback command from the thalamus.
+            commFeedbackLev1 = self.thalamusCommand
         newInput = self.joinInputArrays(commFeedbackLev1, input)
         self.HTMRegionArray[0].updateRegionInput(newInput)
 

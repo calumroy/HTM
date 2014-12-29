@@ -848,7 +848,7 @@ class HTMNetwork(QtGui.QWidget):
         # Workout which htm view and input view should show which layer in which level
         # Just initialise them in order
         for i in range(len(self.HTMNetworkGrid)):
-            displayLevel = int(math.floor(i/self.numLevels))
+            displayLevel = int(math.floor(i/self.numLayers))
             displayLayer = i % self.numLayers
             self.setLevel(self.HTMNetworkGrid[i], displayLevel)
             self.setLevel(self.inputGrid[i], displayLevel)
@@ -1114,7 +1114,7 @@ class HTMNetwork(QtGui.QWidget):
         ############################################
         print "PART 1"
         # Get the command output in the form of an SDR.
-        commandGrid = self.htm.levelCommandOutput(1)
+        commandGrid = self.htm.levelCommandOutput(0)
         # Use the output from the motor layer to create an acceleration input to the simulation.
         acceleration = self.InputCreator.convertSDRtoAcc(commandGrid)
 
@@ -1180,7 +1180,7 @@ class HTMGui(QtGui.QMainWindow):
         fileMenu.addAction(newInputAction)
         ViewMenu.addAction(drawLevelAction)
 
-        self.setGeometry(600, 100, 600, 750)
+        self.setGeometry(600, 100, 800, 900)
         self.setWindowTitle('HTM')
         self.setCentralWidget(HTMWidget)
         self.show()
