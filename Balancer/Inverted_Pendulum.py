@@ -61,14 +61,14 @@ class InvertedPendulum():
         self.angleOverlap = 1
         self.minAngle = -round(gridWidth/2)
         self.maxAngle = round(gridWidth/2)
-        self.minAcc = -2
-        self.maxAcc = 2
+        self.minAcc = -1
+        self.maxAcc = 1
 
     def step(self, acc):
         # Calculate the new position of the pendulum after applying the specified acceleration.
         # Simple pendulum for now!
 
-        self.vel = self.vel+int(acc)
+        self.vel = self.vel+acc
         self.angle = self.angle + self.vel
         # Limit the velocity
         if self.vel > self.maxAcc:
@@ -106,25 +106,34 @@ class InvertedPendulum():
 
     def convertSDRtoAcc(self, cellGrid):
         # Convert a sparse distributed representation into an acceleration
+        # Each cell output represents a particular acceleration command. In
+        # this simple case we are using -1, 0 or 1 m/s^2. Future mapping techniques
+        # should just use a random mapping value. The total average of the output
+        # accelerations is calculated and returned.
+
+        # The idea is that the HTM will learn about this mapping and eventually choose
+        # the right cells so the output from the HTM commands the
+        # "correct" acceleration to control the system.
+
         acceleration = 0
         height = len(cellGrid)
         width = len(cellGrid[0])
-        accRange = abs(self.minAcc - self.maxAcc)
+        # plus one since we want to include the min and max values
+        accRange = abs(self.minAcc - self.maxAcc) + 1
         numActiveCells = 0
-        for row in range(len(cellGrid)):
-            for col in range(len(cellGrid[0])):
+
+        for row in range(height):
+            for col in range(width):
                 if cellGrid[row][col] == 1:
-                    # Calculate the amount of additional acceleration a single activeCell is worth.
-                    # Width minus one since col starts at 0 and the width is the total number of columns.
-                    accCell = float(accRange)/float(width-1) * col + self.minAcc
-                    #print "accCell = %s accRange = %s width = %s col = %s self.minAcc = %s" % (accCell, accRange, width, col, self.minAcc)
-                    # Add to the total calculated acceleration
+                    # Not a random mapping but close enough. We aren't using completely random
+                    # since we want the same mapping each time.
+                    accCell = ((col + row) % accRange) + self.minAcc
                     acceleration += accCell
                     # Calculate the total number of active cells
                     numActiveCells += 1
         # Prevent divide by zero!
         if numActiveCells != 0:
-            acceleration = round(float(acceleration)/float(numActiveCells))
+            acceleration = float(acceleration)/float(numActiveCells)
         print "Acceleration Command = %s" % acceleration
         return acceleration
 

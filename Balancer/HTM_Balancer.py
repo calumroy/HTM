@@ -174,7 +174,7 @@ class HTMLayer:
         # the desiredLocalActivity parameter
         # are observed in the inhibition radius.
         # How many cells within the inhibition radius are active
-        self.desiredLocalActivity = 6
+        self.desiredLocalActivity = 2
         self.cellsPerColumn = cellsPerColumn
         self.connectPermanence = 0.3
         # Should be smaller than activationThreshold

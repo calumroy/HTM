@@ -782,12 +782,12 @@ class HTMNetwork(QtGui.QWidget):
     def initUI(self):
         self.iteration = 0
         self.origIteration = 0  # Stores the iteration for the previous saved HTM
-        self.numLevels = 2  # The number of levels.
+        self.numLevels = 1  # The number of levels.
         self.numCells = 3  # The number of cells in a column.
         self.width = 8  # The width of the columns in the HTM 2D array
         self.height = 26  # The height of the columns in the HTM 2D array
         self.inputWidth = 24
-        self.inputHeight = 10
+        self.inputHeight = 24
 
         # Create the input class
         self.InputCreator = Inverted_Pendulum.InvertedPendulum(int(self.inputWidth), int(self.inputHeight))
@@ -1123,7 +1123,7 @@ class HTMNetwork(QtGui.QWidget):
 
         # Add the new simulation state variables (angle) to the thalamus.
         # The thalamus also updates it's command in this function.
-        self.thalamus.addToHistory(self.InputCreator.angle)
+        self.thalamus.addToHistory(commandGrid)
         thalamusCommand = self.thalamus.returnMemory()
 
         # Update the htm with the thalamus command
