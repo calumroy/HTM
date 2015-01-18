@@ -45,7 +45,7 @@ class simpleVerticalLineInputs:
 class test_TemporalPooling:
     def setUp(self):
         self.width = 10
-        self.height = 20
+        self.height = 30
         self.cellsPerColumn = 3
         self.numLevels = 1
 

@@ -100,10 +100,10 @@ class Column:
         self.permanenceInc = 0.1
         self.permanenceDec = 0.02
         self.minDutyCycle = 0.01   # The minimum firing rate of the column
-        self.activeDutyCycleArray = np.array([0])
         # Keeps track of when the column was active.
         # All columns start as active. It stores the
         #numInhibition time when the column was active
+        self.activeDutyCycleArray = np.array([])
         self.activeDutyCycle = 0.0  # the firing rate of the column
         # The rate at which the overlap is larger then the min overlap
         self.overlapDutyCycle = 0.0
@@ -115,7 +115,9 @@ class Column:
         self.historyLength = 2
         self.highestScoredCell = None
 
+        # An array storing the synapses with a permanence greater then the connectPermanence.
         self.connectedSynapses = np.array([], dtype=object)
+
         # The possible feed forward Synapse connections for the column
         self.potentialSynapses = np.array([], dtype=object)
 
@@ -144,6 +146,7 @@ class Column:
         self.columnActive = np.array([0 for i in range(self.historyLength)])
 
     def updateConnectedSynapses(self):
+        # Update both the connectedSynapses array.
         self.connectedSynapses = np.array([], dtype=object)
         connSyn = []
         for i in range(len(self.potentialSynapses)):
@@ -365,16 +368,19 @@ class HTMLayer:
 
     def averageReceptiveFeildSize(self):
         # Calculate the average receptive feild size of all the columns.
-        # This means find the average number of connected synapses for every column.
+        # This means find the average number of connected and active synapses for every column.
         # This function is used to control the sparsity level of the SDR. It should make
         # on average the same number of columns active for any inputs.
 
         self.averageReceptiveFeildSizeArray = np.array([])
-        #for i in range(len(self.activeColumns)):
-        for c in self.activeColumns:
-            self.averageReceptiveFeildSizeArray = np.append(self.averageReceptiveFeildSizeArray,
-                                                            len(c.connectedSynapses))
-        #print np.average(self.averageReceptiveFeildSizeArray)
+        for i in range(len(self.columns)):
+            for c in self.columns[i]:
+                # If the column has been active before then add it's
+                # receptive feild size to the average.
+                if len(c.activeDutyCycleArray) > 0:
+                    self.averageReceptiveFeildSizeArray = np.append(self.averageReceptiveFeildSizeArray,
+                                                                    len(c.connectedSynapses))
+        print "avg feild size = %s, length of feild arr = %s " %(np.average(self.averageReceptiveFeildSizeArray),len(self.averageReceptiveFeildSizeArray))
         #Returns the radius of the average receptive feild size
         # The radius is actually of a square so its half the sqrt of the squares area.
         return int(math.sqrt(np.average(self.averageReceptiveFeildSizeArray))/2)
@@ -835,11 +841,18 @@ class HTMLayer:
         self.Input = input
 
     def temporalPool(self, c):
-        # Temporal pooling is done here by increasing the overlap for
-        # columns that where active but not bursting one timestep ago.
-        if self.columnActiveNotBursting(c, self.timeStep-1) is not None:
-            # Add the potenial (2*radius+1)^2 as this is the maximum
-            # overlap a column could have.
+        # Temporal pooling is done here by increasing the overlap if
+        # potential synapses are connected to active inputs
+        # Add the potenial (2*radius+1)^2 as this is the maximum
+        # overlap a column could have. This guarantees the column will
+        # win later when inhibition occurs.
+        for s in c.potentialSynapses:
+            inputActive = self.Input[s.pos_y][s.pos_x]
+            c.overlap = c.overlap + inputActive
+
+        # If more potential synapses then the min overlap
+        # are active then set the overlap to the maximum value possible.
+        if c.overlap >= c.minOverlap:
             maxOverlap = math.pow(2*c.potentialRadius+1, 2)
             c.overlap = c.overlap + maxOverlap
 
@@ -856,12 +869,15 @@ class HTMLayer:
 
         Note the temporal pooling is very dependent on the potential radius.
         a larger potential radius allows the temporal pooler to pool over a larger
-        number of columns.
+        number of columns. Columns temporally pool using their potential synapses,
+        where normal colum activation only counts connected synapses.
         """
         for i in range(len(self.columns)):
             for c in self.columns[i]:
                 c.overlap = 0.0
                 c.updateConnectedSynapses()
+
+                # Calculate the overlap
                 for s in c.connectedSynapses:
                     # Check if the input that this synapses
                     #is connected to is active.
@@ -870,14 +886,14 @@ class HTMLayer:
                     inputActive = self.Input[s.pos_y][s.pos_x]
                     c.overlap = c.overlap + inputActive
 
+                # Temporal pooling is done if the column was active but not bursting one timestep ago.
+                if self.columnActiveNotBursting(c, self.timeStep-1) is not None:
+                    #from PyQt4.QtCore import pyqtRemoveInputHook; import ipdb; pyqtRemoveInputHook(); ipdb.set_trace()
+                    self.temporalPool(c)
+
                 if c.overlap < c.minOverlap:
                     c.overlap = 0.0
                 else:
-
-                    # Temporal pooling is done here by increasing the overlap for
-                    # columns that where active but not bursting one timestep ago.
-                    self.temporalPool(c)
-
                     c.overlap = c.overlap*c.boost
                     self.updateOverlapDutyCycle(c)
                 #print "%d %d %d" %(c.overlap,c.minOverlap,c.boost)
@@ -931,7 +947,7 @@ class HTMLayer:
                     s.permanence = max(0.0, s.permanence)
         average = self.averageReceptiveFeildSize()
         #Find the average of the receptive feild sizes just once
-        #print "inhibition radius = %s" %average
+        print "inhibition radius = %s" %average
         for i in range(len(self.columns)):
             for c in self.columns[i]:
                 c.minDutyCycle = 0.01*self.maxDutyCycle(self.neighbours(c))
