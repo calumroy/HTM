@@ -6,10 +6,14 @@ import GUI_HTM
 
 
 class simpleVerticalLineInputs:
-    def __init__(self):
-        self.inputs = np.array([[[0 for i in range(self.width * self.cellsPerColumn)]
+    def __init__(self, width, height, numInputs):
+        # The number of inputs to store
+        self.numInputs = numInputs
+        self.width = width
+        self.height = height
+        self.inputs = np.array([[[0 for i in range(self.width)]
                                 for j in range(self.height)] for k in range(self.numInputs)])
-        self.setInputs()
+        self.setInputs(self.inputs)
         # Use an index to keep track of which input to send next
         self.index = 0
 
@@ -39,13 +43,14 @@ class test_TemporalPooling:
 
         # Create an array of input which will be fed to the htm so it
         # can try to temporarily pool them.
-        self.numInputs = 10
+        numInputs = 10
+        inputWidth = self.width
+        inputHeight = self.height*self.cellsPerColumn
 
-        self.setInputs(self.inputs)
-        self.InputCreator = simpleVerticalLineInputs()
+        self.InputCreator = simpleVerticalLineInputs(inputWidth, inputHeight, numInputs)
         #self.htmlayer = HTMLayer(self.inputs[0], self.width, self.height, self.cellsPerColumn)
-        self.htm = HTM_V.HTM(self.numLevels, self.InputCreator.createSimGrid(), self.width, self.height, self.cellsPerColumn)
-        self.htmGui = GUI_HTM.HTMGui(self.htm, self.InputCreator)
+        self.htm = HTM(self.numLevels, self.InputCreator.createSimGrid(), self.width, self.height, self.cellsPerColumn)
+        #self.htmGui = GUI_HTM.HTMGui(self.htm, self.InputCreator)
 
 
 

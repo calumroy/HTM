@@ -1368,6 +1368,7 @@ class HTM:
                 type(input1).__name__ == 'list')
         assert (type(input2).__name__ == 'ndarray' or
                 type(input2).__name__ == 'list')
+
         if len(input1) > 0 and len(input2) > 0:
             if len(input1[0]) > len(input2[0]):
                 # Since input2 is smaller we will pad the array with zeros.
@@ -1375,9 +1376,10 @@ class HTM:
                 for x in range(len(input1[0]) - len(input2[0]) - 1):
                     pad = np.append(pad, [0])
                 pad1 = pad
-                for y in range(len(input1)-1):
+                for y in range(len(input2)-1):
                     pad = np.vstack([pad, pad1])
                 # Now add the padding to input2
+                #from PyQt4.QtCore import pyqtRemoveInputHook; import ipdb; pyqtRemoveInputHook(); ipdb.set_trace()
                 input2 = np.hstack([input2, pad])
             elif len(input2[0]) > len(input1[0]):
                 # Since input1 is smaller we will pad the array with zeros.
