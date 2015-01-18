@@ -1124,6 +1124,7 @@ class HTMNetwork(QtGui.QWidget):
         # Add the new simulation state variables (angle) to the thalamus.
         # The thalamus also updates it's command in this function.
         self.thalamus.addToHistory(commandGrid)
+        from PyQt4.QtCore import pyqtRemoveInputHook; import ipdb; pyqtRemoveInputHook(); ipdb.set_trace()
         thalamusCommand = self.thalamus.returnMemory()
 
         # Update the htm with the thalamus command

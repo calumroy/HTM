@@ -23,7 +23,7 @@ class Thalamus:
         self.height = columnArrayHeight
         self.command = np.array([[0 for i in range(self.width)]
                                 for j in range(self.height)])
-        self.memories = [self.command]
+        self.memories = np.array([self.command])
         self.historyLength = 5
         # store the input angles
         self.angleHistory = []
@@ -48,11 +48,42 @@ class Thalamus:
         # array then delete the memory at the end of the array.
         # All the memories should be in order from
         # most recent to oldest.
+        #from PyQt4.QtCore import pyqtRemoveInputHook; import ipdb; pyqtRemoveInputHook(); ipdb.set_trace()
         if len(self.memories) < self.historyLength:
-            self.memories = np.insert(self.memories, 0, memory)
+            # add the new 2d array to the array of 2d memories
+            # The axis must be specified otherwise the array is flattened
+            if (self.checkArraySizesMatch(self.memories[0], memory) is True):
+                self.memories = np.append(self.memories, memory, axis=0)
+            else:
+                print "Error: The new memory size is different to the previous ones"
         else:
-            newArray = np.insert(self.memories, 0, memory)
+            #from PyQt4.QtCore import pyqtRemoveInputHook; import ipdb; pyqtRemoveInputHook(); ipdb.set_trace()
+            newArray = np.append(self.memories, memory, axis=0)
             newArray = np.delete(newArray, len(newArray)-1)
             self.memories = newArray
             # Now check to see if a new command from the thalamus should be issued.
             self.reconsider()
+
+    def checkArraySizesMatch(self, array1, array2):
+        # Check if arrays up to dimension 3 are of equal size
+        if (len(array1) > 0 and len(array2) > 0):
+            if (len(array1) == len(array2)):
+                if (len(array1[0]) > 0 and len(array2[0]) > 0):
+                    if (len(array1[0]) == len(array2[0])):
+                        if (len(array1[0][0]) > 0 and len(array2[0][0]) > 0):
+                            if (len(array1[0][0]) == len(array2[0][0])):
+                                # 3 dimensional arrays are equal size
+                                return True
+                            else:
+                                return False
+                        # 2 dimensional arrays are equal size
+                        return True
+                    else:
+                        return False
+                # 1 dimensional arrays are equal size
+                return True
+            else:
+                return False
+        else:
+            # They have no lengths and aren't arrays
+            return False
