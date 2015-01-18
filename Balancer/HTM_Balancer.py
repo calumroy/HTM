@@ -364,11 +364,16 @@ class HTMLayer:
         return 0
 
     def averageReceptiveFeildSize(self):
+        # Calculate the average receptive feild size of all the columns.
+        # This means find the average number of connected synapses for every column.
+        # This function is used to control the sparsity level of the SDR. It should make
+        # on average the same number of columns active for any inputs.
+
         self.averageReceptiveFeildSizeArray = np.array([])
-        for i in range(len(self.columns)):
-            for c in self.columns[i]:
-                self.averageReceptiveFeildSizeArray = np.append(self.averageReceptiveFeildSizeArray,
-                                                                len(c.connectedSynapses))
+        #for i in range(len(self.activeColumns)):
+        for c in self.activeColumns:
+            self.averageReceptiveFeildSizeArray = np.append(self.averageReceptiveFeildSizeArray,
+                                                            len(c.connectedSynapses))
         #print np.average(self.averageReceptiveFeildSizeArray)
         #Returns the radius of the average receptive feild size
         # The radius is actually of a square so its half the sqrt of the squares area.
