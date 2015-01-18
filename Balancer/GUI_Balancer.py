@@ -775,25 +775,48 @@ class HTMGridViewer(QtGui.QGraphicsView):
 class HTMNetwork(QtGui.QWidget):
     # Creates a HTM network.
 
-    def __init__(self):
+    def __init__(self, HTMInput=None):
         super(HTMNetwork, self).__init__()
-        self.initUI()
+        # Pass the HTM network to view if it was given.
+        self.initUI(HTM)
 
-    def initUI(self):
-        self.iteration = 0
-        self.origIteration = 0  # Stores the iteration for the previous saved HTM
-        self.numLevels = 1  # The number of levels.
-        self.numCells = 3  # The number of cells in a column.
-        self.width = 8  # The width of the columns in the HTM 2D array
-        self.height = 26  # The height of the columns in the HTM 2D array
-        self.inputWidth = 24
-        self.inputHeight = 24
+    def initUI(self, HTMInput):
 
-        # Create the input class
-        self.InputCreator = Inverted_Pendulum.InvertedPendulum(int(self.inputWidth), int(self.inputHeight))
+        # If no HTM input was specified then we will ceate our own
+        if HTM is None:
+            self.iteration = 0
+            self.origIteration = 0  # Stores the iteration for the previous saved HTM
+            self.numLevels = 1  # The number of levels.
+            self.numCells = 3  # The number of cells in a column.
+            self.width = 8  # The width of the columns in the HTM 2D array
+            self.height = 26  # The height of the columns in the HTM 2D array
+            self.inputWidth = 24
+            self.inputHeight = 24
 
-        # Create HTM network with an initialized input
-        self.htm = HTM_V.HTM(self.numLevels, self.InputCreator.createSimGrid(), self.width, self.height, self.numCells)
+            # Create the input class
+            self.InputCreator = Inverted_Pendulum.InvertedPendulum(int(self.inputWidth), int(self.inputHeight))
+
+            # Create HTM network with an initialized input
+            self.htm = HTM_V.HTM(self.numLevels, self.InputCreator.createSimGrid(), self.width, self.height, self.numCells)
+            # Create the input class
+            self.InputCreator = Inverted_Pendulum.InvertedPendulum(int(self.inputWidth), int(self.inputHeight))
+
+        else:
+            # Use the specified HTM to set local variables
+            self.htm = HTMInput
+            self.iteration = self.htm.HTMRegionArray[0].layerArray[0].timeStep
+            self.origIteration = self.iteration  # Stores the iteration for the previous saved HTM
+            self.numLevels = self.htm.numLevels  # The number of levels.
+            self.numCells = self.htm.cellsPerColumn  # The number of cells in a column.
+            self.width = self.htm.width # The width of the columns in the HTM 2D array
+            self.height = self.htm.height  # The height of the columns in the HTM 2D array
+            self.inputWidth = len(self.htm.HTMRegionArray[0].layerArray.Input[0])
+            self.inputHeight = len(self.htm.HTMRegionArray[0].layerArray.Input)
+
+
+
+
+
         # get the number of layers in a level so each layer can be displayed
         self.numLayers = self.htm.HTMRegionArray[0].numLayers
 
