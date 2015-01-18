@@ -64,7 +64,9 @@ class InvertedPendulum():
         self.minAcc = -1
         self.maxAcc = 1
 
-    def step(self, acc):
+    def step(self, cellGrid):
+        # Convert the input grid input an acceleration first
+        acc = self.convertSDRtoAcc(cellGrid)
         # Calculate the new position of the pendulum after applying the specified acceleration.
         # Simple pendulum for now!
 

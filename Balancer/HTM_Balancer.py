@@ -371,6 +371,7 @@ class HTMLayer:
                                                                 len(c.connectedSynapses))
         #print np.average(self.averageReceptiveFeildSizeArray)
         #Returns the radius of the average receptive feild size
+        # The radius is actually of a square so its half the sqrt of the squares area.
         return int(math.sqrt(np.average(self.averageReceptiveFeildSizeArray))/2)
 
     def updateActiveDutyCycle(self, c):
@@ -1162,7 +1163,7 @@ class HTMRegion:
         self.width = columnArrayWidth
         self.height = columnArrayHeight
         self.cellsPerColumn = cellsPerColumn
-        self.numLayers = 1  # The number of HTM layer that make up a region.
+        self.numLayers = 2  # The number of HTM layer that make up a region.
         self.layerArray = np.array([], dtype=object)
 
         # Set up the inputs to the HTM layers.
@@ -1178,7 +1179,7 @@ class HTMRegion:
                                                  self.height,
                                                  self.cellsPerColumn))
             # Set the potential radius of column in higher levels to a larger value based on the cells per column.
-            # This is done because the input to higher layers are larger then the lower layers inputs.
+            # This is done because more temporal pooling is desired in higher layers then lower ones.
             if i != 0:
                 # TODO
                 # Make this more elegant. transfer potential radius parameter to the HTM layer not column.

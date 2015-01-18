@@ -3,6 +3,8 @@ from mock import patch
 from HTM_Balancer import HTM, HTMLayer, HTMRegion, Column
 import numpy as np
 import GUI_HTM
+from PyQt4 import QtGui
+import sys
 
 
 class simpleVerticalLineInputs:
@@ -26,10 +28,16 @@ class simpleVerticalLineInputs:
                     if x == n:
                         inputs[n][y][x] = 1
 
+    def step(self, cellGrid):
+        # Required function for a InputCreator class
+        pass
+
     def createSimGrid(self):
+        # Required function for a InputCreator class
+        # Return a new grid
         newGrid = self.inputs[self.index]
         self.index += 1
-        if (self.index > len(self.inputs)):
+        if (self.index >= len(self.inputs)):
             self.index = 0
         return newGrid
 
@@ -37,7 +45,7 @@ class simpleVerticalLineInputs:
 class test_TemporalPooling:
     def setUp(self):
         self.width = 10
-        self.height = 10
+        self.height = 20
         self.cellsPerColumn = 3
         self.numLevels = 1
 
@@ -50,7 +58,10 @@ class test_TemporalPooling:
         self.InputCreator = simpleVerticalLineInputs(inputWidth, inputHeight, numInputs)
         #self.htmlayer = HTMLayer(self.inputs[0], self.width, self.height, self.cellsPerColumn)
         self.htm = HTM(self.numLevels, self.InputCreator.createSimGrid(), self.width, self.height, self.cellsPerColumn)
-        #self.htmGui = GUI_HTM.HTMGui(self.htm, self.InputCreator)
+
+        app = QtGui.QApplication(sys.argv)
+        self.htmGui = GUI_HTM.HTMGui(self.htm, self.InputCreator)
+        sys.exit(app.exec_())
 
 
 

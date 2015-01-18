@@ -1113,11 +1113,10 @@ class HTMNetwork(QtGui.QWidget):
         print "PART 1"
         # Get the command output in the form of an SDR.
         commandGrid = self.htm.levelCommandOutput(0)
-        # Use the output from the motor layer to create an acceleration input to the simulation.
-        acceleration = self.InputCreator.convertSDRtoAcc(commandGrid)
 
-        # Run the acceleration through the simulator to get the new input
-        self.InputCreator.step(acceleration)
+        # Use the output from the motor layer to give to the simulator so it can
+        # work out a new state.
+        self.InputCreator.step(commandGrid)
 
         # Add the new simulation state variables (angle) to the thalamus.
         # The thalamus also updates it's command in this function.
