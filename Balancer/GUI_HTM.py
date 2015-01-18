@@ -15,15 +15,13 @@ import sys
 sys.path.insert(0, './')
 import numpy as np
 import random
-import sys
+
 from PyQt4 import QtGui, QtCore
 #from PyQt4.QtCore import QObject
 import HTM_Balancer as HTM_V
 import Thalamus
 import math
 import copy
-
-import Inverted_Pendulum
 
 
 class layerPopup(QtGui.QWidget):
@@ -775,47 +773,24 @@ class HTMGridViewer(QtGui.QGraphicsView):
 class HTMNetwork(QtGui.QWidget):
     # Creates a HTM network.
 
-    def __init__(self, HTMInput=None):
+    def __init__(self, HTMObject, InputCreator):
         super(HTMNetwork, self).__init__()
         # Pass the HTM network to view if it was given.
-        self.initUI(HTM)
+        self.initUI(HTMObject, InputCreator)
 
-    def initUI(self, HTMInput):
+    def initUI(self, HTMObject, InputCreator):
 
-        # If no HTM input was specified then we will ceate our own
-        if HTM is None:
-            self.iteration = 0
-            self.origIteration = 0  # Stores the iteration for the previous saved HTM
-            self.numLevels = 1  # The number of levels.
-            self.numCells = 3  # The number of cells in a column.
-            self.width = 8  # The width of the columns in the HTM 2D array
-            self.height = 26  # The height of the columns in the HTM 2D array
-            self.inputWidth = 24
-            self.inputHeight = 24
-
-            # Create the input class
-            self.InputCreator = Inverted_Pendulum.InvertedPendulum(int(self.inputWidth), int(self.inputHeight))
-
-            # Create HTM network with an initialized input
-            self.htm = HTM_V.HTM(self.numLevels, self.InputCreator.createSimGrid(), self.width, self.height, self.numCells)
-            # Create the input class
-            self.InputCreator = Inverted_Pendulum.InvertedPendulum(int(self.inputWidth), int(self.inputHeight))
-
-        else:
-            # Use the specified HTM to set local variables
-            self.htm = HTMInput
-            self.iteration = self.htm.HTMRegionArray[0].layerArray[0].timeStep
-            self.origIteration = self.iteration  # Stores the iteration for the previous saved HTM
-            self.numLevels = self.htm.numLevels  # The number of levels.
-            self.numCells = self.htm.cellsPerColumn  # The number of cells in a column.
-            self.width = self.htm.width # The width of the columns in the HTM 2D array
-            self.height = self.htm.height  # The height of the columns in the HTM 2D array
-            self.inputWidth = len(self.htm.HTMRegionArray[0].layerArray.Input[0])
-            self.inputHeight = len(self.htm.HTMRegionArray[0].layerArray.Input)
-
-
-
-
+        # Use the specified HTM to set local variables
+        self.htm = HTMObject
+        self.iteration = self.htm.HTMRegionArray[0].layerArray[0].timeStep
+        self.origIteration = self.iteration  # Stores the iteration for the previous saved HTM
+        self.numLevels = self.htm.numLevels  # The number of levels.
+        self.numCells = self.htm.cellsPerColumn  # The number of cells in a column.
+        self.width = self.htm.width  # The width of the columns in the HTM 2D array
+        self.height = self.htm.height  # The height of the columns in the HTM 2D array
+        self.inputWidth = len(self.htm.HTMRegionArray[0].layerArray[0].Input[0])*self.numCells
+        self.inputHeight = len(self.htm.HTMRegionArray[0].layerArray[0].Input)
+        self.InputCreator = InputCreator
 
         # get the number of layers in a level so each layer can be displayed
         self.numLayers = self.htm.HTMRegionArray[0].numLayers
@@ -1173,14 +1148,15 @@ class HTMNetwork(QtGui.QWidget):
 
 class HTMGui(QtGui.QMainWindow):
 
-    def __init__(self):
+    def __init__(self, HTMInput, InputCreator):
         super(HTMGui, self).__init__()
 
-        self.initUI()
+        self.initUI(HTMInput, InputCreator)
 
-    def initUI(self):
+    def initUI(self, HTMInput, InputCreator):
         layout = QtGui.QHBoxLayout()
-        HTMWidget = HTMNetwork()
+        # Create the HTM Viewing widget and pass in the HTM object to view
+        HTMWidget = HTMNetwork(HTMInput, InputCreator)
         layout.addWidget(HTMWidget)
         self.statusBar().showMessage('Ready')
 
@@ -1210,11 +1186,4 @@ class HTMGui(QtGui.QMainWindow):
         self.show()
 
 
-def main():
-    app = QtGui.QApplication(sys.argv)
-    ex = HTMGui()
-    sys.exit(app.exec_())
 
-
-if __name__ == '__main__':
-    main()
