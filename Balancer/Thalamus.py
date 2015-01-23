@@ -53,37 +53,28 @@ class Thalamus:
             # add the new 2d array to the array of 2d memories
             # The axis must be specified otherwise the array is flattened
             if (self.checkArraySizesMatch(self.memories[0], memory) is True):
-                self.memories = np.append(self.memories, memory, axis=0)
+                self.memories = np.append(self.memories, [memory], axis=0)
             else:
                 print "Error: The new memory size is different to the previous ones"
         else:
-            #from PyQt4.QtCore import pyqtRemoveInputHook; import ipdb; pyqtRemoveInputHook(); ipdb.set_trace()
-            newArray = np.append(self.memories, memory, axis=0)
+            # Axis must be specified and the memory must be enclosed in []
+            # Without this the memory will not be appended in whole to memories.
+            newArray = np.append(self.memories, [memory], axis=0)
             newArray = np.delete(newArray, len(newArray)-1)
             self.memories = newArray
             # Now check to see if a new command from the thalamus should be issued.
             self.reconsider()
 
     def checkArraySizesMatch(self, array1, array2):
-        # Check if arrays up to dimension 3 are of equal size
-        if (len(array1) > 0 and len(array2) > 0):
-            if (len(array1) == len(array2)):
-                if (len(array1[0]) > 0 and len(array2[0]) > 0):
-                    if (len(array1[0]) == len(array2[0])):
-                        if (len(array1[0][0]) > 0 and len(array2[0][0]) > 0):
-                            if (len(array1[0][0]) == len(array2[0][0])):
-                                # 3 dimensional arrays are equal size
-                                return True
-                            else:
-                                return False
-                        # 2 dimensional arrays are equal size
-                        return True
-                    else:
-                        return False
-                # 1 dimensional arrays are equal size
-                return True
-            else:
+        #import ipdb; ipdb.set_trace()
+        # Check if arrays up to dimension N are of equal size
+        subArray1 = array1
+        subArray2 = array2
+        while (type(subArray1).__name__ == 'ndarray' and
+               type(subArray2).__name__ == 'ndarray'):
+            if (len(subArray1) != len(subArray2)):
                 return False
-        else:
-            # They have no lengths and aren't arrays
-            return False
+            subArray1 = subArray1[0]
+            subArray2 = subArray2[0]
+        return True
+
