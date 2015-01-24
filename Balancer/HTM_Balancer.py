@@ -1283,7 +1283,14 @@ class HTM:
 
     def joinInputArrays(self, input1, input2):
         # Join two input 2D arrays together vstack them.
+        # This menas the widths of the arrays input1[0] = input2[0]
+        # must be equal so one input may need to be padded.
         output = np.array([])
+        # check that the inputs are arrays
+        assert (type(input1).__name__ == 'ndarray' or
+                type(input1).__name__ == 'list')
+        assert (type(input2).__name__ == 'ndarray' or
+                type(input2).__name__ == 'list')
         if len(input1) > 0 and len(input2) > 0:
             if len(input1[0]) > len(input2[0]):
                 # Since input2 is smaller we will pad the array with zeros.

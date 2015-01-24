@@ -793,7 +793,7 @@ class HTMNetwork(QtGui.QWidget):
         self.InputCreator = Inverted_Pendulum.InvertedPendulum(int(self.inputWidth), int(self.inputHeight))
 
         # Create HTM network with an initialized input
-        self.htm = HTM_V.HTM(self.numLevels, self.InputCreator.createInput(), self.width, self.height, self.numCells)
+        self.htm = HTM_V.HTM(self.numLevels, self.InputCreator.createSimGrid(), self.width, self.height, self.numCells)
         # get the number of layers in a level so each layer can be displayed
         self.numLayers = self.htm.HTMRegionArray[0].numLayers
 
@@ -1124,7 +1124,6 @@ class HTMNetwork(QtGui.QWidget):
         # Add the new simulation state variables (angle) to the thalamus.
         # The thalamus also updates it's command in this function.
         self.thalamus.addToHistory(commandGrid)
-        from PyQt4.QtCore import pyqtRemoveInputHook; import ipdb; pyqtRemoveInputHook(); ipdb.set_trace()
         thalamusCommand = self.thalamus.returnMemory()
 
         # Update the htm with the thalamus command
@@ -1135,7 +1134,8 @@ class HTMNetwork(QtGui.QWidget):
         print "PART 2"
         self.iteration += 1  # Increase the time
         # Update the HTM input and run through the
-        self.htm.spatialTemporal(self.InputCreator.createInput())
+        newInput = self.InputCreator.createSimGrid()
+        self.htm.spatialTemporal(newInput)
 
         # Check if the view should be updated
         if updateViewer is True:

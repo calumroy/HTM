@@ -44,10 +44,10 @@ class Thalamus:
                 self.changeMemPos(random.randint(0, self.width))
 
     def addToHistory(self, memory):
-        # We add the new memory to the start of the
-        # array then delete the memory at the end of the array.
+        # We add the new memory to the end of the
+        # array then delete the memory at the start of the array.
         # All the memories should be in order from
-        # most recent to oldest.
+        # oldest to most recent.
         #from PyQt4.QtCore import pyqtRemoveInputHook; import ipdb; pyqtRemoveInputHook(); ipdb.set_trace()
         if len(self.memories) < self.historyLength:
             # add the new 2d array to the array of 2d memories
@@ -60,21 +60,34 @@ class Thalamus:
             # Axis must be specified and the memory must be enclosed in []
             # Without this the memory will not be appended in whole to memories.
             newArray = np.append(self.memories, [memory], axis=0)
-            newArray = np.delete(newArray, len(newArray)-1)
+            # Delete the oldest memory at the start of the memories array
+            newArray = np.delete(newArray, 0, 0)
             self.memories = newArray
             # Now check to see if a new command from the thalamus should be issued.
             self.reconsider()
 
     def checkArraySizesMatch(self, array1, array2):
-        #import ipdb; ipdb.set_trace()
         # Check if arrays up to dimension N are of equal size
         subArray1 = array1
         subArray2 = array2
         while (type(subArray1).__name__ == 'ndarray' and
                type(subArray2).__name__ == 'ndarray'):
             if (len(subArray1) != len(subArray2)):
+                # arrays are not equal size
                 return False
-            subArray1 = subArray1[0]
-            subArray2 = subArray2[0]
+            if ((len(subArray1) == 0 and len(subArray2) != 0) or (
+                len(subArray2) == 0 and len(subArray1) != 0)):
+                # arrays are not equal size
+                return False
+            if (len(subArray1) == 0 and len(subArray2) == 0):
+                # arrays are equal break to return true
+                break
+            # Check that the next dimension is still an array
+            if (type(subArray1[0]).__name__ == 'ndarray' and
+                type(subArray2[0]).__name__ == 'ndarray'):
+                subArray1 = subArray1[0]
+                subArray2 = subArray2[0]
+            else:
+                break
         return True
 
