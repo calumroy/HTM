@@ -5,6 +5,8 @@ import numpy as np
 import GUI_HTM
 from PyQt4 import QtGui
 import sys
+import random
+from copy import deepcopy
 
 
 class simpleVerticalLineInputs:
@@ -18,6 +20,8 @@ class simpleVerticalLineInputs:
         self.setInputs(self.inputs)
         # Use an index to keep track of which input to send next
         self.index = 0
+        # A variable speifying the amount of noise in the inputs 0 to 1
+        self.noise = 0.0
 
     def setInputs(self, inputs):
         # Will will create vertical lines in the input that move from side to side.
@@ -35,7 +39,16 @@ class simpleVerticalLineInputs:
     def createSimGrid(self):
         # Required function for a InputCreator class
         # Return a new grid
-        newGrid = self.inputs[self.index]
+        newGrid = deepcopy(self.inputs[self.index])
+
+        # Add some random noise to the next input
+        # The next input is at the self.index
+        if self.noise > 0.0:
+            for y in range(len(newGrid[0])):
+                for x in range(len(newGrid[y])):
+                    if random.random() < self.noise:
+                        newGrid[y][x] = 1
+
         self.index += 1
         if (self.index >= len(self.inputs)):
             self.index = 0
@@ -51,9 +64,9 @@ class test_TemporalPooling:
 
         # Create an array of input which will be fed to the htm so it
         # can try to temporarily pool them.
-        numInputs = 10
-        inputWidth = self.width
-        inputHeight = self.height*self.cellsPerColumn
+        numInputs = self.width*self.cellsPerColumn
+        inputWidth = self.width*self.cellsPerColumn
+        inputHeight = 2*self.height
 
         self.InputCreator = simpleVerticalLineInputs(inputWidth, inputHeight, numInputs)
         #self.htmlayer = HTMLayer(self.inputs[0], self.width, self.height, self.cellsPerColumn)

@@ -29,7 +29,8 @@ class Thalamus:
         self.angleHistory = []
 
     def returnMemory(self):
-        return self.memories[0]
+        #return self.memories[-1]
+        return self.returnBlankMemory()
 
     def reconsider(self):
         # Decide whether to change the current command based on the history of the
@@ -41,7 +42,7 @@ class Thalamus:
                     angleCenterCount += 1
             if angleCenterCount < 5:
                 self.angleHistory = np.array([])
-                self.changeMemPos(random.randint(0, self.width))
+                #self.changeMemPos(random.randint(0, self.width))
 
     def addToHistory(self, memory):
         # We add the new memory to the end of the
@@ -65,6 +66,10 @@ class Thalamus:
             self.memories = newArray
             # Now check to see if a new command from the thalamus should be issued.
             self.reconsider()
+
+    def returnBlankMemory(self):
+        blankMemory = np.array([[0 for i in range(self.width)] for j in range(self.height)])
+        return blankMemory
 
     def checkArraySizesMatch(self, array1, array2):
         # Check if arrays up to dimension N are of equal size

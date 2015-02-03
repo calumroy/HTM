@@ -286,15 +286,17 @@ class HTMLayer:
         # the columns are evenly spaced out over the input.
         # First initialize the list to null
         c.potentialSynapses = np.array([])
-        inputHeigth = len(self.Input)
+        inputHeight = len(self.Input)
         inputWidth = len(self.Input[0])
         columnHeight = len(self.columns)
         columnWidth = len(self.columns[0])
         # Calculate the ratio between columns and the input space.
-        colInputRatioHeight = float(inputHeigth) / float(columnHeight)
+        colInputRatioHeight = float(inputHeight) / float(columnHeight)
         colInputRatioWidth = float(inputWidth) / float(columnWidth)
         #print "Column to input height ratio = %f" % colInputRatioHeight
         #print "Column to input width ratio = %f" % colInputRatioWidth
+        #print "Input width = %s" % inputWidth
+        #print "Input height = %s" % inputHeight
         # Cast the y position to an int so it matches up with a row number.
         inputCenter_y = int(c.pos_y*colInputRatioHeight)
         # Cast the x position to an int so it matches up with a column number.
@@ -302,7 +304,7 @@ class HTMLayer:
         # i is pos_y j is pos_x
         for y in range(int(inputCenter_y-c.potentialRadius),
                        int(inputCenter_y+c.potentialRadius)+1):
-            if y >= 0 and y < inputHeigth:
+            if y >= 0 and y < inputHeight:
                 for x in range(int(inputCenter_x-c.potentialRadius),
                                int(inputCenter_x+c.potentialRadius)+1):
                     if x >= 0 and x < inputWidth:
@@ -837,8 +839,15 @@ class HTMLayer:
         c.cells[i].segmentUpdateList = []
         # Delete the list as the updates have been added.
 
-    def updateInput(self, input):
-        self.Input = input
+    def updateInput(self, newInput):
+        # Update the input
+        #Check to see if this input is the same size as the last and is a 2d numpy array
+        try:
+            assert len(newInput.shape) == 2
+            assert newInput.shape == self.Input.shape
+            self.Input = newInput
+        except ValueError:
+            print "New Input is not a 2D numpy array!"
 
     def temporalPool(self, c):
         # Temporal pooling is done here by increasing the overlap if
@@ -1261,6 +1270,7 @@ class HTMRegion:
 
 
 class HTM:
+    #@do_cprofile  # For profiling
     def __init__(self, numLevels, input, columnArrayWidth,
                  columnArrayHeight, cellsPerColumn):
         self.quit = False
@@ -1296,7 +1306,8 @@ class HTM:
                                                       self.cellsPerColumn))
 
         # create a place to store layers so they can be reverted.
-        self.HTMOriginal = copy.deepcopy(self.HTMRegionArray)
+        #self.HTMOriginal = copy.deepcopy(self.HTMRegionArray)
+        self.HTMOriginal = None
 
     def updateThalamusComm(self, newCommand):
         # Update the thalamus command with the new one.
@@ -1309,10 +1320,11 @@ class HTM:
 
     def loadRegions(self):
         # Save the synases for the command area so they can be reloaded.
-        print "\n    LOAD COMMAND SYN "
-        self.HTMRegionArray = self.HTMOriginal
-        # Need create a new deepcopy of the original
-        self.HTMOriginal = copy.deepcopy(self.HTMRegionArray)
+        if self.HTMOriginal is not None:
+            print "\n    LOAD COMMAND SYN "
+            self.HTMRegionArray = self.HTMOriginal
+            # Need create a new deepcopy of the original
+            self.HTMOriginal = copy.deepcopy(self.HTMRegionArray)
         # return the pointer to the HTM so the GUI can use it to point
         # to the correct object.
         return self.HTMRegionArray
