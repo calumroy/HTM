@@ -1127,48 +1127,48 @@ class HTM:
         self.height = columnArrayHeight
         self.cellsPerColumn = cellsPerColumn
 
-        self.HTMRegionArray = np.array([], dtype=object)
+        self.regionArray = np.array([], dtype=object)
         # The lowest region
-        self.HTMRegionArray = np.append(self.HTMRegionArray,
+        self.regionArray = np.append(self.regionArray,
                                         HTMRegion(input, self.width, self.height,
                                                   self.cellsPerColumn))
         # The higher levels get inputs from the lower levels.
         for i in range(1, numLevels):
-            lowerOutput = self.HTMRegionArray[i-1].regionOutput()
-            self.HTMRegionArray = np.append(self.HTMRegionArray,
+            lowerOutput = self.regionArray[i-1].regionOutput()
+            self.regionArray = np.append(self.regionArray,
                                             HTMRegion(lowerOutput, self.width, self.height,
                                                       self.cellsPerColumn))
         # create a place to store layers so they can be reverted.
-        self.HTMOriginal = copy.deepcopy(self.HTMRegionArray)
+        self.HTMOriginal = copy.deepcopy(self.regionArray)
 
     def saveRegions(self):
         # Save the HTM so it can be reloaded.
         print "\n    SAVE COMMAND SYN "
-        self.HTMOriginal = copy.deepcopy(self.HTMRegionArray)
+        self.HTMOriginal = copy.deepcopy(self.regionArray)
 
     def loadRegions(self):
         # Save the synases for the command area so they can be reloaded.
         print "\n    LOAD COMMAND SYN "
-        self.HTMRegionArray = self.HTMOriginal
+        self.regionArray = self.HTMOriginal
         # Need create a new deepcopy of the original
-        self.HTMOriginal = copy.deepcopy(self.HTMRegionArray)
+        self.HTMOriginal = copy.deepcopy(self.regionArray)
         # return the pointer to the HTM so the GUI can use it to point
         # to the correct object.
-        return self.HTMRegionArray
+        return self.regionArray
 
     def updateHTMInput(self, input):
         # Update the input and outputs of the levels.
         # Level 0 receives the new input. The higher levels
         # receive inputs from the lower levels outputs
-        self.HTMRegionArray[0].updateRegionInput(input)
+        self.regionArray[0].updateRegionInput(input)
         for i in range(1, self.numLevels):
             lowerLevel = i-1
-            lowerLevelOutput = self.HTMRegionArray[lowerLevel].regionOutput()
-            self.HTMRegionArray[i].updateRegionInput(lowerLevelOutput)
+            lowerLevelOutput = self.regionArray[lowerLevel].regionOutput()
+            self.regionArray[i].updateRegionInput(lowerLevelOutput)
 
     def levelCommandOutput(self, level):
         # Return the command output of the desired level.
-        return self.HTMRegionArray[0].regionOutput()
+        return self.regionArray[0].regionOutput()
 
     def spatialTemporal(self, input):
         # Update the spatial and temporal pooler.
@@ -1178,7 +1178,7 @@ class HTM:
         # Update the current levels input with the new input
         self.updateHTMInput(input)
         i = 0
-        for level in self.HTMRegionArray:
+        for level in self.regionArray:
             print "Level = %s" % i
             i += 1
             level.spatialTemporal()

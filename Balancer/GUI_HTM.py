@@ -233,7 +233,7 @@ class HTMInput(QtGui.QGraphicsView):
 
     def drawColumnInputs(self, pos_x, pos_y):
         #print "Selected pos_x = %s pos_y = %s" % (pos_x, pos_y)
-        column = self.htm.HTMRegionArray[self.level].layerArray[self.layer].columns[pos_y][pos_x]
+        column = self.htm.regionArray[self.level].layerArray[self.layer].columns[pos_y][pos_x]
         print "     overlap = %s" % column.overlap
         red = QtGui.QColor(0xFF, 0, 0, 0xFF)
         transpBlue = QtGui.QColor(0, 0, 0xFF, 0x30)
@@ -248,11 +248,11 @@ class HTMInput(QtGui.QGraphicsView):
             inputConnected = False
             #brush = QtGui.QBrush(transpBlue)   # Have to create a brush with a color
             # Check each synapse and draw the connected columns
-            for syn in self.htm.HTMRegionArray[self.level].layerArray[self.layer].columns[pos_y][pos_x].connectedSynapses:
+            for syn in self.htm.regionArray[self.level].layerArray[self.layer].columns[pos_y][pos_x].connectedSynapses:
                 if syn.pos_x == col.pos_x and syn.pos_y == col.pos_y:
                     print "     syn x, y= %s,%s Permanence = %s" % (col.pos_x, col.pos_y, syn.permanence)
                     inputConnected = True
-            value = self.htm.HTMRegionArray[self.level].layerArray[self.layer].Input[col.pos_y][col.pos_x]
+            value = self.htm.regionArray[self.level].layerArray[self.layer].Input[col.pos_y][col.pos_x]
             #color = darkGreen
             if (value == 0 and inputConnected is False):
                 color = red
@@ -279,16 +279,16 @@ class HTMInput(QtGui.QGraphicsView):
         # Clear the cellItems and columnItems arrays
         self.cellItems = []   # Stores all the cell items in the scene
         self.columnItems = []  # Stores all the column items in the scene
-        self.rows = len(self.htm.HTMRegionArray[self.level].layerArray[self.layer].Input)
-        self.cols = len(self.htm.HTMRegionArray[self.level].layerArray[self.layer].Input[0])
+        self.rows = len(self.htm.regionArray[self.level].layerArray[self.layer].Input)
+        self.cols = len(self.htm.regionArray[self.level].layerArray[self.layer].Input[0])
         pen = QtGui.QPen(QtGui.QColor(QtCore.Qt.black))
         brush = QtGui.QBrush(QtCore.Qt.red)
         print "Input rows = %s Input cols = %s" % (self.rows, self.cols)
-        #print self.htm.HTMRegionArray[self.level].layerArray[self.layer].Input
+        #print self.htm.regionArray[self.level].layerArray[self.layer].Input
         for x in range(self.cols):
                 for y in range(self.rows):
                     #print "x = %s y = %s" % (x, y)
-                    value = self.htm.HTMRegionArray[self.level].layerArray[self.layer].Input[y][x]
+                    value = self.htm.regionArray[self.level].layerArray[self.layer].Input[y][x]
                     if value is False:
                             brush.setColor(QtCore.Qt.red)
                     if value is True:
@@ -306,7 +306,7 @@ class HTMInput(QtGui.QGraphicsView):
             brush.setStyle(QtCore.Qt.SolidPattern)
             pos_x = self.columnItems[i].pos_x
             pos_y = self.columnItems[i].pos_y
-            value = self.htm.HTMRegionArray[self.level].layerArray[self.layer].Input[pos_y][pos_x]
+            value = self.htm.regionArray[self.level].layerArray[self.layer].Input[pos_y][pos_x]
             if value == 0:
                     brush.setColor(QtCore.Qt.red)
                     self.columnItems[i].setBrush(brush)
@@ -429,7 +429,7 @@ class HTMGridViewer(QtGui.QGraphicsView):
 
     def updateInfo(self):
         if self.infoItem is not None:
-            timeStep = self.htm.HTMRegionArray[self.level].layerArray[self.layer].timeStep
+            timeStep = self.htm.regionArray[self.level].layerArray[self.layer].timeStep
             self.infoItem.updateInfo("""layer = %s level = %s time = %s"""
                                      % (self.layer,
                                         self.level,
@@ -446,7 +446,7 @@ class HTMGridViewer(QtGui.QGraphicsView):
         # Clear the cellItems and columnItems arrays
         self.cellItems = []   # Stores all the cell items in the scene
         self.columnItems = []  # Stores all the column items in the scene
-        layer = self.htm.HTMRegionArray[self.level].layerArray[self.layer]
+        layer = self.htm.regionArray[self.level].layerArray[self.layer]
         rows = layer.height
         cols = layer.width
         pen = QtGui.QPen(QtGui.QColor(QtCore.Qt.black))
@@ -515,7 +515,7 @@ class HTMGridViewer(QtGui.QGraphicsView):
             column_pos_y = self.columnItems[i].pos_y
             brush = QtGui.QBrush(transpBlue)   # Have to create a brush with a color
             # Check each synapse and draw the connected columns
-            for syn in self.htm.HTMRegionArray[self.level].layerArray[self.layer].columns[pos_y][pos_x].connectedSynapses:
+            for syn in self.htm.regionArray[self.level].layerArray[self.layer].columns[pos_y][pos_x].connectedSynapses:
                 if syn.pos_x == column_pos_x and syn.pos_y == column_pos_y:
                     #print "     syn x, y= %s,%s Permanence = %s" % (column_pos_x, column_pos_y, syn.permanence)
                     brush.setColor(darkGreen)
@@ -539,12 +539,12 @@ class HTMGridViewer(QtGui.QGraphicsView):
             cell_pos_x = self.cellItems[i].pos_x
             cell_pos_y = self.cellItems[i].pos_y
             cell_cell = self.cellItems[i].cell
-            column = self.htm.HTMRegionArray[self.level].layerArray[self.layer].columns[pos_y][pos_x]
+            column = self.htm.regionArray[self.level].layerArray[self.layer].columns[pos_y][pos_x]
             brush = QtGui.QBrush(transpBlue)   # Have to create a brush with a color
             # Check each synapse and draw the connected cells.
             for syn in column.cells[cell].segments[segment].synapses:
                 # Save the synapses end cells active times so they can be displayed.
-                synEndColumn = self.htm.HTMRegionArray[self.level].layerArray[self.layer].columns[syn.pos_y][syn.pos_x]
+                synEndColumn = self.htm.regionArray[self.level].layerArray[self.layer].columns[syn.pos_y][syn.pos_x]
                 if syn.pos_x == cell_pos_x and syn.pos_y == cell_pos_y and syn.cell == cell_cell:
                     print "     syn x,y,cell= %s,%s,%s Permanence = %s, active times = %s" % (cell_pos_x, cell_pos_y, cell_cell, syn.permanence, synEndColumn.activeStateArray[syn.cell])
                     brush.setColor(blue)
@@ -553,8 +553,8 @@ class HTMGridViewer(QtGui.QGraphicsView):
 
     def drawColumnInhib(self, pos_x, pos_y):
         # Draw the columns that are inhibited by the selected column at position x,y
-        column = self.htm.HTMRegionArray[self.level].layerArray[self.layer].columns[pos_y][pos_x]
-        htmlayer = self.htm.HTMRegionArray[self.level].layerArray[self.layer]
+        column = self.htm.regionArray[self.level].layerArray[self.layer].columns[pos_y][pos_x]
+        htmlayer = self.htm.regionArray[self.level].layerArray[self.layer]
         print " layers averageReceptiveFeildSize = %s" % (htmlayer.averageReceptiveFeildSize())
         red = QtGui.QColor(0xFF, 0, 0, 0xFF)
         transpBlue = QtGui.QColor(0, 0, 0xFF, 0x30)
@@ -579,7 +579,7 @@ class HTMGridViewer(QtGui.QGraphicsView):
                     colItem.setBrush(brush)
 
     def updateGrid(self):
-        layer = self.htm.HTMRegionArray[self.level].layerArray[self.layer]
+        layer = self.htm.regionArray[self.level].layerArray[self.layer]
         for i in range(len(self.columnItems)):
             brush = QtGui.QBrush(QtCore.Qt.green)
             brush.setStyle(QtCore.Qt.SolidPattern)
@@ -600,7 +600,7 @@ class HTMGridViewer(QtGui.QGraphicsView):
 
     def updateCells(self):
         # Redraw the cells.
-        timeStep = self.htm.HTMRegionArray[self.level].layerArray[self.layer].timeStep
+        timeStep = self.htm.regionArray[self.level].layerArray[self.layer].timeStep
         print " current levels TimeStep=%s" % (timeStep)
         transp = QtGui.QColor(0, 0, 0, 0)
         pen = QtGui.QPen(transp, 0, QtCore.Qt.SolidLine)
@@ -617,17 +617,17 @@ class HTMGridViewer(QtGui.QGraphicsView):
             cell = self.cellItems[i].cell
             brush = QtGui.QBrush(transp)  # Make the non existent cells faint
             if self.showActiveCells is True:
-                if int(self.htm.HTMRegionArray[self.level].layerArray[self.layer].columns[pos_y][pos_x].activeStateArray[cell,0]) == timeStep:
+                if int(self.htm.regionArray[self.level].layerArray[self.layer].columns[pos_y][pos_x].activeStateArray[cell,0]) == timeStep:
                     brush.setColor(blue)
                 else:
                     brush.setColor(transpBlue)
             if self.showPredictCells is True:
-                if int(self.htm.HTMRegionArray[self.level].layerArray[self.layer].columns[pos_y][pos_x].predictiveStateArray[cell,0]) == timeStep:
+                if int(self.htm.regionArray[self.level].layerArray[self.layer].columns[pos_y][pos_x].predictiveStateArray[cell,0]) == timeStep:
                     brush.setColor(black)
                 else:
                     brush.setColor(transpBlue)
             if self.showLearnCells is True:
-                if int(self.htm.HTMRegionArray[self.level].layerArray[self.layer].columns[pos_y][pos_x].learnStateArray[cell,0]) == timeStep:
+                if int(self.htm.regionArray[self.level].layerArray[self.layer].columns[pos_y][pos_x].learnStateArray[cell,0]) == timeStep:
                     brush.setColor(darkGreen)
                 else:
                     brush.setColor(transpBlue)
@@ -661,7 +661,7 @@ class HTMGridViewer(QtGui.QGraphicsView):
             if item.__class__.__name__ == "HTMCell":
                 print "cell"
                 print "pos_x,pos_y,cell = %s,%s,%s" % (item.pos_x, item.pos_y, item.cell)
-                numSegments = len(self.htm.HTMRegionArray[self.level].layerArray[self.layer].columns[item.pos_y][item.pos_x].cells[item.cell].segments)
+                numSegments = len(self.htm.regionArray[self.level].layerArray[self.layer].columns[item.pos_y][item.pos_x].cells[item.cell].segments)
                 self.selectedItem = item
                 item_pos = item.pos()
                 popup_pos_x = item_pos.x()+self.x()
@@ -740,7 +740,7 @@ class HTMGridViewer(QtGui.QGraphicsView):
         # Toggle through the differnt regions (layers) in the HTM
         elif event.key() == QtCore.Qt.Key_R:
             self.layer = self.layer + 1
-            if self.layer >= self.htm.HTMRegionArray[self.level].numLayers:
+            if self.layer >= self.htm.regionArray[self.level].numLayers:
                 self.layer = 0
             #print "Layer %s" % layer
             #Update the HTM veiwer
@@ -782,18 +782,18 @@ class HTMNetwork(QtGui.QWidget):
 
         # Use the specified HTM to set local variables
         self.htm = HTMObject
-        self.iteration = self.htm.HTMRegionArray[0].layerArray[0].timeStep
+        self.iteration = self.htm.regionArray[0].layerArray[0].timeStep
         self.origIteration = self.iteration  # Stores the iteration for the previous saved HTM
         self.numLevels = self.htm.numLevels  # The number of levels.
         self.numCells = self.htm.cellsPerColumn  # The number of cells in a column.
         self.width = self.htm.width  # The width of the columns in the HTM 2D array
         self.height = self.htm.height  # The height of the columns in the HTM 2D array
-        self.inputWidth = len(self.htm.HTMRegionArray[0].layerArray[0].Input[0])*self.numCells
-        self.inputHeight = len(self.htm.HTMRegionArray[0].layerArray[0].Input)
+        self.inputWidth = len(self.htm.regionArray[0].layerArray[0].Input[0])*self.numCells
+        self.inputHeight = len(self.htm.regionArray[0].layerArray[0].Input)
         self.InputCreator = InputCreator
 
         # get the number of layers in a level so each layer can be displayed
-        self.numLayers = self.htm.HTMRegionArray[0].numLayers
+        self.numLayers = self.htm.regionArray[0].numLayers
 
         # Create a thalamus class
         # The width of the the thalamus should match the width of the input grid.
@@ -928,7 +928,7 @@ class HTMNetwork(QtGui.QWidget):
         self.setLayerAction = QtGui.QWidgetAction(self.btn15)
         # Use the number of layers from the first region. This will
         # only work if all regions have the same number of layers.
-        self.layerList = layerPopup(self.htm.HTMRegionArray[0].numLayers)
+        self.layerList = layerPopup(self.htm.regionArray[0].numLayers)
         self.setLayerAction.setDefaultWidget(self.layerList)
         self.btn15.menu().addAction(self.setLayerAction)
         # Create and connect a Slot to the signal from the check box
@@ -1079,7 +1079,7 @@ class HTMNetwork(QtGui.QWidget):
     def loadHTM(self):
         # We need to make sure the GUI points to the correct object
         origHTM = self.htm.loadRegions()
-        self.htm.HTMRegionArray = origHTM
+        self.htm.regionArray = origHTM
         self.iteration = self.origIteration
         for i in range(len(self.HTMNetworkGrid)):
             self.HTMNetworkGrid[i].iteration = self.origIteration

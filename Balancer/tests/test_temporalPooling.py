@@ -72,11 +72,14 @@ class test_TemporalPooling:
         #self.htmlayer = HTMLayer(self.inputs[0], self.width, self.height, self.cellsPerColumn)
         self.htm = HTM(self.numLevels, self.InputCreator.createSimGrid(), self.width, self.height, self.cellsPerColumn)
 
+
         app = QtGui.QApplication(sys.argv)
         self.htmGui = GUI_HTM.HTMGui(self.htm, self.InputCreator)
         sys.exit(app.exec_())
 
-
+    def setupParameters(self):
+        # Setup some parameters of the HTM
+        self.htm.regionArray[0].layerArray[1].desiredLocalActivity = 4
 
     def test_case1(self):
         pass

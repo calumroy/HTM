@@ -382,7 +382,7 @@ class HTMLayer:
                 if len(c.activeDutyCycleArray) > 0:
                     self.averageReceptiveFeildSizeArray = np.append(self.averageReceptiveFeildSizeArray,
                                                                     len(c.connectedSynapses))
-        print "avg feild size = %s, length of feild arr = %s " %(np.average(self.averageReceptiveFeildSizeArray),len(self.averageReceptiveFeildSizeArray))
+        #print "avg feild size = %s, length of feild arr = %s " %(np.average(self.averageReceptiveFeildSizeArray),len(self.averageReceptiveFeildSizeArray))
         #Returns the radius of the average receptive feild size
         # The radius is actually of a square so its half the sqrt of the squares area.
         return int(math.sqrt(np.average(self.averageReceptiveFeildSizeArray))/2)
@@ -1284,7 +1284,7 @@ class HTM:
         self.width = columnArrayWidth
         self.height = columnArrayHeight
         self.cellsPerColumn = cellsPerColumn
-        self.HTMRegionArray = np.array([], dtype=object)
+        self.regionArray = np.array([], dtype=object)
 
         ### Setup the inputs and outputs between levels
         # The lowest region input needs to make room for the command
@@ -1293,20 +1293,20 @@ class HTM:
                                     for j in range(self.height)])
         newInput = self.joinInputArrays(commandFeedback, input)
         # Setup the new htm region with the input and size parameters defined.
-        self.HTMRegionArray = np.append(self.HTMRegionArray,
+        self.regionArray = np.append(self.regionArray,
                                         HTMRegion(newInput, self.width, self.height,
                                                   self.cellsPerColumn))
         # The higher levels get inputs from the lower levels.
         #highestLevel = self.numLevels-1
         for i in range(1, numLevels):
-            lowerOutput = self.HTMRegionArray[i-1].regionOutput()
+            lowerOutput = self.regionArray[i-1].regionOutput()
             newInput = self.joinInputArrays(commandFeedback, lowerOutput)
-            self.HTMRegionArray = np.append(self.HTMRegionArray,
+            self.regionArray = np.append(self.regionArray,
                                             HTMRegion(newInput, self.width, self.height,
                                                       self.cellsPerColumn))
 
         # create a place to store layers so they can be reverted.
-        #self.HTMOriginal = copy.deepcopy(self.HTMRegionArray)
+        #self.HTMOriginal = copy.deepcopy(self.regionArray)
         self.HTMOriginal = None
 
     def updateThalamusComm(self, newCommand):
@@ -1316,18 +1316,18 @@ class HTM:
     def saveRegions(self):
         # Save the HTM so it can be reloaded.
         print "\n    SAVE COMMAND SYN "
-        self.HTMOriginal = copy.deepcopy(self.HTMRegionArray)
+        self.HTMOriginal = copy.deepcopy(self.regionArray)
 
     def loadRegions(self):
         # Save the synases for the command area so they can be reloaded.
         if self.HTMOriginal is not None:
             print "\n    LOAD COMMAND SYN "
-            self.HTMRegionArray = self.HTMOriginal
+            self.regionArray = self.HTMOriginal
             # Need create a new deepcopy of the original
-            self.HTMOriginal = copy.deepcopy(self.HTMRegionArray)
+            self.HTMOriginal = copy.deepcopy(self.regionArray)
         # return the pointer to the HTM so the GUI can use it to point
         # to the correct object.
-        return self.HTMRegionArray
+        return self.regionArray
 
     def updateHTMInput(self, input):
         # Update the input and outputs of the levels.
@@ -1349,7 +1349,7 @@ class HTM:
             # feedback command from the thalamus.
             commFeedbackLev1 = self.thalamusCommand
         newInput = self.joinInputArrays(commFeedbackLev1, input)
-        self.HTMRegionArray[0].updateRegionInput(newInput)
+        self.regionArray[0].updateRegionInput(newInput)
 
         ### HIGHER LEVELS UPDATE
         ##########################################################################
@@ -1359,7 +1359,7 @@ class HTM:
             lowerLevel = i-1
             higherLevel = i+1
             # Set the output of the lower level
-            lowerLevelOutput = self.HTMRegionArray[lowerLevel].regionOutput()
+            lowerLevelOutput = self.regionArray[lowerLevel].regionOutput()
             # Check to make sure this isn't the highest level
             if higherLevel < self.numLevels:
                 # Get the feedback command from the higher level
@@ -1371,12 +1371,12 @@ class HTM:
 
             # Update the newInput for the current level in the HTM
             newInput = self.joinInputArrays(commFeedbackLevN, lowerLevelOutput)
-            self.HTMRegionArray[i].updateRegionInput(newInput)
+            self.regionArray[i].updateRegionInput(newInput)
 
     def levelCommandOutput(self, level):
         # Return the command output of the desired level.
-        return self.HTMRegionArray[level].regionCommandOutput()
-        #return self.HTMRegionArray[level].regionOutput()
+        return self.regionArray[level].regionCommandOutput()
+        #return self.regionArray[level].regionOutput()
 
     #@do_cprofile  # For profiling
     def spatialTemporal(self, input):
@@ -1387,7 +1387,7 @@ class HTM:
         # Update the current levels input with the new input
         self.updateHTMInput(input)
         i = 0
-        for level in self.HTMRegionArray:
+        for level in self.regionArray:
             print "Level = %s" % i
             i += 1
             level.spatialTemporal()

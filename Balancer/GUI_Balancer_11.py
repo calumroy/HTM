@@ -240,7 +240,7 @@ class HTMGridViewer(QtGui.QGraphicsView):
         brush = QtGui.QBrush(pen.color().darker(150))
         for x in range(cols):
                 for y in range(rows):
-                    value = self.htm.HTMRegionArray[self.level].layerArray[self.layer].columns[y][x].activeState
+                    value = self.htm.regionArray[self.level].layerArray[self.layer].columns[y][x].activeState
                     if value == False:
                             brush.setColor(QtCore.Qt.red)
                     if value == True:
@@ -296,7 +296,7 @@ class HTMGridViewer(QtGui.QGraphicsView):
             column_pos_y=self.columnItems[i].pos_y
             brush = QtGui.QBrush(transpBlue)   # Have to create a brush with a color
             # Check each synapse and draw the connected columns
-            for syn in self.htm.HTMRegionArray[self.level].layerArray[self.layer].columns[pos_y][pos_x].connectedSynapses:
+            for syn in self.htm.regionArray[self.level].layerArray[self.layer].columns[pos_y][pos_x].connectedSynapses:
                 if syn.pos_x==column_pos_x and syn.pos_y==column_pos_y:
                     print "     syn x,y= %s,%s Permanence = %s"%(column_pos_x,column_pos_y,syn.permanence)
                     brush.setColor(darkGreen);
@@ -320,7 +320,7 @@ class HTMGridViewer(QtGui.QGraphicsView):
             cell_pos_x=self.cellItems[i].pos_x
             cell_pos_y=self.cellItems[i].pos_y
             cell_cell=self.cellItems[i].cell
-            column = self.htm.HTMRegionArray[self.level].layerArray[self.layer].columns[pos_y][pos_x]
+            column = self.htm.regionArray[self.level].layerArray[self.layer].columns[pos_y][pos_x]
             brush = QtGui.QBrush(transpBlue)   # Have to create a brush with a color
             # Check each synapse and draw the connected cells
             for syn in column.cells[cell].segments[segment].synapses:
@@ -337,7 +337,7 @@ class HTMGridViewer(QtGui.QGraphicsView):
             brush.setStyle(QtCore.Qt.SolidPattern)
             pos_x=self.columnItems[i].pos_x
             pos_y=self.columnItems[i].pos_y
-            value = self.htm.HTMRegionArray[self.level].layerArray[self.layer].columns[pos_y][pos_x].activeState
+            value = self.htm.regionArray[self.level].layerArray[self.layer].columns[pos_y][pos_x].activeState
             if value == 0:
                     brush.setColor(QtCore.Qt.red)
                     self.columnItems[i].setBrush(brush)
@@ -349,7 +349,7 @@ class HTMGridViewer(QtGui.QGraphicsView):
 
     def updateCells(self):
         # Redraw the cells.
-        timeStep=self.htm.HTMRegionArray[self.level].layerArray[self.layer].timeStep
+        timeStep=self.htm.regionArray[self.level].layerArray[self.layer].timeStep
         print " current levels TimeStep=%s"%(timeStep)
         transp = QtGui.QColor(0, 0, 0, 0)
         pen = QtGui.QPen(transp, 0, QtCore.Qt.SolidLine)
@@ -366,17 +366,17 @@ class HTMGridViewer(QtGui.QGraphicsView):
             cell=self.cellItems[i].cell
             brush = QtGui.QBrush(transp) # Make the non existent cells faint
             if self.showActiveCells==True:
-                if int(self.htm.HTMRegionArray[self.level].layerArray[self.layer].columns[pos_y][pos_x].activeStateArray[cell,0]) == timeStep:
+                if int(self.htm.regionArray[self.level].layerArray[self.layer].columns[pos_y][pos_x].activeStateArray[cell,0]) == timeStep:
                     brush.setColor(blue);
                 else:
                     brush.setColor(transpBlue);
             if self.showPredictCells==True:
-                if int(self.htm.HTMRegionArray[self.level].layerArray[self.layer].columns[pos_y][pos_x].predictiveStateArray[cell,0]) == timeStep:
+                if int(self.htm.regionArray[self.level].layerArray[self.layer].columns[pos_y][pos_x].predictiveStateArray[cell,0]) == timeStep:
                     brush.setColor(black);
                 else:
                     brush.setColor(transpBlue);
             if self.showLearnCells==True:
-                if int(self.htm.HTMRegionArray[self.level].layerArray[self.layer].columns[pos_y][pos_x].learnStateArray[cell,0]) == timeStep:
+                if int(self.htm.regionArray[self.level].layerArray[self.layer].columns[pos_y][pos_x].learnStateArray[cell,0]) == timeStep:
                     brush.setColor(darkGreen);
                 else:
                     brush.setColor(transpBlue);
@@ -397,7 +397,7 @@ class HTMGridViewer(QtGui.QGraphicsView):
             if item.__class__.__name__ == "HTMCell":
                 print "cell"
                 print "pos_x,pos_y,cell = %s,%s,%s"%(item.pos_x,item.pos_y,item.cell)
-                numSegments = len(self.htm.HTMRegionArray[self.level].layerArray[self.layer].columns[item.pos_y][item.pos_x].cells[item.cell].segments)
+                numSegments = len(self.htm.regionArray[self.level].layerArray[self.layer].columns[item.pos_y][item.pos_x].cells[item.cell].segments)
                 self.selectedItem = item
                 item_pos=item.pos()
                 popup_pos_x=item_pos.x()+self.x()
@@ -477,18 +477,18 @@ class HTMGridViewer(QtGui.QGraphicsView):
         self.scale(factor, factor)
 
     def step(self,input,level):
-        self.htm.HTMRegionArray[level].spatialTemporal(input,self.layer)
+        self.htm.regionArray[level].spatialTemporal(input,self.layer)
 
     def predictedCommand(self,level):
         # Return the predicted command as an array input.
-        numberCols = len(self.htm.HTMRegionArray[level].layerArray[self.layer].columns[0])
-        numberRows = len(self.htm.HTMRegionArray[level].layerArray[self.layer].columns)
+        numberCols = len(self.htm.regionArray[level].layerArray[self.layer].columns[0])
+        numberRows = len(self.htm.regionArray[level].layerArray[self.layer].columns)
         commandGrid = np.array([[0 for c in range(numberCols)] for r in range(numberRows)])
-        htmLevel = self.htm.HTMRegionArray[level]
+        htmLevel = self.htm.regionArray[level]
         currentTime=htmLevel.layerArray[self.layer].timeStep
         # only look at the cells in the command space.
-        for k in range(self.htm.commandRow,len(self.htm.HTMRegionArray[level].layerArray[self.layer].columns)):
-            for m in range(len(self.htm.HTMRegionArray[level].layerArray[self.layer].columns[k])):
+        for k in range(self.htm.commandRow,len(self.htm.regionArray[level].layerArray[self.layer].columns)):
+            for m in range(len(self.htm.regionArray[level].layerArray[self.layer].columns[k])):
                 c = htmLevel.layerArray[self.layer].columns[k][m]
                 for i in range(len(c.cells)):
                     # Set the output to true if a cell is in predictive stat for a particular column for the current timeStep
@@ -539,10 +539,10 @@ class HTMGridViewer(QtGui.QGraphicsView):
         # Return whether the new input contains mostly active cells from non bursting columns.
         # If the number of non bursting cells is larger than the predefined threshold
         # then the previous command is said to have successfully produced a predicted result.
-        numberRows = len(self.htm.HTMRegionArray[level].layerArray[self.layer].columns)
+        numberRows = len(self.htm.regionArray[level].layerArray[self.layer].columns)
         notBurstingScore = 0
         endRow = (numberRows - self.htm.commandRow) # Only search through the new input space not the feedback or command space.
-        htmLevel = self.htm.HTMRegionArray[level]
+        htmLevel = self.htm.regionArray[level]
         currentTime=htmLevel.layerArray[self.layer].timeStep
         # only look at the cells in the input space.
         for col in htmLevel.layerArray[self.layer].activeColumns:
@@ -561,7 +561,7 @@ class HTMGridViewer(QtGui.QGraphicsView):
 
     def higherCommand(self,level):
         # Return the predicted command from the higher level.
-        htmLevel = self.htm.HTMRegionArray[level]
+        htmLevel = self.htm.regionArray[level]
         # The higher levels command space is the left half of the command space.
         fbCommandCols=self.cols/2
         # Create an empty array to store the feedback command
@@ -583,7 +583,7 @@ class HTMGridViewer(QtGui.QGraphicsView):
 
     def inSpaceOutput(self,level):
         # Return the active columns of the input space.
-        return self.htm.HTMRegionArray[level].layerArray[self.layer].inSpaceOutput
+        return self.htm.regionArray[level].layerArray[self.layer].inSpaceOutput
 
 
 class HTMNetwork(QtGui.QWidget):
@@ -830,7 +830,7 @@ class HTMNetwork(QtGui.QWidget):
     def loadHTM(self):
         # We need to make sure the GUI points to the correct object
         origHTM = self.HTMNetworkGrid.htm.loadRegions()
-        self.HTMNetworkGrid.htm.HTMRegionArray = origHTM
+        self.HTMNetworkGrid.htm.regionArray = origHTM
         self.iteration = self.origIteration
         self.HTMNetworkGrid.iteration = self.origIteration
         print "loaded HTM layers"
