@@ -43,9 +43,6 @@ class Synapse:
             # The end of the synapse. The start is at a column or cells position
             self.pos_y = pos_y
             self.permanence = 0.4
-            #If the permanence value for a synapse is greater than this
-            #value, it is said to be connected.
-            self.connectPermanence = 0.3
 
 
 class Segment:
@@ -150,7 +147,7 @@ class Column:
         self.connectedSynapses = np.array([], dtype=object)
         connSyn = []
         for i in range(len(self.potentialSynapses)):
-            if self.potentialSynapses[i].permanence > self.potentialSynapses[i].connectPermanence:
+            if self.potentialSynapses[i].permanence > self.connectPermanence:
                 connSyn.append(self.potentialSynapses[i])
         self.connectedSynapses = np.append(self.connectedSynapses, connSyn)
 
@@ -179,6 +176,8 @@ class HTMLayer:
         # How many cells within the inhibition radius are active
         self.desiredLocalActivity = 2
         self.cellsPerColumn = cellsPerColumn
+        # If the permanence value for a synapse is greater than this
+        # value, it is said to be connected.
         self.connectPermanence = 0.3
         # Should be smaller than activationThreshold
         self.minThreshold = 4
@@ -432,7 +431,7 @@ class HTMLayer:
         # This is a list of the indicies of the
         # active synapses that will be deleted
         for syn in c.cells[i].segments[segIndex].synapses:
-            if syn.permanence < syn.connectPermanence:
+            if syn.permanence < self.connectPermanence:
                 deleteActiveSynapses.append(syn)
         for d in deleteActiveSynapses:
             c.cells[i].segments[segIndex].synapses.remove(d)
@@ -604,7 +603,7 @@ class HTMLayer:
         count = 0
         for i in range(len(s.synapses)):
             # Only check synapses that have a large enough permanence
-            if s.synapses[i].permanence > s.synapses[i].connectPermanence:
+            if s.synapses[i].permanence > self.connectPermanence:
                 x = s.synapses[i].pos_x
                 y = s.synapses[i].pos_y
                 cell = s.synapses[i].cell
