@@ -142,15 +142,6 @@ class Column:
         # An array storing the last timeSteps when the column was active.
         self.columnActive = np.array([0 for i in range(self.historyLength)])
 
-    def updateConnectedSynapses(self):
-        # Update both the connectedSynapses array.
-        self.connectedSynapses = np.array([], dtype=object)
-        connSyn = []
-        for i in range(len(self.potentialSynapses)):
-            if self.potentialSynapses[i].permanence > self.connectPermanence:
-                connSyn.append(self.potentialSynapses[i])
-        self.connectedSynapses = np.append(self.connectedSynapses, connSyn)
-
     def updateBoost(self):
         if self.activeDutyCycle < self.minDutyCycle:
             self.boost = self.boost+self.boostStep
@@ -278,6 +269,25 @@ class HTMLayer:
                     # If it equals the current time then the cell is active now.
                     if c.activeStateArray[i][0] == self.timeStep:
                         self.output[y][x*self.cellsPerColumn+i] = 1
+
+    def updateConnectedSynapses(self, c):
+        # Update both the connectedSynapses array.
+        c.connectedSynapses = np.array([], dtype=object)
+        connSyn = []
+        for i in range(len(c.potentialSynapses)):
+            if c.potentialSynapses[i].permanence > self.connectPermanence:
+                connSyn.append(c.potentialSynapses[i])
+        c.connectedSynapses = np.append(c.connectedSynapses, connSyn)
+
+    def changeColsPotRadius(self, newPotentialRadius):
+        # Change the potential radius of all the columns
+        # This means the potential synapse list for all the
+        # columns needs to be updated as well.
+        for k in range(len(self.columns)):
+            for c in self.columns[k]:
+                c.potentialRadius = newPotentialRadius
+                # Update the potential synapses since the potential radius has changed
+                self.updatePotentialSynapses(c)
 
     def updatePotentialSynapses(self, c):
         # Update the locations of the potential synapses for column c.
@@ -883,7 +893,7 @@ class HTMLayer:
         for i in range(len(self.columns)):
             for c in self.columns[i]:
                 c.overlap = 0.0
-                c.updateConnectedSynapses()
+                self.updateConnectedSynapses(c)
 
                 # Calculate the overlap
                 for s in c.connectedSynapses:
@@ -1218,11 +1228,7 @@ class HTMRegion:
 
                 potentialRadius = lowerPotentialRadius+int(lowerCellsperColumn)
                 #self.layerArray[i].desiredLocalActivity = 4
-                for k in range(len(self.layerArray[i].columns)):
-                    for c in self.layerArray[i].columns[k]:
-                        c.potentialRadius = potentialRadius
-                        # Update the potential synapses since the potential radius has changed
-                        self.layerArray[i].updatePotentialSynapses(c)
+                self.layerArray[i].changeColsPotRadius(potentialRadius)
 
     def updateRegionInput(self, input):
         # Update the input and outputs of the layers.

@@ -83,6 +83,7 @@ class test_TemporalPooling:
         # Setup some parameters of the HTM
         self.htm.regionArray[0].layerArray[1].desiredLocalActivity = 4
         self.htm.regionArray[1].layerArray[0].desiredLocalActivity = 4
+        self.htm.regionArray[1].layerArray[0].changeColsPotRadius(4)
         self.htm.regionArray[1].layerArray[1].desiredLocalActivity = 4
 
     def test_case1(self):
