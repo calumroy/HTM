@@ -89,6 +89,11 @@ class Column:
         self.overlap = 0.0
         self.minOverlap = 3
         self.boost = 1
+        # A time flag to indicate the column should stop temporally pooling
+        # This is set to the current time when a column has a poor overlap value
+        # but it is temporally pooling. On the next time step if the overlap is
+        # still poor the column should not keep temporally pooling (being activated).
+        self.stopTempPooling = -1
         # The max distance a column can inhibit another column.
         #This parameters value is automatically reset.
         self.inhibitionRadius = 1
@@ -864,9 +869,23 @@ class HTMLayer:
         # Add the potenial (2*radius+1)^2 as this is the maximum
         # overlap a column could have. This guarantees the column will
         # win later when inhibition occurs.
-        for s in c.potentialSynapses:
-            inputActive = self.Input[s.pos_y][s.pos_x]
-            c.overlap = c.overlap + inputActive
+
+        if c.overlap >= c.minOverlap:
+            # The col has a good overlap value and should allow temp pooling
+            # to continue on the next time step. Set the time flag to not the
+            # current time to allow this (we'll use zero).
+            self.stopTempPooling = 0
+
+        # If the time flag for temporal pooling was not set one time step ago
+        # the we should perform temporal pooling.
+        if self.stopTempPooling != (self.timeStep - 1):
+            if c.overlap < c.minOverlap:
+                # The current col has a poor overlap and should stop temporal
+                # pooling on the timestep.
+                self.stopTempPooling = self.timeStep
+            for s in c.potentialSynapses:
+                inputActive = self.Input[s.pos_y][s.pos_x]
+                c.overlap = c.overlap + inputActive
 
         # If more potential synapses then the min overlap
         # are active then set the overlap to the maximum value possible.
@@ -1194,7 +1213,7 @@ class HTMLayer:
 
 
 class HTMRegion:
-    def __init__(self, input, columnArrayWidth, columnArrayHeight, cellsPerColumn):
+    def __init__(self, input, columnArrayWidth, columnArrayHeight, cellsPerColumn, numlayers = 2):
         # The HTMRegion is an object holding multiple HTMLayers. The region consists of
         # simulated cortex layers.
         self.quit = False
@@ -1202,7 +1221,7 @@ class HTMRegion:
         self.width = columnArrayWidth
         self.height = columnArrayHeight
         self.cellsPerColumn = cellsPerColumn
-        self.numLayers = 2  # The number of HTM layer that make up a region.
+        self.numLayers = numlayers  # The number of HTM layers that make up a region.
         self.layerArray = np.array([], dtype=object)
 
         # Set up the inputs to the HTM layers.
@@ -1277,7 +1296,7 @@ class HTMRegion:
 class HTM:
     #@do_cprofile  # For profiling
     def __init__(self, numLevels, input, columnArrayWidth,
-                 columnArrayHeight, cellsPerColumn):
+                 columnArrayHeight, cellsPerColumn, numLayers = 2):
         self.quit = False
         # Create a thalamus command input to store thalamus commands.
         # Used to direct the HTM network.
@@ -1300,7 +1319,7 @@ class HTM:
         # Setup the new htm region with the input and size parameters defined.
         self.regionArray = np.append(self.regionArray,
                                         HTMRegion(newInput, self.width, self.height,
-                                                  self.cellsPerColumn))
+                                                  self.cellsPerColumn, numLayers))
         # The higher levels get inputs from the lower levels.
         #highestLevel = self.numLevels-1
         for i in range(1, numLevels):
@@ -1308,7 +1327,7 @@ class HTM:
             newInput = self.joinInputArrays(commandFeedback, lowerOutput)
             self.regionArray = np.append(self.regionArray,
                                             HTMRegion(newInput, self.width, self.height,
-                                                      self.cellsPerColumn))
+                                                      self.cellsPerColumn, numLayers))
 
         # create a place to store layers so they can be reverted.
         #self.HTMOriginal = copy.deepcopy(self.regionArray)
