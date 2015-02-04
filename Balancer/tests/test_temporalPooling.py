@@ -38,29 +38,77 @@ class simpleVerticalLineInputs:
 
     def createSimGrid(self):
         # Required function for a InputCreator class
-        # Return a new grid
-        newGrid = deepcopy(self.inputs[self.index])
-
+        newGrid = None
         # Add some random noise to the next input
         # The next input is at the self.index
         if self.noise > 0.0:
+            # Return a new grid so the original input is not over written.
+            newGrid = deepcopy(self.inputs[self.index])
+
             for y in range(len(newGrid[0])):
                 for x in range(len(newGrid[y])):
                     if random.random() < self.noise:
                         newGrid[y][x] = 1
-
+        outputGrid = self.inputs[self.index]
+        # Increment the index for next time
         self.index += 1
         if (self.index >= len(self.inputs)):
             self.index = 0
-        return newGrid
+        # If noise was added return the noisy grid.
+        if newGrid is not None:
+            return newGrid
+        else:
+            return outputGrid
+
+
+class measureTemporalPooling:
+    '''
+    The purpose of this class is to measure the amount of temporal pooling
+    occuring across a set of input grids. This means measure the amount that
+    the input grids change by.
+
+    This class stores the input grid it receives.
+    It then uses this to compare to future grid arrays.
+    It creates a running average of how much each successive
+    grid changes from the previous one.
+    '''
+    def __init__(self):
+        self.grid = None
+        # A running average totalling the percent of temporal pooling.
+        self.temporalAverage = 0
+        self.numInputGrids = 0
+
+    def temporalPoolingPercent(self, grid):
+        if self.grid is not None:
+            totalPrevActiveIns = np.sum(self.grid != 0)
+            totalAndGrids = np.sum(np.logical_and(grid != 0, self.grid != 0))
+            percentTemp = float(totalAndGrids) / float(totalPrevActiveIns)
+            #print "         totalAndGrids = %s" % totalAndGrids
+            self.temporalAverage = (float(percentTemp) +
+                                    float(self.temporalAverage*(self.numInputGrids-1)))/float(self.numInputGrids)
+            #print "         percentTemp = %s" % percentTemp
+        self.grid = deepcopy(grid)
+        self.numInputGrids += 1
+        return self.temporalAverage
 
 
 class test_TemporalPooling:
     def setUp(self):
+        '''
+        This test will use multiple regions in one level.
+        This is beacuse the regions ouputs simply pass onto the next,
+        their is no compilcated feedback happening with one level.
+
+        To test the temporal pooling ability of the regions a sequence
+        of inputs are repeatably inputted to the HTM. If after a number
+        of steps the top most layer is only changing slightly compared to
+        the bottom layer then temporal pooling is occuring.
+        '''
         self.width = 10
         self.height = 30
         self.cellsPerColumn = 3
-        self.numLevels = 2
+        self.numLevels = 1
+        self.numLayers = 3
 
         # Create an array of input which will be fed to the htm so it
         # can try to temporarily pool them.
@@ -70,21 +118,54 @@ class test_TemporalPooling:
 
         self.InputCreator = simpleVerticalLineInputs(inputWidth, inputHeight, numInputs)
         #self.htmlayer = HTMLayer(self.inputs[0], self.width, self.height, self.cellsPerColumn)
-        self.htm = HTM(self.numLevels, self.InputCreator.createSimGrid(), self.width, self.height, self.cellsPerColumn)
+        self.htm = HTM(self.numLevels,
+                       self.InputCreator.createSimGrid(),
+                       self.width,
+                       self.height,
+                       self.cellsPerColumn,
+                       self.numLayers)
 
         # Setup some parameters of the HTM
         self.setupParameters()
 
-        app = QtGui.QApplication(sys.argv)
-        self.htmGui = GUI_HTM.HTMGui(self.htm, self.InputCreator)
-        sys.exit(app.exec_())
+        # Measure the temporal pooling
+        self.temporalPooling = measureTemporalPooling()
 
     def setupParameters(self):
         # Setup some parameters of the HTM
         self.htm.regionArray[0].layerArray[1].desiredLocalActivity = 4
-        self.htm.regionArray[1].layerArray[0].desiredLocalActivity = 4
-        self.htm.regionArray[1].layerArray[0].changeColsPotRadius(4)
-        self.htm.regionArray[1].layerArray[1].desiredLocalActivity = 4
+        self.htm.regionArray[0].layerArray[2].desiredLocalActivity = 4
+        #self.htm.regionArray[1].layerArray[0].desiredLocalActivity = 4
+        #self.htm.regionArray[1].layerArray[0].changeColsPotRadius(4)
+        #self.htm.regionArray[1].layerArray[1].desiredLocalActivity = 4
+
+    def step(self):
+        # Update the inputs and run them through the HTM levels just once.
+        # Update the HTM input and run through the
+        newInput = self.InputCreator.createSimGrid()
+        self.htm.spatialTemporal(newInput)
+
+    def nSteps(self, numSteps):
+        print "Running HTM for %s steps" % numSteps
+        for i in range(numSteps):
+            self.step()
 
     def test_case1(self):
-        pass
+        self.nSteps(400)
+
+        # Run through al the inputs once more and calculate the average
+        # amount of temporal pooling.
+        tempPoolPercent = 0
+        # Run through al the inputs twice and find the average temporal pooling percent
+        for i in range(2*self.InputCreator.numInputs):
+            self.step()
+            htmOutput = self.htm.levelCommandOutput(self.numLevels-1)
+            tempPoolPercent = self.temporalPooling.temporalPoolingPercent(htmOutput)
+            print "Temporal pooling percent = %s" % tempPoolPercent
+
+        # app = QtGui.QApplication(sys.argv)
+        # self.htmGui = GUI_HTM.HTMGui(self.htm, self.InputCreator)
+        # sys.exit(app.exec_())
+
+        # More then this percentage of temporal pooling should have occurred
+        assert tempPoolPercent >= 0.8
