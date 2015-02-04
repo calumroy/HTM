@@ -22,6 +22,10 @@ class simpleVerticalLineInputs:
         self.index = 0
         # A variable speifying the amount of noise in the inputs 0 to 1
         self.noise = 0.0
+        # A variable indicating the chance that the next input is a random input from the sequence.
+        # This variable is used to create an input sequence that sometimes changes. It is the probablity
+        # that the next input is the correct input in the sequence
+        self.sequenceProbability = 1.0
 
     def setInputs(self, inputs):
         # Will will create vertical lines in the input that move from side to side.
@@ -49,7 +53,12 @@ class simpleVerticalLineInputs:
                 for x in range(len(newGrid[y])):
                     if random.random() < self.noise:
                         newGrid[y][x] = 1
-        outputGrid = self.inputs[self.index]
+        # Give the next outpu a chance to be an out of sequence input.
+        if (random.random() < self.sequenceProbability):
+            outputGrid = self.inputs[self.index]
+        else:
+            sequenceLen = len(self.inputs)
+            outputGrid = self.inputs[random.randint(0, sequenceLen-1)]
         # Increment the index for next time
         self.index += 1
         if (self.index >= len(self.inputs)):
@@ -151,21 +160,45 @@ class test_TemporalPooling:
             self.step()
 
     def test_case1(self):
+        '''
+        This test is designed to make sure that a minimum amount
+        of temporal pooling occurs for a repeating input sequence.
+        '''
         self.nSteps(400)
 
-        # Run through al the inputs once more and calculate the average
-        # amount of temporal pooling.
         tempPoolPercent = 0
-        # Run through al the inputs twice and find the average temporal pooling percent
+        # Run through all the inputs twice and find the average temporal pooling percent
         for i in range(2*self.InputCreator.numInputs):
             self.step()
             htmOutput = self.htm.levelCommandOutput(self.numLevels-1)
             tempPoolPercent = self.temporalPooling.temporalPoolingPercent(htmOutput)
             print "Temporal pooling percent = %s" % tempPoolPercent
 
-        # app = QtGui.QApplication(sys.argv)
-        # self.htmGui = GUI_HTM.HTMGui(self.htm, self.InputCreator)
-        # sys.exit(app.exec_())
-
         # More then this percentage of temporal pooling should have occurred
         assert tempPoolPercent >= 0.8
+
+    def test_case2(self):
+        '''
+        This test is designed to make sure that not much
+        temporal pooling occurs for an input sequence that is
+        changing constantly.
+        '''
+        self.nSteps(100)
+
+        # Not much temporal pooling should occur for a sequence of random inputs.
+        # Set the probabiltiy that the next input is in sequence to really low
+        self.InputCreator.sequenceProbability = 0.0
+        # Run through all the inputs twice and find the average temporal pooling percent
+        for i in range(2*self.InputCreator.numInputs):
+            self.step()
+            htmOutput = self.htm.levelCommandOutput(self.numLevels-1)
+            tempPoolPercent = self.temporalPooling.temporalPoolingPercent(htmOutput)
+            print "Temporal pooling percent = %s" % tempPoolPercent
+
+        #app = QtGui.QApplication(sys.argv)
+        #self.htmGui = GUI_HTM.HTMGui(self.htm, self.InputCreator)
+        #sys.exit(app.exec_())
+
+        # Less then this percentage of temporal pooling should have occurred
+        assert tempPoolPercent < 0.2
+
