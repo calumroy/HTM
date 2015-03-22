@@ -105,7 +105,7 @@ class test_TemporalPooling:
     def setUp(self):
         '''
         This test will use multiple regions in one level.
-        This is beacuse the regions ouputs simply pass onto the next,
+        This is because the regions ouputs simply pass onto the next,
         their is no compilcated feedback happening with one level.
 
         To test the temporal pooling ability of the regions a sequence
@@ -202,3 +202,62 @@ class test_TemporalPooling:
         # Less then this percentage of temporal pooling should have occurred
         assert tempPoolPercent < 0.2
 
+    def test_case3(self):
+        '''
+        This test is designed to make sure that
+        temporal pooling still occurs even when some inputs are missing
+        '''
+        self.nSteps(100)
+
+        # Run through all the inputs twice and find the average temporal pooling percent
+        for i in range(2*self.InputCreator.numInputs):
+            # Only update every second input
+            if (i % 2 == 0):
+                newInput = self.InputCreator.createSimGrid()
+                newInput = self.InputCreator.createSimGrid()
+            self.htm.spatialTemporal(newInput)
+            htmOutput = self.htm.levelCommandOutput(self.numLevels-1)
+            tempPoolPercent = self.temporalPooling.temporalPoolingPercent(htmOutput)
+            print "Temporal pooling percent = %s" % tempPoolPercent
+
+        #app = QtGui.QApplication(sys.argv)
+        #self.htmGui = GUI_HTM.HTMGui(self.htm, self.InputCreator)
+        #sys.exit(app.exec_())
+
+        # Less then this percentage of temporal pooling should have occurred
+        assert tempPoolPercent > 0.6
+
+    '''
+    TODO add a test case compare the amount of temporal pooling occurring between different layers
+    '''
+    def test_case4(self):
+        '''
+        This test is designed to make sure that temporal pooling
+        increase up the heirarchy of layers.
+        '''
+        self.nSteps(800)
+
+        # Measure the temporal pooling for each layer. This requires
+        # a temporal pooling measuring class per layer.
+        self.temporalPoolingMeasures = [measureTemporalPooling() for i in range(self.numLayers)]
+
+        tempPoolPercent = [0 for i in range(self.numLayers)]
+        # Run through all the inputs twice and find the average temporal pooling percent
+        # for each of the layers
+
+        for i in range(2*self.InputCreator.numInputs):
+            self.step()
+            for layer in range(self.numLayers):
+                gridOutput = self.htm.regionArray[0].layerOutput(layer)
+                tempPoolPercent[layer] = self.temporalPoolingMeasures[layer].temporalPoolingPercent(gridOutput)
+                print "Layer %s Temporal pooling percent = %s" % (layer, tempPoolPercent[layer])
+
+        #app = QtGui.QApplication(sys.argv)
+        #self.htmGui = GUI_HTM.HTMGui(self.htm, self.InputCreator)
+        #sys.exit(app.exec_())
+
+        # Less then this percentage of temporal pooling should have occurred
+        for i in range(len(tempPoolPercent)):
+            print "layer %s temp pooling = %s" % (i, tempPoolPercent[i])
+            if (i > 0):
+                assert tempPoolPercent[i] > tempPoolPercent[i-1]

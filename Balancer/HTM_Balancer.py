@@ -1264,10 +1264,9 @@ class HTMRegion:
         #commandLayerInput = self.layerArray[commandLayer-1].activeCellGrid()
         #self.layerArray[commandLayer].updateInput(commandLayerInput)
 
-    def regionOutput(self):
-        # Return the regions output from its highest layer.
-        highestLayer = self.numLayers-1
-        return self.layerArray[highestLayer].output
+    def layerOutput(self, layer):
+        # Return the output for the given layer.
+        return self.layerArray[layer].output
 
     def regionCommandOutput(self):
         # Return the regions command output from its command layer (the highest layer).
