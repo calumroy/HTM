@@ -224,18 +224,15 @@ class test_TemporalPooling:
         #self.htmGui = GUI_HTM.HTMGui(self.htm, self.InputCreator)
         #sys.exit(app.exec_())
 
-        # Less then this percentage of temporal pooling should have occurred
+        # More then this percentage of temporal pooling should have occurred
         assert tempPoolPercent > 0.6
 
-    '''
-    TODO add a test case compare the amount of temporal pooling occurring between different layers
-    '''
     def test_case4(self):
         '''
         This test is designed to make sure that temporal pooling
         increase up the heirarchy of layers.
         '''
-        self.nSteps(800)
+        self.nSteps(400)
 
         # Measure the temporal pooling for each layer. This requires
         # a temporal pooling measuring class per layer.
