@@ -123,8 +123,7 @@ class test_SpatialPooling:
 
     def setupParameters(self):
         # Setup some parameters of the HTM
-        self.htm.regionArray[0].layerArray[1].desiredLocalActivity = 4
-        self.htm.regionArray[0].layerArray[2].desiredLocalActivity = 4
+        pass
 
     def step(self):
         # Update the inputs and run them through the HTM levels just once.
@@ -147,6 +146,12 @@ class test_SpatialPooling:
     def test_case1(self):
         '''
         '''
+        self.nSteps(100)
+
+        app = QtGui.QApplication(sys.argv)
+        self.htmGui = GUI_HTM.HTMGui(self.htm, self.InputCreator)
+        sys.exit(app.exec_())
+
         assert 1 == 1
 
 
