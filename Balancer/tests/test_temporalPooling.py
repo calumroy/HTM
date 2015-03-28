@@ -153,6 +153,8 @@ class test_TemporalPooling:
         # Update the HTM input and run through the
         newInput = self.InputCreator.createSimGrid()
         self.htm.spatialTemporal(newInput)
+        if (self.htm.regionArray[0].layerArray[0].timeStep % 20 == 0):
+            print " TimeStep = %s" % self.htm.regionArray[0].layerArray[0].timeStep
 
     def nSteps(self, numSteps):
         print "Running HTM for %s steps" % numSteps
@@ -258,3 +260,13 @@ class test_TemporalPooling:
             print "layer %s temp pooling = %s" % (i, tempPoolPercent[i])
             if (i > 0):
                 assert tempPoolPercent[i] > tempPoolPercent[i-1]
+
+    def test_case5(self):
+        '''
+        This is a sample test
+        '''
+        app = QtGui.QApplication(sys.argv)
+        self.htmGui = GUI_HTM.HTMGui(self.htm, self.InputCreator)
+        sys.exit(app.exec_())
+
+        assert 1 == 1

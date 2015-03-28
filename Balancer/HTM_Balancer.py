@@ -178,7 +178,7 @@ class Column:
         # Get the average of the array but don't include
         # any -1 values (these are invalid and only for initialisation)
         self.averageReceptiveFeildSize = np.average(self.averageReceptiveFeildSizeArray[self.averageReceptiveFeildSizeArray != -1])
-        print "column x,y = %s,%s avgRecFeildSize = %s" % (self.pos_x, self.pos_y, self.averageReceptiveFeildSize)
+        #print "column x,y = %s,%s avgRecFeildSize = %s" % (self.pos_x, self.pos_y, self.averageReceptiveFeildSize)
         # The inhibitionRadius is a radius of a square.
         # This is why its half the sqrt of the area.
         self.inhibitionRadius = int(math.sqrt(self.averageReceptiveFeildSize)/2)
