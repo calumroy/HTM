@@ -146,7 +146,7 @@ class test_SpatialPooling:
     def test_case1(self):
         '''
         '''
-        self.nSteps(100)
+        #self.nSteps(100)
 
         app = QtGui.QApplication(sys.argv)
         self.htmGui = GUI_HTM.HTMGui(self.htm, self.InputCreator)

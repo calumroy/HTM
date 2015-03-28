@@ -35,12 +35,14 @@ def do_cprofile(func):
 
 class Synapse:
     def __init__(self, input, pos_x, pos_y, cellIndex):
-            # cell is -1 if the synapse connects the HTM layers input.
-            # Otherwise it is a horizontal connection to the cell
-            # index self.cell in the column at self.pos_x self.pos_y
+            # Cell is -1 if the synapse connects the HTM layers input.
+            # Otherwise it is a horizontal connection to the cell.
+            # The start is at a column or cells position the end is at
+            # the coordinates stored in pos_x, pos_y.
+            # Index self.cell in the column at self.pos_x self.pos_y
             self.cell = cellIndex
+            # The end of the synapse is at this pos.
             self.pos_x = pos_x
-            # The end of the synapse. The start is at a column or cells position
             self.pos_y = pos_y
             self.permanence = 0.4
 
@@ -86,14 +88,9 @@ class Column:
         self.cells = [Cell() for i in range(length)]
         self.pos_x = pos_x
         self.pos_y = pos_y
-        self.overlap = 0.0
+        self.overlap = 0.0  # As defined by the numenta white paper
         self.minOverlap = 3
         self.boost = 1
-        # A time flag to indicate the column should stop temporally pooling
-        # This is set to the current time when a column has a poor overlap value
-        # but it is temporally pooling. On the next time step if the overlap is
-        # still poor the column should not keep temporally pooling (being activated).
-        self.stopTempPooling = -1
         # The max distance a column can inhibit another column.
         #This parameters value is automatically reset.
         self.inhibitionRadius = 1
@@ -116,6 +113,21 @@ class Column:
         #actve predictive and learn state arrays.
         self.historyLength = 2
         self.highestScoredCell = None
+        # A time flag to indicate the column should stop temporally pooling
+        # This is set to the current time when a column has a poor overlap value
+        # but it is temporally pooling. On the next time step if the overlap is
+        # still poor the column should not keep temporally pooling (being activated).
+        self.stopTempPooling = -1
+        # The last time temporal pooling occurred
+        self.lastTempPoolingTime = -1
+        # Keep track of the number of synapses that are connected
+        # when this column is activated. This is used to update the
+        # inhibitionRadius for this column. -1 is intial invalid number
+        # This arrays length determines how quickly the inhibition
+        # radius changes. Keep an index to designate the newest value.
+        self.startIndexAvgRecp = -1
+        self.averageReceptiveFeildSizeArray = np.array([-1 for i in range(10)])
+        self.averageReceptiveFeildSize = self.inhibitionRadius
 
         # An array storing the synapses with a permanence greater then the connectPermanence.
         self.connectedSynapses = np.array([], dtype=object)
@@ -146,6 +158,30 @@ class Column:
         #    self.scoreArray = np.vstack((self.scoreArray,[0 for i in range(self.historyLength)]))
         # An array storing the last timeSteps when the column was active.
         self.columnActive = np.array([0 for i in range(self.historyLength)])
+
+    def receptiveFeildAddOverlap(self):
+        # Add the overlap score to the average Receptive Feild Size Array.
+        # The overlap is an argument since a columns overlap score gets modified for spatial pooling.
+        # Increment the index designating the latest value in the array.
+        self.startIndexAvgRecp += 1
+        if (self.startIndexAvgRecp >= len(self.averageReceptiveFeildSizeArray)):
+            self.startIndexAvgRecp = 0
+
+        self.averageReceptiveFeildSizeArray[self.startIndexAvgRecp] = self.overlap
+
+    def updateInhibitionRadius(self):
+        # Update the inhibition radius by finding the average receptive feild size for this column.
+        # This means find the average number of connected and active synapses.
+        # The number of connected and active synapses is the overlap score for a column.
+        # Add the overlap to the columns receptive feild size array.
+        self.receptiveFeildAddOverlap()
+        # Get the average of the array but don't include
+        # any -1 values (these are invalid and only for initialisation)
+        self.averageReceptiveFeildSize = np.average(self.averageReceptiveFeildSizeArray[self.averageReceptiveFeildSizeArray != -1])
+        print "column x,y = %s,%s avgRecFeildSize = %s" % (self.pos_x, self.pos_y, self.averageReceptiveFeildSize)
+        # The inhibitionRadius is a radius of a square.
+        # This is why its half the sqrt of the area.
+        self.inhibitionRadius = int(math.sqrt(self.averageReceptiveFeildSize)/2)
 
     def updateBoost(self):
         if self.activeDutyCycle < self.minDutyCycle:
@@ -191,7 +227,7 @@ class HTMLayer:
         # It is larger then the input by a factor of the number of cells per column
         self.output = np.array([[0 for i in range(self.width * self.cellsPerColumn)] for j in range(self.height)])
         self.activeColumns = np.array([], dtype=object)
-        self.averageReceptiveFeildSizeArray = np.array([])
+        self.averageRecFeildSize = 0
         # Create the array storing the columns
         self.columns = np.array([[Column(self.cellsPerColumn, i, j) for
                                 i in range(columnArrayWidth)] for
@@ -276,7 +312,7 @@ class HTMLayer:
                         self.output[y][x*self.cellsPerColumn+i] = 1
 
     def updateConnectedSynapses(self, c):
-        # Update both the connectedSynapses array.
+        # Update the connectedSynapses array.
         c.connectedSynapses = np.array([], dtype=object)
         connSyn = []
         for i in range(len(c.potentialSynapses)):
@@ -381,25 +417,6 @@ class HTMLayer:
             #print orderedScore
             return orderedScore[-kth]       # Minus since list starts at lowest
         return 0
-
-    def averageReceptiveFeildSize(self):
-        # Calculate the average receptive feild size of all the columns.
-        # This means find the average number of connected and active synapses for every column.
-        # This function is used to control the sparsity level of the SDR. It should make
-        # on average the same number of columns active for any inputs.
-
-        self.averageReceptiveFeildSizeArray = np.array([])
-        for i in range(len(self.columns)):
-            for c in self.columns[i]:
-                # If the column has been active before then add it's
-                # receptive feild size to the average.
-                if len(c.activeDutyCycleArray) > 0:
-                    self.averageReceptiveFeildSizeArray = np.append(self.averageReceptiveFeildSizeArray,
-                                                                    len(c.connectedSynapses))
-        #print "avg feild size = %s, length of feild arr = %s " %(np.average(self.averageReceptiveFeildSizeArray),len(self.averageReceptiveFeildSizeArray))
-        #Returns the radius of the average receptive feild size
-        # The radius is actually of a square so its half the sqrt of the squares area.
-        return int(math.sqrt(np.average(self.averageReceptiveFeildSizeArray))/2)
 
     def updateActiveDutyCycle(self, c):
         # If the column is active now
@@ -883,20 +900,18 @@ class HTMLayer:
                 # The current col has a poor overlap and should stop temporal
                 # pooling on the timestep.
                 self.stopTempPooling = self.timeStep
-            for s in c.potentialSynapses:
-                inputActive = self.Input[s.pos_y][s.pos_x]
-                c.overlap = c.overlap + inputActive
 
         # If more potential synapses then the min overlap
         # are active then set the overlap to the maximum value possible.
         if c.overlap >= c.minOverlap:
             maxOverlap = math.pow(2*c.potentialRadius+1, 2)
             c.overlap = c.overlap + maxOverlap
-
+            c.lastTempPoolingTime = self.timeStep
 
     def Overlap(self):
-        # Phase one for the spatial pooler
         """
+        Phase one for the spatial pooler
+
         This function also includes the new temporal pooling agorithm.
         The temporal pooler works in the spatial pooler by keeping columns
         active that where active but not bursting on the previous time step.
@@ -917,7 +932,7 @@ class HTMLayer:
                 # Calculate the overlap
                 for s in c.connectedSynapses:
                     # Check if the input that this synapses
-                    #is connected to is active.
+                    # is connected to is active.
                     #print "s.pos_y = %s s.pos_x = %s" % (s.pos_y, s.pos_x)
                     #print "input width = %s input height = %s" % (len(self.Input[0]), len(self.Input))
                     inputActive = self.Input[s.pos_y][s.pos_x]
@@ -925,7 +940,6 @@ class HTMLayer:
 
                 # Temporal pooling is done if the column was active but not bursting one timestep ago.
                 if self.columnActiveNotBursting(c, self.timeStep-1) is not None:
-                    #from PyQt4.QtCore import pyqtRemoveInputHook; import ipdb; pyqtRemoveInputHook(); ipdb.set_trace()
                     self.temporalPool(c)
 
                 if c.overlap < c.minOverlap:
@@ -936,7 +950,11 @@ class HTMLayer:
                 #print "%d %d %d" %(c.overlap,c.minOverlap,c.boost)
 
     def inhibition(self, timeStep):
-        # Phase two for the spatial pooler
+        '''
+        Phase two for the spatial pooler
+
+        Inhibit the weaker active columns.
+        '''
         #print "length active columns before deleting = %s" % len(self.activeColumns)
         self.activeColumns = np.array([], dtype=object)
         #print "actve cols before %s" %self.activeColumns
@@ -969,7 +987,11 @@ class HTMLayer:
                 # Update the active duty cycle variable of every column
 
     def learning(self):
-        # Phase three for the spatial pooler
+        '''
+        Phase three for the spatial pooler
+
+        Update the column synapses permanence.
+        '''
         for c in self.activeColumns:
             for s in c.potentialSynapses:
                 # Check if the input that this
@@ -982,16 +1004,15 @@ class HTMLayer:
                 else:
                     s.permanence -= c.permanenceDec
                     s.permanence = max(0.0, s.permanence)
-        average = self.averageReceptiveFeildSize()
-        #Find the average of the receptive feild sizes just once
-        print "inhibition radius = %s" %average
+            # Update the inhibition radius only if temporal pooling is not happening.
+            if (c.lastTempPoolingTime != self.timeStep):
+                c.updateInhibitionRadius()
+
         for i in range(len(self.columns)):
             for c in self.columns[i]:
                 c.minDutyCycle = 0.01*self.maxDutyCycle(self.neighbours(c))
                 c.updateBoost()
-                c.inhibitionRadius = average
-                # Set to the average of the receptive feild sizes.
-                #All columns have the same inhibition radius
+
                 if c.overlapDutyCycle < c.minDutyCycle:
                     self.increasePermanence(c, 0.1*self.connectPermanence)
 
@@ -1014,7 +1035,7 @@ class HTMLayer:
         being predicted by HTM layer.
         """
         # First reset the active cells calculated from the previous time step.
-        print "       1st SEQUENCE FUNCTION"
+        #print "       1st SEQUENCE FUNCTION"
         # This is different to CLA paper.
         # First we calculate the score for each cell in the active column
         for c in self.activeColumns:
@@ -1090,7 +1111,7 @@ class HTMLayer:
                 # check the cell with the highest score.
                 if c.highestScoredCell is not None:
                     if buPredicted is False and c.cells[c.highestScoredCell].score >= self.minScoreThreshold:
-                        print"best SCORE active x, y, i = %s, %s, %s score = %s"%(c.pos_x, c.pos_y,c.highestScoredCell, c.cells[c.highestScoredCell].score)
+                        #print"best SCORE active x, y, i = %s, %s, %s score = %s"%(c.pos_x, c.pos_y,c.highestScoredCell, c.cells[c.highestScoredCell].score)
                         buPredicted = True
                         self.activeStateAdd(c, c.highestScoredCell, timeStep)
                         lcChosen = True
@@ -1123,7 +1144,7 @@ class HTMLayer:
     def updatePredictiveState(self, timeStep):
         # The second function call for the sequence pooler.
         # Updates the predictive state of cells.
-        print "\n       2nd SEQUENCE FUNCTION "
+        #print "\n       2nd SEQUENCE FUNCTION "
         for k in range(len(self.columns)):
             for c in self.columns[k]:
                 mostPredCellSynCount = 0
@@ -1180,7 +1201,7 @@ class HTMLayer:
     def sequenceLearning(self, timeStep):
         # Third function called for the sequence pooler.
         # The update structures are implemented on the cells
-        print "\n       3rd SEQUENCE FUNCTION "
+        #print "\n       3rd SEQUENCE FUNCTION "
         for k in range(len(self.columns)):
             for c in self.columns[k]:
                 for i in range(len(c.cells)):
@@ -1256,13 +1277,6 @@ class HTMRegion:
         # The middle layers receive inputs from the lower layer outputs
         for i in range(1, self.numLayers):
             self.layerArray[i].updateInput(self.layerArray[i-1].output)
-        # The highest layer is the command output layer.
-        # It receives an input from the layer below it but the input only
-        # consists of non bursted cells.
-        #commandLayer = self.numLayers-1
-        # Get the input from the layer below the command layer.
-        #commandLayerInput = self.layerArray[commandLayer-1].activeCellGrid()
-        #self.layerArray[commandLayer].updateInput(commandLayerInput)
 
     def layerOutput(self, layer):
         # Return the output for the given layer.
@@ -1277,7 +1291,7 @@ class HTMRegion:
     def spatialTemporal(self):
         i = 0
         for layer in self.layerArray:
-            print "     Layer = %s" % i
+            #print "     Layer = %s" % i
             i += 1
             layer.timeStep = layer.timeStep+1
             ## Update the current layers input with the new input
@@ -1317,16 +1331,24 @@ class HTM:
         newInput = self.joinInputArrays(commandFeedback, input)
         # Setup the new htm region with the input and size parameters defined.
         self.regionArray = np.append(self.regionArray,
-                                        HTMRegion(newInput, self.width, self.height,
-                                                  self.cellsPerColumn, numLayers))
+                                     HTMRegion(newInput,
+                                               self.width,
+                                               self.height,
+                                               self.cellsPerColumn,
+                                               numLayers)
+                                     )
         # The higher levels get inputs from the lower levels.
         #highestLevel = self.numLevels-1
         for i in range(1, numLevels):
             lowerOutput = self.regionArray[i-1].regionOutput()
             newInput = self.joinInputArrays(commandFeedback, lowerOutput)
             self.regionArray = np.append(self.regionArray,
-                                            HTMRegion(newInput, self.width, self.height,
-                                                      self.cellsPerColumn, numLayers))
+                                         HTMRegion(newInput,
+                                                   self.width,
+                                                   self.height,
+                                                   self.cellsPerColumn,
+                                                   numLayers)
+                                         )
 
         # create a place to store layers so they can be reverted.
         #self.HTMOriginal = copy.deepcopy(self.regionArray)
@@ -1357,16 +1379,18 @@ class HTM:
         # Level 0 receives the new input. The higher levels
         # receive inputs from the lower levels outputs
 
-        # The input must also include the command feedback from the higher layers.
+        # The input must also include the
+        # command feedback from the higher layers.
         commFeedbackLev1 = np.array([])
 
         ### LEVEL 0 Update
-        ##########################################################################
+
         # The lowest levels lowest layer gets this new input.
         # All other levels and layers get inputs from lower levels and layers.
         if self.numLevels > 1:
             commFeedbackLev1 = self.levelCommandOutput(1)
-        # If there is only one level then the thalamus input is added to the input.
+        # If there is only one level then the
+        # thalamus input is added to the input.
         if self.numLevels == 1:
             # This is the highest level so get the
             # feedback command from the thalamus.
@@ -1375,7 +1399,7 @@ class HTM:
         self.regionArray[0].updateRegionInput(newInput)
 
         ### HIGHER LEVELS UPDATE
-        ##########################################################################
+
         # Update each levels input. Combine the command feedback to the input.
         for i in range(1, self.numLevels):
             commFeedbackLevN = np.array([])
@@ -1411,7 +1435,7 @@ class HTM:
         self.updateHTMInput(input)
         i = 0
         for level in self.regionArray:
-            print "Level = %s" % i
+            #print "Level = %s" % i
             i += 1
             level.spatialTemporal()
 
@@ -1436,7 +1460,6 @@ class HTM:
                 for y in range(len(input2)-1):
                     pad = np.vstack([pad, pad1])
                 # Now add the padding to input2
-                #from PyQt4.QtCore import pyqtRemoveInputHook; import ipdb; pyqtRemoveInputHook(); ipdb.set_trace()
                 input2 = np.hstack([input2, pad])
             elif len(input2[0]) > len(input1[0]):
                 # Since input1 is smaller we will pad the array with zeros.
@@ -1450,7 +1473,8 @@ class HTM:
                 input1 = np.hstack([input1, pad])
             # The arrays should be the same size so now we can vstack them.
             if len(input1[0]) == len(input2[0]):
-                # The input arrays have the same width so they can directly be vstacked.
+                # The input arrays have the same width so
+                # they can directly be vstacked.
                 output = np.vstack([input1, input2])
         elif len(input1) == 0 and len(input2) > 0:
             output = input2
