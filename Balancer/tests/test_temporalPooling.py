@@ -168,13 +168,3 @@ class test_TemporalPooling:
             print "layer %s temp pooling = %s" % (i, tempPoolPercent[i])
             if (i > 0):
                 assert tempPoolPercent[i] > tempPoolPercent[i-1]
-
-    def test_case5(self):
-        '''
-        This is a sample test
-        '''
-        app = QtGui.QApplication(sys.argv)
-        self.htmGui = GUI_HTM.HTMGui(self.htm, self.InputCreator)
-        sys.exit(app.exec_())
-
-        assert 1 == 1

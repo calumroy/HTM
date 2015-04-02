@@ -117,7 +117,7 @@ class Column:
         # This is set to the current time when a column has a poor overlap value
         # but it is temporally pooling. On the next time step if the overlap is
         # still poor the column should not keep temporally pooling (being activated).
-        self.stopTempPooling = -1
+        self.stopTempAfterTime = -1
         # The last time temporal pooling occurred
         self.lastTempPoolingTime = -1
         # Keep track of the number of synapses that are connected
@@ -890,15 +890,15 @@ class HTMLayer:
             # The col has a good overlap value and should allow temp pooling
             # to continue on the next time step. Set the time flag to not the
             # current time to allow this (we'll use zero).
-            c.stopTempPooling = 0
+            c.stopTempAfterTime = 0
 
         # If the time flag for temporal pooling was not set one time step ago
         # the we should perform temporal pooling.
-        if c.stopTempPooling != (self.timeStep - 1):
+        if c.stopTempAfterTime != (self.timeStep - 1):
             if c.overlap < c.minOverlap:
                 # The current col has a poor overlap and should stop temporal
                 # pooling on the timestep.
-                c.stopTempPooling = self.timeStep
+                c.stopTempAfterTime = self.timeStep
 
         # If more potential synapses then the min overlap
         # are active then set the overlap to the maximum value possible.
