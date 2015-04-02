@@ -110,7 +110,7 @@ class test_TemporalPooling:
         #sys.exit(app.exec_())
 
         # Less then this percentage of temporal pooling should have occurred
-        assert tempPoolPercent < 0.2
+        assert tempPoolPercent < 0.3
 
     def test_case3(self):
         '''

@@ -212,7 +212,7 @@ class HTMLayer:
         # value, it is said to be connected.
         self.connectPermanence = 0.3
         # Should be smaller than activationThreshold
-        self.minThreshold = 4
+        self.minThreshold = 8
         # The minimum score needed by a cell to be added
         # to the alternative sequence.
         self.minScoreThreshold = 4
@@ -220,7 +220,7 @@ class HTMLayer:
         self.newSynapseCount = 10
         # More than this many synapses on a segment must be active for
         # the segment to be active
-        self.activationThreshold = 5
+        self.activationThreshold = 8
         self.dutyCycleAverageLength = 1000
         self.timeStep = 0
         # The output is a 2D grid representing the cells states.
@@ -744,11 +744,10 @@ class HTMLayer:
                 # Need to make sure the best cell actually has a segment.
                 if len(c.cells[bestCell].segments) > 0:
                     #print "Best Segment at the moment is segIndex=%s"%bestSegment
-                    # Must be larger than or equal to
-                    #otherwise cell 0 segment 0 will never
-                    #be chosen as the best cell
+                    # Must be larger than or equal to otherwise
+                    # cell 0 segment 0 will never be chosen as the best cell
                     if (self.segmentNumSynapsesActive(c.cells[i].segments[h], timeStep, True) >= self.segmentNumSynapsesActive(c.cells[bestCell].segments[bestSegment], timeStep, True)):
-                        # Remeber the best cell and segment
+                        # Remember the best cell and segment
                         bestCell = i
                         bestSegment = h
                         bestCellFound = True
@@ -891,15 +890,15 @@ class HTMLayer:
             # The col has a good overlap value and should allow temp pooling
             # to continue on the next time step. Set the time flag to not the
             # current time to allow this (we'll use zero).
-            self.stopTempPooling = 0
+            c.stopTempPooling = 0
 
         # If the time flag for temporal pooling was not set one time step ago
         # the we should perform temporal pooling.
-        if self.stopTempPooling != (self.timeStep - 1):
+        if c.stopTempPooling != (self.timeStep - 1):
             if c.overlap < c.minOverlap:
                 # The current col has a poor overlap and should stop temporal
                 # pooling on the timestep.
-                self.stopTempPooling = self.timeStep
+                c.stopTempPooling = self.timeStep
 
         # If more potential synapses then the min overlap
         # are active then set the overlap to the maximum value possible.
@@ -1111,7 +1110,7 @@ class HTMLayer:
                 # check the cell with the highest score.
                 if c.highestScoredCell is not None:
                     if buPredicted is False and c.cells[c.highestScoredCell].score >= self.minScoreThreshold:
-                        #print"best SCORE active x, y, i = %s, %s, %s score = %s"%(c.pos_x, c.pos_y,c.highestScoredCell, c.cells[c.highestScoredCell].score)
+                        print"best SCORE active x, y, i = %s, %s, %s score = %s"%(c.pos_x, c.pos_y,c.highestScoredCell, c.cells[c.highestScoredCell].score)
                         buPredicted = True
                         self.activeStateAdd(c, c.highestScoredCell, timeStep)
                         lcChosen = True
@@ -1234,7 +1233,7 @@ class HTMLayer:
 
 
 class HTMRegion:
-    def __init__(self, input, columnArrayWidth, columnArrayHeight, cellsPerColumn, numlayers = 2):
+    def __init__(self, input, columnArrayWidth, columnArrayHeight, cellsPerColumn, numlayers=2):
         # The HTMRegion is an object holding multiple HTMLayers. The region consists of
         # simulated cortex layers.
         self.quit = False
@@ -1309,12 +1308,12 @@ class HTMRegion:
 class HTM:
     #@do_cprofile  # For profiling
     def __init__(self, numLevels, input, columnArrayWidth,
-                 columnArrayHeight, cellsPerColumn, numLayers = 2):
+                 columnArrayHeight, cellsPerColumn, numLayers=2):
         self.quit = False
         # Create a thalamus command input to store thalamus commands.
         # Used to direct the HTM network.
         self.thalamusCommand = np.array([[0 for i in range(columnArrayWidth*cellsPerColumn)]
-                                for j in range(columnArrayHeight)])
+                                        for j in range(columnArrayHeight)])
 
         # This class contains multiple HTM levels stacked on one another
         self.numLevels = numLevels   # The number of levels in the HTM network
