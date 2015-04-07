@@ -120,14 +120,6 @@ class Column:
         self.stopTempAfterTime = -1
         # The last time temporal pooling occurred
         self.lastTempPoolingTime = -1
-        # Keep track of the number of synapses that are connected
-        # when this column is activated. This is used to update the
-        # inhibitionRadius for this column. -1 is intial invalid number
-        # This arrays length determines how quickly the inhibition
-        # radius changes. Keep an index to designate the newest value.
-        self.startIndexAvgRecp = -1
-        self.averageReceptiveFeildSizeArray = np.array([-1 for i in range(10)])
-        self.averageReceptiveFeildSize = self.inhibitionRadius
 
         # An array storing the synapses with a permanence greater then the connectPermanence.
         self.connectedSynapses = np.array([], dtype=object)
@@ -159,30 +151,6 @@ class Column:
         # An array storing the last timeSteps when the column was active.
         self.columnActive = np.array([0 for i in range(self.historyLength)])
 
-    def receptiveFeildAddOverlap(self):
-        # Add the overlap score to the average Receptive Feild Size Array.
-        # The overlap is an argument since a columns overlap score gets modified for spatial pooling.
-        # Increment the index designating the latest value in the array.
-        self.startIndexAvgRecp += 1
-        if (self.startIndexAvgRecp >= len(self.averageReceptiveFeildSizeArray)):
-            self.startIndexAvgRecp = 0
-
-        self.averageReceptiveFeildSizeArray[self.startIndexAvgRecp] = self.overlap
-
-    def updateInhibitionRadius(self):
-        # Update the inhibition radius by finding the average receptive feild size for this column.
-        # This means find the average number of connected and active synapses.
-        # The number of connected and active synapses is the overlap score for a column.
-        # Add the overlap to the columns receptive feild size array.
-        self.receptiveFeildAddOverlap()
-        # Get the average of the array but don't include
-        # any -1 values (these are invalid and only for initialisation)
-        self.averageReceptiveFeildSize = np.average(self.averageReceptiveFeildSizeArray[self.averageReceptiveFeildSizeArray != -1])
-        #print "column x,y = %s,%s avgRecFeildSize = %s" % (self.pos_x, self.pos_y, self.averageReceptiveFeildSize)
-        # The inhibitionRadius is a radius of a square.
-        # This is why its half the sqrt of the area.
-        self.inhibitionRadius = int(math.sqrt(self.averageReceptiveFeildSize)/2)
-
     def updateBoost(self):
         if self.activeDutyCycle < self.minDutyCycle:
             self.boost = self.boost+self.boostStep
@@ -206,7 +174,7 @@ class HTMLayer:
         # the desiredLocalActivity parameter
         # are observed in the inhibition radius.
         # How many cells within the inhibition radius are active
-        self.desiredLocalActivity = 2
+        self.desiredLocalActivity = 1
         self.cellsPerColumn = cellsPerColumn
         # If the permanence value for a synapse is greater than this
         # value, it is said to be connected.
@@ -227,7 +195,6 @@ class HTMLayer:
         # It is larger then the input by a factor of the number of cells per column
         self.output = np.array([[0 for i in range(self.width * self.cellsPerColumn)] for j in range(self.height)])
         self.activeColumns = np.array([], dtype=object)
-        self.averageRecFeildSize = 0
         # Create the array storing the columns
         self.columns = np.array([[Column(self.cellsPerColumn, i, j) for
                                 i in range(columnArrayWidth)] for
@@ -1003,9 +970,6 @@ class HTMLayer:
                 else:
                     s.permanence -= c.permanenceDec
                     s.permanence = max(0.0, s.permanence)
-            # Update the inhibition radius only if temporal pooling is not happening.
-            if (c.lastTempPoolingTime != self.timeStep):
-                c.updateInhibitionRadius()
 
         for i in range(len(self.columns)):
             for c in self.columns[i]:

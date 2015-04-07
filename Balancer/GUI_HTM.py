@@ -555,7 +555,6 @@ class HTMGridViewer(QtGui.QGraphicsView):
         # Draw the columns that are inhibited by the selected column at position x,y
         column = self.htm.regionArray[self.level].layerArray[self.layer].columns[pos_y][pos_x]
         htmlayer = self.htm.regionArray[self.level].layerArray[self.layer]
-        print " Selected columns averageReceptiveFeildSize = %s" % (column.averageReceptiveFeildSize)
         red = QtGui.QColor(0xFF, 0, 0, 0xFF)
         transpBlue = QtGui.QColor(0, 0, 0xFF, 0x30)
         green = QtGui.QColor(0, 0xFF, 0, 0xFF)
