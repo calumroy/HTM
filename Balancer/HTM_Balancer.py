@@ -92,7 +92,6 @@ class Column:
         self.minOverlap = 3
         self.boost = 1
         # The max distance a column can inhibit another column.
-        #This parameters value is automatically reset.
         self.inhibitionRadius = 1
         # The max distance that Synapses can be made at
         self.potentialRadius = 2

@@ -126,3 +126,106 @@ class test_SpatialPooling:
         #from PyQt4.QtCore import pyqtRemoveInputHook; import ipdb; pyqtRemoveInputHook(); ipdb.set_trace()
         assert similarPerIn1 >= 0.49 and similarPerIn1 <= 0.51
         assert similarPerIn2 >= 0.49 and similarPerIn2 <= 0.51
+
+    def test_case2(self):
+        '''
+        The same as test 1 expect use input patterns that are much closer to each other.
+
+        Make sure the patterns are far enough apart that the active columns
+        can't inhibit one another. If this happens then the combined pattern will be
+        registered as a totally new pattern and new columns will win inhibition.
+        This type of behaviour is expected but unwanted for this test.
+        '''
+
+        # Let the spatial pooler learn spatial patterns.
+        self.nSteps(150)
+
+        numInps = self.InputCreator.numInputs
+        middleInp = int(numInps/2)
+        # Note 6 was used to seperate the inputs by enough so an inhibition
+        # radius of one with the current input size doesn't cause the old columns to
+        # inhibit one another for the new combined input.
+        middleInpPlus = middleInp + 6
+        # Make sure this index is still smaller then numInps
+        if middleInpPlus >= numInps:
+            middleInpPlus = 0
+
+        SDR1 = self.InputCreator.inputs[middleInp]
+        SDR2 = self.InputCreator.inputs[middleInpPlus]
+
+        combinedInput = self.InputCreator.orSDRPatterns(SDR1, SDR2)
+
+        # Run the inputs through the htm just once and obtain the column SDR outputs.
+        self.htm.spatialTemporal(SDR1)
+        colSDR1 = self.getColumnGridOutput(self.htm, 0, 0)
+        self.htm.spatialTemporal(SDR2)
+        colSDR2 = self.getColumnGridOutput(self.htm, 0, 0)
+        self.htm.spatialTemporal(combinedInput)
+        combinedOutput = self.getColumnGridOutput(self.htm, 0, 0)
+
+        #app = QtGui.QApplication(sys.argv)
+        #self.htmGui = GUI_HTM.HTMGui(self.htm, self.InputCreator)
+        #sys.exit(app.exec_())
+
+        # Compare the combined output SDR to the individual input SDRs.
+        # The combined one should be equal to 50% of the individual ones.
+        similarPerIn1 = self.gridsSimilar(colSDR1, combinedOutput)
+        similarPerIn2 = self.gridsSimilar(colSDR2, combinedOutput)
+
+        assert similarPerIn1 >= 0.49 and similarPerIn1 <= 0.51
+        assert similarPerIn2 >= 0.49 and similarPerIn2 <= 0.51
+
+    def test_case3(self):
+        '''
+        The same as test 1 expect use half of the two chosen patterns.
+
+        Make sure the patterns are far enough apart that the active columns
+        can't inhibit one another. If this happens then the combined pattern will be
+        registered as a totally new pattern and new columns will win inhibition.
+        This type of behaviour is expected but unwanted for this test.
+        '''
+
+        # Let the spatial pooler learn spatial patterns.
+        self.nSteps(150)
+
+        SDR1 = self.InputCreator.inputs[0]
+        SDR2 = self.InputCreator.inputs[self.InputCreator.numInputs-1]
+
+        # Choose a half of the active columns from each SDR to keep on.
+        totalActiveIns1 = np.sum(SDR1 != 0)
+        totalActiveIns2 = np.sum(SDR2 != 0)
+        numTurnedOff1 = 0
+        numLeftOn2 = 0
+        for y in range(len(SDR1)):
+            for x in range(len(SDR1[0])):
+                if SDR1[y][x] == 1 and numTurnedOff1 < round(totalActiveIns1/2):
+                    SDR1[y][x] = 0
+                    numTurnedOff1 += 1
+
+        for y in range(len(SDR2)):
+            for x in range(len(SDR2[0])):
+                if SDR2[y][x] == 1:
+                    if numLeftOn2 > round(totalActiveIns2/2):
+                        SDR2[y][x] = 0
+                    numLeftOn2 += 1
+
+        combinedInput = self.InputCreator.orSDRPatterns(SDR1, SDR2)
+
+        # Run the inputs through the htm just once and obtain the column SDR outputs.
+        self.htm.spatialTemporal(SDR1)
+        colSDR1 = self.getColumnGridOutput(self.htm, 0, 0)
+        self.htm.spatialTemporal(SDR2)
+        colSDR2 = self.getColumnGridOutput(self.htm, 0, 0)
+        self.htm.spatialTemporal(combinedInput)
+        combinedOutput = self.getColumnGridOutput(self.htm, 0, 0)
+
+        similarPerIn1 = self.gridsSimilar(colSDR1, combinedOutput)
+        similarPerIn2 = self.gridsSimilar(colSDR2, combinedOutput)
+
+        # app = QtGui.QApplication(sys.argv)
+        # self.htmGui = GUI_HTM.HTMGui(self.htm, self.InputCreator)
+        # sys.exit(app.exec_())
+
+        #from PyQt4.QtCore import pyqtRemoveInputHook; import ipdb; pyqtRemoveInputHook(); ipdb.set_trace()
+        assert similarPerIn1 >= 0.49 and similarPerIn1 <= 0.51
+        assert similarPerIn2 >= 0.49 and similarPerIn2 <= 0.51
