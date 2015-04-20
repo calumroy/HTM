@@ -1404,7 +1404,7 @@ class HTM:
 
     def joinInputArrays(self, input1, input2):
         # Join two input 2D arrays together vstack them.
-        # This menas the widths of the arrays input1[0] = input2[0]
+        # This means the widths of the arrays input1[0] = input2[0]
         # must be equal so one input may need to be padded.
         output = np.array([])
         # check that the inputs are arrays

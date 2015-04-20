@@ -54,6 +54,8 @@ class test_SpatialPooling:
         # Update the HTM input and run through the
         newInput = self.InputCreator.createSimGrid()
         self.htm.spatialTemporal(newInput)
+        if (self.htm.regionArray[0].layerArray[0].timeStep % 20 == 0):
+            print " TimeStep = %s" % self.htm.regionArray[0].layerArray[0].timeStep
 
     def nSteps(self, numSteps):
         print "Running HTM for %s steps" % numSteps
@@ -62,21 +64,65 @@ class test_SpatialPooling:
 
     def gridsSimilar(self, grid1, grid2):
         # Measure how similar two grids are.
-        totalActiveIns = np.sum(self.grid1 != 0)
-        totalAndGrids = np.sum(np.logical_and(grid1 != 0, self.grid2 != 0))
+        totalActiveIns1 = np.sum(grid1 != 0)
+        totalActiveIns2 = np.sum(grid2 != 0)
+        totalAndGrids = np.sum(np.logical_and(grid1 != 0, grid2 != 0))
+        totalActiveIns = totalActiveIns1 + totalActiveIns2 - totalAndGrids
         percentSimilar = float(totalAndGrids) / float(totalActiveIns)
         return percentSimilar
 
+    def getColumnGridOutput(self, htm, level, layer):
+        # From the level for the given htm network
+        # get the active columns in a 2d array form.
+        # The grid should contain only ones and zeros corresponding to
+        # a columns location. One if that column is active zero otherwise.
+        activeCols = htm.regionArray[level].layerArray[layer].activeColumns
+        width = htm.regionArray[level].layerArray[layer].width
+        height = htm.regionArray[level].layerArray[layer].height
+        activeColGrid = np.array([[0 for i in range(width)] for j in range(height)])
+
+        for column in activeCols:
+            activeColGrid[column.pos_y][column.pos_x] = 1
+
+        return activeColGrid
+
     def test_case1(self):
         '''
+        Spatial pooler superposition testing.
+
+        Test the spatial pooler and make sure that an input
+        that contains features from two different input patterns
+        creates an output where the same columns that are activated
+        for both the inputs are still activated for the combined input.
+
+        Note the output SDR may be different as the new combine input
+        will not be in sequence. The same columns should be active just
+        not the same cells.
+
         '''
-        #self.nSteps(100)
+        # Let the spatial pooler learn spatial patterns.
+        self.nSteps(150)
 
-        app = QtGui.QApplication(sys.argv)
-        self.htmGui = GUI_HTM.HTMGui(self.htm, self.InputCreator)
-        sys.exit(app.exec_())
+        SDR1 = self.InputCreator.inputs[0]
+        SDR2 = self.InputCreator.inputs[self.InputCreator.numInputs-1]
 
-        assert 1 == 1
+        combinedInput = self.InputCreator.orSDRPatterns(SDR1, SDR2)
 
+        # Run the inputs through the htm just once and obtain the column SDR outputs.
+        self.htm.spatialTemporal(SDR1)
+        colSDR1 = self.getColumnGridOutput(self.htm, 0, 0)
+        self.htm.spatialTemporal(SDR2)
+        colSDR2 = self.getColumnGridOutput(self.htm, 0, 0)
+        self.htm.spatialTemporal(combinedInput)
+        combinedOutput = self.getColumnGridOutput(self.htm, 0, 0)
 
+        similarPerIn1 = self.gridsSimilar(colSDR1, combinedOutput)
+        similarPerIn2 = self.gridsSimilar(colSDR2, combinedOutput)
 
+        #app = QtGui.QApplication(sys.argv)
+        #self.htmGui = GUI_HTM.HTMGui(self.htm, self.InputCreator)
+        #sys.exit(app.exec_())
+
+        #from PyQt4.QtCore import pyqtRemoveInputHook; import ipdb; pyqtRemoveInputHook(); ipdb.set_trace()
+        assert similarPerIn1 >= 0.49 and similarPerIn1 <= 0.51
+        assert similarPerIn2 >= 0.49 and similarPerIn2 <= 0.51

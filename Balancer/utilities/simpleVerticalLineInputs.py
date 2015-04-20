@@ -61,3 +61,17 @@ class simpleVerticalLineInputs:
             return newGrid
         else:
             return outputGrid
+
+    def orSDRPatterns(self, SDR1, SDR2):
+        '''
+        Combine two inputs SDR patterns to create an output SDR
+        which is the or of both the input SDRs.
+        '''
+
+        outputSDR = None
+
+        if SDR1 is not None:
+            outputSDR = np.logical_or(SDR1, SDR2).astype(int)
+
+        return outputSDR
+
