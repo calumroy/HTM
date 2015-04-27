@@ -296,6 +296,12 @@ class HTMLayer:
                 # Update the potential synapses since the potential radius has changed
                 self.updatePotentialSynapses(c)
 
+    def changeColsInhibRadius(self, newInhibRadius):
+        # Change the inhibition radius of all the columns
+        for k in range(len(self.columns)):
+            for c in self.columns[k]:
+                c.inhibitionRadius = newInhibRadius
+
     def updatePotentialSynapses(self, c):
         # Update the locations of the potential synapses for column c.
         # If the input is larger than the number of columns then

@@ -52,6 +52,11 @@ class test_TemporalPooling:
         # Setup some parameters of the HTM
         self.htm.regionArray[0].layerArray[1].desiredLocalActivity = 4
         self.htm.regionArray[0].layerArray[2].desiredLocalActivity = 4
+
+        # We need to limit the number of actve columns in the higher layers
+        # This is because they have larger potential radiuses and desired local activity.
+        self.htm.regionArray[0].layerArray[1].changeColsInhibRadius(3)
+        self.htm.regionArray[0].layerArray[2].changeColsInhibRadius(2)
         #self.htm.regionArray[1].layerArray[0].desiredLocalActivity = 4
         #self.htm.regionArray[1].layerArray[0].changeColsPotRadius(4)
         #self.htm.regionArray[1].layerArray[1].desiredLocalActivity = 4
@@ -85,7 +90,7 @@ class test_TemporalPooling:
             print "Temporal pooling percent = %s" % tempPoolPercent
 
         # More then this percentage of temporal pooling should have occurred
-        assert tempPoolPercent >= 0.8
+        assert tempPoolPercent >= 0.75
 
     def test_case2(self):
         '''
@@ -105,9 +110,9 @@ class test_TemporalPooling:
             tempPoolPercent = self.temporalPooling.temporalPoolingPercent(htmOutput)
             print "Temporal pooling percent = %s" % tempPoolPercent
 
-        #app = QtGui.QApplication(sys.argv)
-        #self.htmGui = GUI_HTM.HTMGui(self.htm, self.InputCreator)
-        #sys.exit(app.exec_())
+        # app = QtGui.QApplication(sys.argv)
+        # self.htmGui = GUI_HTM.HTMGui(self.htm, self.InputCreator)
+        # sys.exit(app.exec_())
 
         # Less then this percentage of temporal pooling should have occurred
         assert tempPoolPercent < 0.3
