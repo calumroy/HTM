@@ -418,11 +418,11 @@ class HTMGridViewer(QtGui.QGraphicsView):
             self.size = self.size*2
 
     def drawInfo(self):
-        # Create an info item which doisoplayes info about the HTM network
+        # Create an info item which displayes info about the HTM network
         transpRed = QtGui.QColor(0x00, 0, 0xFF, 0xA0)
         pen = QtGui.QPen(QtGui.QColor(transpRed))
         brush = QtGui.QBrush(pen.color().darker(150))
-        self.infoItem = HTMInfo(-100, 0, 3*self.size, pen, brush)
+        self.infoItem = HTMInfo(0, -4*self.size, 4*self.size, pen, brush)
         self.updateInfo()
         #self.infoItem.setFlag(QtGui.QGraphicsItem.ItemIsMovable)
         self.scene.addItem(self.infoItem)
@@ -531,9 +531,11 @@ class HTMGridViewer(QtGui.QGraphicsView):
         #transpRed = QtGui.QColor(0xFF, 0, 0, 0x20)
         #red = QtGui.QColor(0xFF, 0, 0, 0xFF)
         transpBlue = QtGui.QColor(0, 0, 0xFF, 0x30)
+        white = QtGui.QColor(0xFF, 0xFF, 0xFF)
         #green = QtGui.QColor(0, 0xFF, 0, 0xFF)
         #darkGreen = QtGui.QColor(0, 0x80, 0x40, 0xFF)
         blue = QtGui.QColor(0x40, 0x30, 0xFF, 0xFF)
+
         # Go through each cell. If it is in the synapse list draw it otherwise don't
         for i in range(len(self.cellItems)):
             cell_pos_x = self.cellItems[i].pos_x
@@ -548,6 +550,9 @@ class HTMGridViewer(QtGui.QGraphicsView):
                 if syn.pos_x == cell_pos_x and syn.pos_y == cell_pos_y and syn.cell == cell_cell:
                     print "     syn x,y,cell= %s,%s,%s Permanence = %s, active times = %s" % (cell_pos_x, cell_pos_y, cell_cell, syn.permanence, synEndColumn.activeStateArray[syn.cell])
                     brush.setColor(blue)
+                # Set this cells color to white to indicate it was selected.
+                if pos_x == cell_pos_x and pos_y == cell_pos_y and cell == cell_cell:
+                    brush.setColor(white)
             self.cellItems[i].setBrush(brush)
             self.cellItems[i].setPen(pen)
 
@@ -600,7 +605,6 @@ class HTMGridViewer(QtGui.QGraphicsView):
     def updateCells(self):
         # Redraw the cells.
         timeStep = self.htm.regionArray[self.level].layerArray[self.layer].timeStep
-        print " current levels TimeStep=%s" % (timeStep)
         transp = QtGui.QColor(0, 0, 0, 0)
         pen = QtGui.QPen(transp, 0, QtCore.Qt.SolidLine)
         #transpRed = QtGui.QColor(0xFF, 0, 0, 0x20)
@@ -1106,10 +1110,10 @@ class HTMNetwork(QtGui.QWidget):
     def step(self, updateViewer):
         # Update the inputs and run them through the HTM levels just once.
 
-        print "NEW TimeStep. Current TimeStep = %s" % self.iteration
+        print "NEW TimeStep"
         # PART 1 MAKE NEW INPUT FOR LEVEL 0
         ############################################
-        print "PART 1"
+        print "PART 1 Update Input"
         # Get the command output in the form of an SDR.
         commandGrid = self.htm.levelCommandOutput(0)
 
@@ -1127,7 +1131,7 @@ class HTMNetwork(QtGui.QWidget):
 
         # PART 2 RUN THE NEW INPUT THROUGHT THE HTM
         #####################################################################
-        print "PART 2"
+        print "PART 2 Update HTM"
         self.iteration += 1  # Increase the time
         # Update the HTM input and run through the
         newInput = self.InputCreator.createSimGrid()
@@ -1141,6 +1145,7 @@ class HTMNetwork(QtGui.QWidget):
                 # Update the columns and cells of the HTM viewers
                 self.HTMNetworkGrid[i].updateGrid()
 
+        print "Number of TimeSteps=%s" % (self.iteration)
         print "------------------------------------------"
 
 

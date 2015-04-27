@@ -119,9 +119,9 @@ class test_SpatialPooling:
         similarPerIn1 = self.gridsSimilar(colSDR1, combinedOutput)
         similarPerIn2 = self.gridsSimilar(colSDR2, combinedOutput)
 
-        #app = QtGui.QApplication(sys.argv)
-        #self.htmGui = GUI_HTM.HTMGui(self.htm, self.InputCreator)
-        #sys.exit(app.exec_())
+        # app = QtGui.QApplication(sys.argv)
+        # self.htmGui = GUI_HTM.HTMGui(self.htm, self.InputCreator)
+        # sys.exit(app.exec_())
 
         #from PyQt4.QtCore import pyqtRemoveInputHook; import ipdb; pyqtRemoveInputHook(); ipdb.set_trace()
         assert similarPerIn1 >= 0.49 and similarPerIn1 <= 0.51
