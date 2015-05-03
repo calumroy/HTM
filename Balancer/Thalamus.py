@@ -12,64 +12,142 @@ outputs such that desired input states are reached.
 """
 import numpy as np
 import random
+import SDR_Functions as SDR_Funct
+from operator import itemgetter
 
 
 class Thalamus:
     def __init__(self, columnArrayWidth, columnArrayHeight):
-        # The thalamus contains a 'memories' variable whose purpose is to
-        # store in an array of memory grids which directed the HTM network outputs
-        # to produce desired inputs.
+        '''
+        The thalamus contains a Qvalues grid variable whose purpose is to
+        store in a 2d array Qvalues which are used and updated.
+        These decided the thalamus output which directs the HTM
+        to produce desired inputs.
+
+        Qvalues must be larger then zero. If a square does not have
+        a Qvalue then it will be zero. A squares Qvalue is updated
+        when it is part of a command that received a reward or lead
+        to a new Q state that has a non zero Qvalue (see Qlearning).
+        '''
         self.width = columnArrayWidth
         self.height = columnArrayHeight
-        self.command = np.array([[0 for i in range(self.width)]
+        self.QValues = np.array([[0 for i in range(self.width)]
                                 for j in range(self.height)])
-        self.memories = np.array([self.command])
-        self.historyLength = 5
-        # store the input angles
-        self.angleHistory = []
 
-    def returnMemory(self):
-        #return self.memories[-1]
-        return self.returnBlankMemory()
+        # Policy Parameters
+        # The number of squares that should be active for a new command.
+        self.numSquaresInComm = 4
+        # The chance a new untested square will be
+        # tried out and returned as part of the new command.
+        self.newCommChance = 0.1
 
-    def reconsider(self):
-        # Decide whether to change the current command based on the history of the
-        # angle input from the simulator.
-        angleCenterCount = 0
-        if len(self.angleHistory) == self.historyLength:
-            for i in self.angleHistory:
-                if i == 0:
-                    angleCenterCount += 1
-            if angleCenterCount < 5:
-                self.angleHistory = np.array([])
-                #self.changeMemPos(random.randint(0, self.width))
+        # Store the last Qvalues which makes it into the last output.
+        # This list is used to update those Qvalues, stored as (x,y,Qvalue).
+        self.lastQValList = []
 
-    def addToHistory(self, memory):
-        # We add the new memory to the end of the
-        # array then delete the memory at the start of the array.
-        # All the memories should be in order from
-        # oldest to most recent.
-        #from PyQt4.QtCore import pyqtRemoveInputHook; import ipdb; pyqtRemoveInputHook(); ipdb.set_trace()
-        if len(self.memories) < self.historyLength:
-            # add the new 2d array to the array of 2d memories
-            # The axis must be specified otherwise the array is flattened
-            if (self.checkArraySizesMatch(self.memories[0], memory) is True):
-                self.memories = np.append(self.memories, [memory], axis=0)
-            else:
-                print "Error: The new memory size is different to the previous ones"
+    def updateQvalues(self, reward):
+        '''
+        Update the Qvalues depending on the output form the last command.
+        The Qvalues contributuin to the last command are stored in the
+        variable self.lastQValList.
+
+        The QValues are increased if they resulted in a new Qstate that
+        has a higher Qvalue or a reward was received. A new Q state with a
+        lower Qvalue will decrease the Qvalues.
+        '''
+        pass
+
+    def pickCommand(self, predCommand):
+        '''
+        From the predicting cells from the input select those
+        with the highest Q values.
+
+        The input is a grid which represents cells that are predicting.
+        These cells corresponding Qvalues will be used to select the
+        output command.
+        '''
+        nominatedQvalGrid = self.getNomQvalues(predCommand)
+
+        # From the nominated qvalues choose the highest values.
+        # If no values or not enough are nominated use a policy to
+        # Decide which Qvalues shall make up the output command.
+        newCommand = self.commandPolicy(nominatedQvalGrid)
+
+        return newCommand
+
+    def commandPolicy(self, nominatedQvalGrid):
+        # Using the policy and the input nominated QValues return a new
+        # binary grid representing the chosen output command grid.
+        width = len(self.QValues[0])
+        height = len(self.QValues)
+        newCommand = SDR_Funct.returnBlankSDRGrid(width, height)
+        highestQValList = self.getHighestQvalues(nominatedQvalGrid)
+        # Store in a list (x,y,QValue).
+        self.lastQValList = []
+        # With a chance select each Qvalue to be part of the new command.
+        for i in range(len(highestQValList)):
+            if random.random() > self.newCommChance:
+                pos_x = highestQValList[i][0]
+                pos_y = highestQValList[i][1]
+                newCommand[pos_y][pos_x] = 1
+                self.lastQValList.append([pos_x, pos_y, highestQValList[i][2]])
+
+        # If the return list of positions and Qvalues is too small
+        # then add a ramdom selection of squares to fill up the command.
+        if len(highestQValList) < self.numSquaresInComm:
+            for i in range(self.numSquaresInComm - len(self.lastQValList)):
+                # Choose a random Qvalue to add to the new command
+                pos_x = random.randint(0, width)
+                pos_y = random.randint(0, height)
+                newCommand[pos_y][pos_x] = 1
+                self.lastQValList.append([pos_x, pos_y, self.QValues])
+        return newCommand
+
+    def getHighestQvalues(self, nominatedQvalGrid):
+        # Return a list of the highest Qvalues. Return the number
+        # specified by the parameter self.numSquaresInComm
+        # Store the position of the highest Qvalues in a list
+        # Each position in the list will store (x,y,Qvalue)
+        qValList = []
+        width = len(nominatedQvalGrid[0])
+        height = len(nominatedQvalGrid)
+        for y in range(height):
+                for x in range(width):
+                    currQval = nominatedQvalGrid[y][x]
+                    if currQval > 0:
+                        qValList.append([x, y, currQval])
+        # Sort the qVal List by the Qvalue
+        qValList = sorted(qValList, key=itemgetter(2))
+        # Only the self.numSquaresInComm number of Qvalues
+        # are needed. If not enough Qvalue exist in the list return
+        # a smaller or empty list.
+        qValList = qValList[:self.numSquaresInComm]
+        return qValList
+
+    def getNomQvalues(self, grid):
+        # If a square in the input grid is active then return a
+        # grid containing the Qvalue for that square else return 0.
+        # If the input grid is smaller then the Qvalue grid then
+        # just use the top most part.
+
+        if (len(grid) < len(self.QValues)) or (len(grid[0]) < len(self.QValues[0])):
+            print " Thalamus QValue Grid is not the same size as grid input!"
+            #SDR_Funct.joinInputArrays()
+        if (len(grid) <= len(self.QValues)) and (len(grid[0]) <= len(self.QValues[0])):
+            # Remember and return the number of nominated Q values
+            numberNomQVals = 0
+            width = len(grid[0])
+            height = len(grid)
+            nominatedQValGrid = SDR_Funct.returnBlankSDRGrid(width, height)
+            for y in range(height):
+                for x in range(width):
+                    if grid[y][x] == 1:
+                        nominatedQValGrid = self.QValues[y][x]
+                        numberNomQVals += 1
+            return nominatedQValGrid
         else:
-            # Axis must be specified and the memory must be enclosed in []
-            # Without this the memory will not be appended in whole to memories.
-            newArray = np.append(self.memories, [memory], axis=0)
-            # Delete the oldest memory at the start of the memories array
-            newArray = np.delete(newArray, 0, 0)
-            self.memories = newArray
-            # Now check to see if a new command from the thalamus should be issued.
-            self.reconsider()
-
-    def returnBlankMemory(self):
-        blankMemory = np.array([[0 for i in range(self.width)] for j in range(self.height)])
-        return blankMemory
+            print " ERROR Thalamus grid input is larger then the QValues grid!"
+        return None
 
     def checkArraySizesMatch(self, array1, array2):
         # Check if arrays up to dimension N are of equal size

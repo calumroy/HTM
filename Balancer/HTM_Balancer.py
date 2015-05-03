@@ -9,6 +9,7 @@ import random
 import math
 #import pprint
 import copy
+import SDR_Functions as SDR_Funct
 
 ##Struct = {'field1': 'some val', 'field2': 'some val'}
 ##myStruct = { 'num': 1}
@@ -1250,11 +1251,28 @@ class HTMRegion:
         # Return the output for the given layer.
         return self.layerArray[layer].output
 
-    def regionCommandOutput(self):
-        # Return the regions command output from its command layer (the highest layer).
-        highestLayer = self.numLayers-1
-        #return self.layerArray[highestLayer].activeCellGrid()
-        return self.layerArray[highestLayer].output
+    def layerPredCommandOutput(self, layer):
+        # Return the given layers predicted command output.
+        # This is the predictive cells from the command space.
+        # The command space is assumed to be the top half of the
+        # columns.
+
+        # Divide the predictive cell grid into two and take the
+        # top most part which is the command space.
+        totalPredGrid = self.layerArray[layer].predictiveCellGrid()
+        # Splits the grid into 2 parts of equal or almost equal size.
+        # This splits the top and bottom.
+        return np.array_split(totalPredGrid, 2)
+
+    def layerActCommandOutput(self, layer):
+        # Return the given layers active command output.
+        totalActiveGrid = self.layerArray[layer].activeCellGrid()
+        # This is the active cells from the command space.
+        # The command space is assumed to be the top half of the
+        # columns.
+        # Divide the active cell grid into two and take the
+        # top most part which is the command space.
+        return np.array_split(totalActiveGrid, 2)
 
     def spatialTemporal(self):
         i = 0
@@ -1296,7 +1314,7 @@ class HTM:
         # feedback from the higher level.
         commandFeedback = np.array([[0 for i in range(self.width*self.cellsPerColumn)]
                                     for j in range(self.height)])
-        newInput = self.joinInputArrays(commandFeedback, input)
+        newInput = SDR_Funct.joinInputArrays(commandFeedback, input)
         # Setup the new htm region with the input and size parameters defined.
         self.regionArray = np.append(self.regionArray,
                                      HTMRegion(newInput,
@@ -1308,8 +1326,8 @@ class HTM:
         # The higher levels get inputs from the lower levels.
         #highestLevel = self.numLevels-1
         for i in range(1, numLevels):
-            lowerOutput = self.regionArray[i-1].regionOutput()
-            newInput = self.joinInputArrays(commandFeedback, lowerOutput)
+            lowerOutput = self.regionArray[i-1].layerOutput()
+            newInput = SDR_Funct.joinInputArrays(commandFeedback, lowerOutput)
             self.regionArray = np.append(self.regionArray,
                                          HTMRegion(newInput,
                                                    self.width,
@@ -1356,14 +1374,14 @@ class HTM:
         # The lowest levels lowest layer gets this new input.
         # All other levels and layers get inputs from lower levels and layers.
         if self.numLevels > 1:
-            commFeedbackLev1 = self.levelCommandOutput(1)
+            commFeedbackLev1 = self.levelOutput(1)
         # If there is only one level then the
         # thalamus input is added to the input.
         if self.numLevels == 1:
             # This is the highest level so get the
             # feedback command from the thalamus.
             commFeedbackLev1 = self.thalamusCommand
-        newInput = self.joinInputArrays(commFeedbackLev1, input)
+        newInput = SDR_Funct.joinInputArrays(commFeedbackLev1, input)
         self.regionArray[0].updateRegionInput(newInput)
 
         ### HIGHER LEVELS UPDATE
@@ -1378,19 +1396,21 @@ class HTM:
             # Check to make sure this isn't the highest level
             if higherLevel < self.numLevels:
                 # Get the feedback command from the higher level
-                commFeedbackLevN = self.levelCommandOutput(higherLevel)
+                commFeedbackLevN = self.levelOutput(higherLevel)
             else:
                 # This is the highest level so get the
                 # feedback command from the thalamus.
                 commFeedbackLevN = self.thalamusCommand
 
             # Update the newInput for the current level in the HTM
-            newInput = self.joinInputArrays(commFeedbackLevN, lowerLevelOutput)
+            newInput = SDR_Funct.joinInputArrays(commFeedbackLevN, lowerLevelOutput)
             self.regionArray[i].updateRegionInput(newInput)
 
-    def levelCommandOutput(self, level):
-        # Return the command output of the desired level.
-        return self.regionArray[level].regionCommandOutput()
+    def levelOutput(self, level):
+        # Return the output from the desired level.
+        # The output will be from the highest layer in the level.
+        highestLayer = self.regionArray[level].numLayers-1
+        return self.regionArray[level].layerOutput(highestLayer)
         #return self.regionArray[level].regionOutput()
 
     #@do_cprofile  # For profiling
@@ -1407,49 +1427,6 @@ class HTM:
             i += 1
             level.spatialTemporal()
 
-    def joinInputArrays(self, input1, input2):
-        # Join two input 2D arrays together vstack them.
-        # This means the widths of the arrays input1[0] = input2[0]
-        # must be equal so one input may need to be padded.
-        output = np.array([])
-        # check that the inputs are arrays
-        assert (type(input1).__name__ == 'ndarray' or
-                type(input1).__name__ == 'list')
-        assert (type(input2).__name__ == 'ndarray' or
-                type(input2).__name__ == 'list')
 
-        if len(input1) > 0 and len(input2) > 0:
-            if len(input1[0]) > len(input2[0]):
-                # Since input2 is smaller we will pad the array with zeros.
-                pad = np.array([0])
-                for x in range(len(input1[0]) - len(input2[0]) - 1):
-                    pad = np.append(pad, [0])
-                pad1 = pad
-                for y in range(len(input2)-1):
-                    pad = np.vstack([pad, pad1])
-                # Now add the padding to input2
-                input2 = np.hstack([input2, pad])
-            elif len(input2[0]) > len(input1[0]):
-                # Since input1 is smaller we will pad the array with zeros.
-                pad = np.array([0])
-                for x in range(len(input2[0]) - len(input1[0]) - 1):
-                    pad = np.append(pad, [0])
-                pad1 = pad
-                for y in range(len(input2)-1):
-                    pad = np.vstack([pad, pad1])
-                # Now add the padding to input1
-                input1 = np.hstack([input1, pad])
-            # The arrays should be the same size so now we can vstack them.
-            if len(input1[0]) == len(input2[0]):
-                # The input arrays have the same width so
-                # they can directly be vstacked.
-                output = np.vstack([input1, input2])
-        elif len(input1) == 0 and len(input2) > 0:
-            output = input2
-        elif len(input2) == 0 and len(input1) > 0:
-            output = input1
-        else:
-            output = np.array([])
-        return output
 
 

@@ -2,6 +2,7 @@ from mock import MagicMock
 from mock import patch
 from HTM_Balancer import HTM, HTMLayer, HTMRegion, Column
 import numpy as np
+import SDR_Functions as SDR_Funct
 
 
 class TestExampleTwo:
@@ -25,7 +26,7 @@ class test_HTMLayer:
     #@patch('HTM_Balancer.Column.predictiveStateArray')
     def test_predictiveState(self):
         column = self.htmlayer.columns[0][0]
-        column.predictiveStateArray = np.array([[1,0],[3,0],[5,6]])
+        column.predictiveStateArray = np.array([[1, 0], [3, 0], [5, 6]])
         #instance = MagicMock.return_value
         #instance.predictiveStateArray.return_value = self.predictiveStateArray
 
@@ -54,14 +55,14 @@ class test_HTM:
     def test_joinInputArrays(self):
         input1 = np.array([[0 for i in range(self.width * self.cellsPerColumn)] for j in range(self.height)])
         input2 = np.array([[0 for i in range(self.width)] for j in range(self.height)])
-        output = self.htm.joinInputArrays(input1, input2)
+        output = SDR_Funct.joinInputArrays(input1, input2)
         assert len(output) == len(input1) + len(input2)
         assert len(output[0]) == self.width * self.cellsPerColumn
 
     def test_joinNullInputArrays(self):
         input1 = np.array([])
         input2 = np.array([[0 for i in range(self.width)] for j in range(self.height)])
-        output = self.htm.joinInputArrays(input1, input2)
+        output = SDR_Funct.joinInputArrays(input1, input2)
         #import ipdb; ipdb.set_trace()
         assert len(output) == len(input1) + len(input2)
         assert len(output[0]) == len(input2[0])

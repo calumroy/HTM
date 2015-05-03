@@ -1115,16 +1115,18 @@ class HTMNetwork(QtGui.QWidget):
         ############################################
         print "PART 1 Update Input"
         # Get the command output in the form of an SDR.
-        commandGrid = self.htm.levelCommandOutput(0)
+        # The command output will be from the top layer in a level.
+        topLayer = self.htm.levelArray[0].numLayers-1
+        commandGrid = self.htm.levelArray[0].layerActCommandOutput(topLayer)
 
-        # Use the output from the motor layer to give to the simulator so it can
+        # Use the command output from the top layer to give to the simulator so it can
         # work out a new state.
         self.InputCreator.step(commandGrid)
 
-        # Add the new simulation state variables (angle) to the thalamus.
-        # The thalamus also updates it's command in this function.
-        self.thalamus.addToHistory(commandGrid)
-        thalamusCommand = self.thalamus.returnMemory()
+        # Get the predicted command from the command space.
+        # Pass this to the thalamus
+        predCommGrid = self.htm.levelArray[0].layerPredCommandOutput(topLayer)
+        thalamusCommand = self.thalamus.pickCommand(predCommGrid)
 
         # Update the htm with the thalamus command
         self.htm.updateThalamusComm(thalamusCommand)

@@ -85,7 +85,7 @@ class test_TemporalPooling:
         # Run through all the inputs twice and find the average temporal pooling percent
         for i in range(2*self.InputCreator.numInputs):
             self.step()
-            htmOutput = self.htm.levelCommandOutput(self.numLevels-1)
+            htmOutput = self.htm.levelOutput(self.numLevels-1)
             tempPoolPercent = self.temporalPooling.temporalPoolingPercent(htmOutput)
             print "Temporal pooling percent = %s" % tempPoolPercent
 
@@ -106,7 +106,7 @@ class test_TemporalPooling:
         # Run through all the inputs twice and find the average temporal pooling percent
         for i in range(2*self.InputCreator.numInputs):
             self.step()
-            htmOutput = self.htm.levelCommandOutput(self.numLevels-1)
+            htmOutput = self.htm.levelOutput(self.numLevels-1)
             tempPoolPercent = self.temporalPooling.temporalPoolingPercent(htmOutput)
             print "Temporal pooling percent = %s" % tempPoolPercent
 
@@ -131,7 +131,7 @@ class test_TemporalPooling:
                 newInput = self.InputCreator.createSimGrid()
                 newInput = self.InputCreator.createSimGrid()
             self.htm.spatialTemporal(newInput)
-            htmOutput = self.htm.levelCommandOutput(self.numLevels-1)
+            htmOutput = self.htm.levelOutput(self.numLevels-1)
             tempPoolPercent = self.temporalPooling.temporalPoolingPercent(htmOutput)
             print "Temporal pooling percent = %s" % tempPoolPercent
 
