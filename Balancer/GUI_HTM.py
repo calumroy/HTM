@@ -1111,13 +1111,14 @@ class HTMNetwork(QtGui.QWidget):
         # Update the inputs and run them through the HTM levels just once.
 
         print "NEW TimeStep"
+        #######################################################################
         # PART 1 MAKE NEW INPUT FOR LEVEL 0
-        ############################################
+        ########################################################################
         print "PART 1 Update Input"
         # Get the command output in the form of an SDR.
         # The command output will be from the top layer in a level.
-        topLayer = self.htm.levelArray[0].numLayers-1
-        commandGrid = self.htm.levelArray[0].layerActCommandOutput(topLayer)
+        topLayer = self.htm.regionArray[0].numLayers-1
+        commandGrid = self.htm.regionArray[0].layerActCommandOutput(topLayer)
 
         # Use the command output from the top layer to give to the simulator so it can
         # work out a new state.
@@ -1125,20 +1126,31 @@ class HTMNetwork(QtGui.QWidget):
 
         # Get the predicted command from the command space.
         # Pass this to the thalamus
-        predCommGrid = self.htm.levelArray[0].layerPredCommandOutput(topLayer)
+        predCommGrid = self.htm.regionArray[0].layerPredCommandOutput(topLayer)
+        print "predCommGrid = %s" % predCommGrid
         thalamusCommand = self.thalamus.pickCommand(predCommGrid)
 
         # Update the htm with the thalamus command
         self.htm.updateThalamusComm(thalamusCommand)
 
+        #######################################################################
         # PART 2 RUN THE NEW INPUT THROUGHT THE HTM
-        #####################################################################
+        #######################################################################
         print "PART 2 Update HTM"
         self.iteration += 1  # Increase the time
         # Update the HTM input and run through the
         newInput = self.InputCreator.createSimGrid()
         self.htm.spatialTemporal(newInput)
 
+        #######################################################################
+        # PART 3 UPDATE THE THALAMUS
+        #######################################################################
+        # Update the Thalamus class by either rewarding it or not
+        # Get a reward from the simulation and pass it to the thalamus.
+        currentReward = self.InputCreator.getReward()
+        self.thalamus.rewardThalamus(currentReward)
+
+        #######################################################################
         # Check if the view should be updated
         if updateViewer is True:
             for i in range(self.numLevels*self.numLayers):

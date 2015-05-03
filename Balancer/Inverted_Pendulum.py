@@ -86,6 +86,12 @@ class InvertedPendulum():
         print " self.angle = %s, vel = %s, acc = %s "%(self.angle, self.vel, acc)
         return self.angle
 
+    def getReward(self):
+        # Look at the current state of the simulation and decide if a reward should be given
+        if self.angle == 0:
+            return 1
+        return 0
+
     def createSimGrid(self):
         # Create the angle input matrix
         # angle = The current angle of the inverted pendulum

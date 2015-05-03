@@ -2,7 +2,7 @@ from mock import MagicMock
 from mock import patch
 from HTM_Balancer import HTM, HTMLayer, HTMRegion, Column
 import numpy as np
-import SDR_Functions as SDR_Funct
+from utilities import sdrFunctions as SDRFunct
 
 
 class TestExampleTwo:
@@ -55,14 +55,14 @@ class test_HTM:
     def test_joinInputArrays(self):
         input1 = np.array([[0 for i in range(self.width * self.cellsPerColumn)] for j in range(self.height)])
         input2 = np.array([[0 for i in range(self.width)] for j in range(self.height)])
-        output = SDR_Funct.joinInputArrays(input1, input2)
+        output = SDRFunct.joinInputArrays(input1, input2)
         assert len(output) == len(input1) + len(input2)
         assert len(output[0]) == self.width * self.cellsPerColumn
 
     def test_joinNullInputArrays(self):
         input1 = np.array([])
         input2 = np.array([[0 for i in range(self.width)] for j in range(self.height)])
-        output = SDR_Funct.joinInputArrays(input1, input2)
+        output = SDRFunct.joinInputArrays(input1, input2)
         #import ipdb; ipdb.set_trace()
         assert len(output) == len(input1) + len(input2)
         assert len(output[0]) == len(input2[0])

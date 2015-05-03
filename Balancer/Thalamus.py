@@ -12,7 +12,7 @@ outputs such that desired input states are reached.
 """
 import numpy as np
 import random
-import SDR_Functions as SDR_Funct
+from utilities import sdrFunctions as SDRFunct
 from operator import itemgetter
 
 
@@ -36,26 +36,59 @@ class Thalamus:
 
         # Policy Parameters
         # The number of squares that should be active for a new command.
-        self.numSquaresInComm = 4
+        self.numSquaresInComm = 20
         # The chance a new untested square will be
         # tried out and returned as part of the new command.
         self.newCommChance = 0.1
+        # A parameter specifing how importnat maximizing future Qvalues is.
+        self.futureQvalMax = 1
+        # Learning rate. This determines how quickly Qvalues change.
+        self.qValLearnRate = 0.1
 
         # Store the last Qvalues which makes it into the last output.
         # This list is used to update those Qvalues, stored as (x,y,Qvalue).
         self.lastQValList = []
+        # Store the last reward received. This is used to update Qvalues.
+        self.reward = 0
 
-    def updateQvalues(self, reward):
+    def rewardThalamus(self, reward):
+        # A function that rewards the thalamus for doing something correct.
+        # Note the reward is stored and used to update Qvalues after a
+        # new command is chosen.
+        self.reward = reward
+
+    def updateQvalues(self):
         '''
-        Update the Qvalues depending on the output form the last command.
+        Update the Qvalues depending on the output from the last command.
         The Qvalues contributuin to the last command are stored in the
         variable self.lastQValList.
 
         The QValues are increased if they resulted in a new Qstate that
         has a higher Qvalue or a reward was received. A new Q state with a
         lower Qvalue will decrease the Qvalues.
+
+        Qvalues are updated with the following formula
+        sample = Reward + futureQvalMax * (nextAction maximizing Qvalues)
+        QValue(x,y) = (1-qValLearnRate) * QValue(x,y) + qValLearnRate * sample
+
         '''
-        pass
+        # Get the last Qvalues that contributed to the command
+        qValueTotal = 0
+        for i in range(len(self.lastQValList)):
+            # The list stores (x,y,Qvalue)
+            qValueTotal += self.lastQValList[i][2]
+        # Get the average of the last qVals
+        qValAverage = qValueTotal/(len(self.lastQValList))
+
+        sample = self.reward + self.futureQvalMax * qValAverage
+
+        # Update each of the qvalues form the last command
+        for i in range(len(self.lastQValList)):
+            # The list stores (x,y,Qvalue)
+            pos_x = self.lastQValList[i][0]
+            pos_y = self.lastQValList[i][1]
+            self.QValues[pos_y][pos_x] = ((1 - self.qValLearnRate) * self.QValues[pos_y][pos_x] +
+                                          self.qValLearnRate * sample)
 
     def pickCommand(self, predCommand):
         '''
@@ -65,6 +98,10 @@ class Thalamus:
         The input is a grid which represents cells that are predicting.
         These cells corresponding Qvalues will be used to select the
         output command.
+
+        The Qvalues are updated after this new command is chosen.
+        This needs to be done now to use the reward from the
+        previous Q state.
         '''
         nominatedQvalGrid = self.getNomQvalues(predCommand)
 
@@ -73,6 +110,11 @@ class Thalamus:
         # Decide which Qvalues shall make up the output command.
         newCommand = self.commandPolicy(nominatedQvalGrid)
 
+        # Update the QValues using this new command.
+        # This needs to be done now to use the reward from the
+        # previous Q state
+        self.updateQvalues()
+
         return newCommand
 
     def commandPolicy(self, nominatedQvalGrid):
@@ -80,8 +122,9 @@ class Thalamus:
         # binary grid representing the chosen output command grid.
         width = len(self.QValues[0])
         height = len(self.QValues)
-        newCommand = SDR_Funct.returnBlankSDRGrid(width, height)
+        newCommand = SDRFunct.returnBlankSDRGrid(width, height)
         highestQValList = self.getHighestQvalues(nominatedQvalGrid)
+
         # Store in a list (x,y,QValue).
         self.lastQValList = []
         # With a chance select each Qvalue to be part of the new command.
@@ -97,10 +140,10 @@ class Thalamus:
         if len(highestQValList) < self.numSquaresInComm:
             for i in range(self.numSquaresInComm - len(self.lastQValList)):
                 # Choose a random Qvalue to add to the new command
-                pos_x = random.randint(0, width)
-                pos_y = random.randint(0, height)
+                pos_x = random.randint(0, width - 1)
+                pos_y = random.randint(0, height - 1)
                 newCommand[pos_y][pos_x] = 1
-                self.lastQValList.append([pos_x, pos_y, self.QValues])
+                self.lastQValList.append([pos_x, pos_y, self.QValues[pos_y][pos_x]])
         return newCommand
 
     def getHighestQvalues(self, nominatedQvalGrid):
@@ -116,6 +159,7 @@ class Thalamus:
                     currQval = nominatedQvalGrid[y][x]
                     if currQval > 0:
                         qValList.append([x, y, currQval])
+
         # Sort the qVal List by the Qvalue
         qValList = sorted(qValList, key=itemgetter(2))
         # Only the self.numSquaresInComm number of Qvalues
@@ -130,23 +174,23 @@ class Thalamus:
         # If the input grid is smaller then the Qvalue grid then
         # just use the top most part.
 
-        if (len(grid) < len(self.QValues)) or (len(grid[0]) < len(self.QValues[0])):
-            print " Thalamus QValue Grid is not the same size as grid input!"
-            #SDR_Funct.joinInputArrays()
+        if (len(grid) != len(self.QValues)) or (len(grid[0]) != len(self.QValues[0])):
+            print "WARNING Thalamus QValue Grid is not the same size as grid input!"
+            #SDRFunct.joinInputArrays()
         if (len(grid) <= len(self.QValues)) and (len(grid[0]) <= len(self.QValues[0])):
             # Remember and return the number of nominated Q values
             numberNomQVals = 0
             width = len(grid[0])
             height = len(grid)
-            nominatedQValGrid = SDR_Funct.returnBlankSDRGrid(width, height)
+            nominatedQValGrid = SDRFunct.returnBlankSDRGrid(width, height)
             for y in range(height):
                 for x in range(width):
                     if grid[y][x] == 1:
-                        nominatedQValGrid = self.QValues[y][x]
+                        nominatedQValGrid[y][x] = self.QValues[y][x]
                         numberNomQVals += 1
             return nominatedQValGrid
-        else:
-            print " ERROR Thalamus grid input is larger then the QValues grid!"
+
+        print " ERROR Thalamus grid input is larger then the QValues grid!"
         return None
 
     def checkArraySizesMatch(self, array1, array2):

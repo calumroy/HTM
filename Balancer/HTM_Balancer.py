@@ -9,7 +9,7 @@ import random
 import math
 #import pprint
 import copy
-import SDR_Functions as SDR_Funct
+from utilities import sdrFunctions as SDRFunct
 
 ##Struct = {'field1': 'some val', 'field2': 'some val'}
 ##myStruct = { 'num': 1}
@@ -1261,8 +1261,10 @@ class HTMRegion:
         # top most part which is the command space.
         totalPredGrid = self.layerArray[layer].predictiveCellGrid()
         # Splits the grid into 2 parts of equal or almost equal size.
-        # This splits the top and bottom.
-        return np.array_split(totalPredGrid, 2)
+        # This splits the top and bottom. Return the top at index[0].
+        PredGridOut =  np.array_split(totalPredGrid, 2)[0]
+
+        return PredGridOut
 
     def layerActCommandOutput(self, layer):
         # Return the given layers active command output.
@@ -1271,8 +1273,8 @@ class HTMRegion:
         # The command space is assumed to be the top half of the
         # columns.
         # Divide the active cell grid into two and take the
-        # top most part which is the command space.
-        return np.array_split(totalActiveGrid, 2)
+        # top most part which is the command space. Return the top at index[0].
+        return np.array_split(totalActiveGrid, 2)[0]
 
     def spatialTemporal(self):
         i = 0
@@ -1314,7 +1316,7 @@ class HTM:
         # feedback from the higher level.
         commandFeedback = np.array([[0 for i in range(self.width*self.cellsPerColumn)]
                                     for j in range(self.height)])
-        newInput = SDR_Funct.joinInputArrays(commandFeedback, input)
+        newInput = SDRFunct.joinInputArrays(commandFeedback, input)
         # Setup the new htm region with the input and size parameters defined.
         self.regionArray = np.append(self.regionArray,
                                      HTMRegion(newInput,
@@ -1327,7 +1329,7 @@ class HTM:
         #highestLevel = self.numLevels-1
         for i in range(1, numLevels):
             lowerOutput = self.regionArray[i-1].layerOutput()
-            newInput = SDR_Funct.joinInputArrays(commandFeedback, lowerOutput)
+            newInput = SDRFunct.joinInputArrays(commandFeedback, lowerOutput)
             self.regionArray = np.append(self.regionArray,
                                          HTMRegion(newInput,
                                                    self.width,
@@ -1381,7 +1383,7 @@ class HTM:
             # This is the highest level so get the
             # feedback command from the thalamus.
             commFeedbackLev1 = self.thalamusCommand
-        newInput = SDR_Funct.joinInputArrays(commFeedbackLev1, input)
+        newInput = SDRFunct.joinInputArrays(commFeedbackLev1, input)
         self.regionArray[0].updateRegionInput(newInput)
 
         ### HIGHER LEVELS UPDATE
@@ -1403,7 +1405,7 @@ class HTM:
                 commFeedbackLevN = self.thalamusCommand
 
             # Update the newInput for the current level in the HTM
-            newInput = SDR_Funct.joinInputArrays(commFeedbackLevN, lowerLevelOutput)
+            newInput = SDRFunct.joinInputArrays(commFeedbackLevN, lowerLevelOutput)
             self.regionArray[i].updateRegionInput(newInput)
 
     def levelOutput(self, level):
