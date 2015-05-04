@@ -1127,11 +1127,11 @@ class HTMNetwork(QtGui.QWidget):
         # Get the predicted command from the command space.
         # Pass this to the thalamus
         predCommGrid = self.htm.regionArray[0].layerPredCommandOutput(topLayer)
-        print "predCommGrid = %s" % predCommGrid
+        #print "predCommGrid = %s" % predCommGrid
         thalamusCommand = self.thalamus.pickCommand(predCommGrid)
 
-        # Update the htm with the thalamus command
-        self.htm.updateThalamusComm(thalamusCommand)
+        # Update level 0 of the htm with the thalamus command
+        self.htm.regionArray[0].updateCommandInput(thalamusCommand)
 
         #######################################################################
         # PART 2 RUN THE NEW INPUT THROUGHT THE HTM

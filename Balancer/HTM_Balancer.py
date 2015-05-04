@@ -222,6 +222,23 @@ class HTMLayer:
             return None
 
     def activeCellGrid(self):
+        # Return a grid representing the cells in the columns which are active.
+        # Cells in a column are placed in adjacent grid cells right of each other.
+        # Eg. A HTM layer with 10 rows, 5 columns and 3 cells per column would produce an
+        # activeCellGrid of 10*3 = 15 columns and 10 rows.
+
+        output = np.array([[0 for i in range(self.width*self.cellsPerColumn)]
+                          for j in range(self.height)])
+        for c in self.activeColumns:
+            x = c.pos_x
+            y = c.pos_y
+            for k in range(len(c.cells)):
+                if c.activeStateArray[k][0] == self.timeStep:
+                    output[y][x*self.cellsPerColumn+k] = 1
+        print "output = ", output
+        return output
+
+    def activeNotBurstCellGrid(self):
         # Return a grid representing the cells in the columns which are active but
         # not bursting. Cells in a column are placed in adjacent grid cells right of each other.
         # Eg. A HTM layer with 10 rows, 5 columns and 3 cells per column would produce an
@@ -1204,8 +1221,16 @@ class HTMLayer:
 
 class HTMRegion:
     def __init__(self, input, columnArrayWidth, columnArrayHeight, cellsPerColumn, numlayers=2):
-        # The HTMRegion is an object holding multiple HTMLayers. The region consists of
-        # simulated cortex layers.
+        '''
+        The HTMRegion is an object holding multiple HTMLayers. The region consists of
+        simulated cortex layers.
+
+        The lowest layer recieves the new input and feedback from the higher levels.
+
+        The highest layer is a command/input layer. It recieves input from the
+        lowest layers and from an outside thalamus class.
+        This extra input is meant to direct the HTM.
+        '''
         self.quit = False
         # The class contains multiple HTM layers stacked on one another
         self.width = columnArrayWidth
@@ -1213,7 +1238,13 @@ class HTMRegion:
         self.cellsPerColumn = cellsPerColumn
         self.numLayers = numlayers  # The number of HTM layers that make up a region.
         self.layerArray = np.array([], dtype=object)
+        # Make a place to store the thalamus command.
+        self.commandInput = np.array([[0 for i in range(self.width*cellsPerColumn)]
+                                     for j in range(self.height)])
 
+        self.setupLayers(input)
+
+    def setupLayers(self, input):
         # Set up the inputs to the HTM layers.
         # Layer 0 gets the new input.
         self.layerArray = np.append(self.layerArray, HTMLayer(input, self.width,
@@ -1221,6 +1252,13 @@ class HTMRegion:
         # The higher layers receive the lower layers output.
         for i in range(1, self.numLayers):
             lowerOutput = self.layerArray[i-1].output
+
+            # The highest layer receives the lower layers input and
+            # an input from the thalamus equal in size to the lower layers input.
+            highestLayer = self.numLayers - 1
+            if i == highestLayer:
+                lowerOutput = SDRFunct.joinInputArrays(self.commandInput, lowerOutput)
+
             self.layerArray = np.append(self.layerArray,
                                         HTMLayer(lowerOutput,
                                                  self.width,
@@ -1239,13 +1277,31 @@ class HTMRegion:
                 #self.layerArray[i].desiredLocalActivity = 4
                 self.layerArray[i].changeColsPotRadius(potentialRadius)
 
+    def updateCommandInput(self, newCommand):
+        # Update the command input for the level
+        # This input is used by the top layer in this level.
+        self.commandInput = newCommand
+
     def updateRegionInput(self, input):
         # Update the input and outputs of the layers.
         # Layer 0 receives the new input.
-        self.layerArray[0].updateInput(input)
+        highestLayer = self.numLayers - 1
+        if self.numLayers != 1:
+            self.layerArray[0].updateInput(input)
+        else:
+            # The lowest layer is also the first layer so it receives the
+            # command input as well as the normal input.
+            newInput = SDRFunct.joinInputArrays(self.commandInput, input)
+            self.layerArray[0].updateInput(newInput)
+
         # The middle layers receive inputs from the lower layer outputs
         for i in range(1, self.numLayers):
-            self.layerArray[i].updateInput(self.layerArray[i-1].output)
+            lowerOutput = self.layerArray[i - 1].output
+            # The highest layer receives the lower layers input and
+            # the commandInput for the level, equal in size to the lower layers input.
+            if i == highestLayer:
+                lowerOutput = SDRFunct.joinInputArrays(self.commandInput, lowerOutput)
+            self.layerArray[i].updateInput(lowerOutput)
 
     def layerOutput(self, layer):
         # Return the output for the given layer.
@@ -1262,7 +1318,7 @@ class HTMRegion:
         totalPredGrid = self.layerArray[layer].predictiveCellGrid()
         # Splits the grid into 2 parts of equal or almost equal size.
         # This splits the top and bottom. Return the top at index[0].
-        PredGridOut =  np.array_split(totalPredGrid, 2)[0]
+        PredGridOut = np.array_split(totalPredGrid, 2)[0]
 
         return PredGridOut
 
@@ -1299,9 +1355,9 @@ class HTM:
     def __init__(self, numLevels, input, columnArrayWidth,
                  columnArrayHeight, cellsPerColumn, numLayers=2):
         self.quit = False
-        # Create a thalamus command input to store thalamus commands.
+        # Create a top level feedback input to store a command for the top level.
         # Used to direct the HTM network.
-        self.thalamusCommand = np.array([[0 for i in range(columnArrayWidth*cellsPerColumn)]
+        self.topLevelFeedback = np.array([[0 for i in range(columnArrayWidth*cellsPerColumn)]
                                         for j in range(columnArrayHeight)])
 
         # This class contains multiple HTM levels stacked on one another
@@ -1327,7 +1383,7 @@ class HTM:
                                      )
         # The higher levels get inputs from the lower levels.
         #highestLevel = self.numLevels-1
-        for i in range(1, numLevels):
+        for i in range(1, numLevels-1):
             lowerOutput = self.regionArray[i-1].layerOutput()
             newInput = SDRFunct.joinInputArrays(commandFeedback, lowerOutput)
             self.regionArray = np.append(self.regionArray,
@@ -1342,9 +1398,9 @@ class HTM:
         #self.HTMOriginal = copy.deepcopy(self.regionArray)
         self.HTMOriginal = None
 
-    def updateThalamusComm(self, newCommand):
-        # Update the thalamus command with the new one.
-        self.thalamusCommand = newCommand
+    def updateTopLevelFb(self, newCommand):
+        # Update the top level feedback command with a new one.
+        self.topLevelFeedback = newCommand
 
     def saveRegions(self):
         # Save the HTM so it can be reloaded.
@@ -1381,8 +1437,8 @@ class HTM:
         # thalamus input is added to the input.
         if self.numLevels == 1:
             # This is the highest level so get the
-            # feedback command from the thalamus.
-            commFeedbackLev1 = self.thalamusCommand
+            # top level feedback command.
+            commFeedbackLev1 = self.topLevelFeedback
         newInput = SDRFunct.joinInputArrays(commFeedbackLev1, input)
         self.regionArray[0].updateRegionInput(newInput)
 
@@ -1401,8 +1457,8 @@ class HTM:
                 commFeedbackLevN = self.levelOutput(higherLevel)
             else:
                 # This is the highest level so get the
-                # feedback command from the thalamus.
-                commFeedbackLevN = self.thalamusCommand
+                # top level feedback command.
+                commFeedbackLevN = self.topLevelFeedback
 
             # Update the newInput for the current level in the HTM
             newInput = SDRFunct.joinInputArrays(commFeedbackLevN, lowerLevelOutput)

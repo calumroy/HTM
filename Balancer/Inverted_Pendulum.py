@@ -142,6 +142,7 @@ class InvertedPendulum():
         # Prevent divide by zero!
         if numActiveCells != 0:
             acceleration = float(acceleration)/float(numActiveCells)
+        print "Num of active cells from command = %s" % numActiveCells
         print "Acceleration Command = %s" % acceleration
         return acceleration
 
