@@ -83,14 +83,15 @@ class InvertedPendulum():
             self.angle = self.maxAngle
         if self.angle < self.minAngle:
             self.angle = self.minAngle
-        print " self.angle = %s, vel = %s, acc = %s "%(self.angle, self.vel, acc)
+        print " self.angle = %s, vel = %s, acc = %s " % (self.angle, self.vel, acc)
         return self.angle
 
     def getReward(self):
         # Look at the current state of the simulation and decide if a reward should be given
-        if self.angle == 0:
-            return 1
-        return 0
+        reward = 0
+        if self.angle >= -5 and self.angle <= 5:
+            reward = 1
+        return reward
 
     def createSimGrid(self):
         # Create the angle input matrix
@@ -126,8 +127,7 @@ class InvertedPendulum():
         acceleration = 0
         height = len(cellGrid)
         width = len(cellGrid[0])
-        # plus one since we want to include the min and max values
-        accRange = abs(self.minAcc - self.maxAcc) + 1
+        accRange = abs(self.minAcc - self.maxAcc)
         numActiveCells = 0
 
         for row in range(height):
@@ -135,7 +135,8 @@ class InvertedPendulum():
                 if cellGrid[row][col] == 1:
                     # Not a random mapping but close enough. We aren't using completely random
                     # since we want the same mapping each time.
-                    accCell = ((col + row) % accRange) + self.minAcc
+                    #accCell = ((col + row) % accRange) + self.minAcc
+                    accCell = float(col)/float(width) * float(accRange) + float(self.minAcc)
                     acceleration += accCell
                     # Calculate the total number of active cells
                     numActiveCells += 1

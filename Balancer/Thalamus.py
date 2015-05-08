@@ -55,12 +55,14 @@ class Thalamus:
         # A function that rewards the thalamus for doing something correct.
         # Note the reward is stored and used to update Qvalues after a
         # new command is chosen.
+        if reward > 0:
+            print "Reward recieved by thalamus= %s" % reward
         self.reward = reward
 
     def updateQvalues(self):
         '''
         Update the Qvalues depending on the output from the last command.
-        The Qvalues contributuin to the last command are stored in the
+        The Qvalues contributing to the last command are stored in the
         variable self.lastQValList.
 
         The QValues are increased if they resulted in a new Qstate that
@@ -89,6 +91,7 @@ class Thalamus:
             pos_y = self.lastQValList[i][1]
             self.QValues[pos_y][pos_x] = ((1 - self.qValLearnRate) * self.QValues[pos_y][pos_x] +
                                           self.qValLearnRate * sample)
+        print "self.QValues = %s" % self.QValues
 
     def pickCommand(self, predCommand):
         '''
@@ -192,29 +195,4 @@ class Thalamus:
 
         print " ERROR Thalamus grid input is larger then the QValues grid!"
         return None
-
-    def checkArraySizesMatch(self, array1, array2):
-        # Check if arrays up to dimension N are of equal size
-        subArray1 = array1
-        subArray2 = array2
-        while (type(subArray1).__name__ == 'ndarray' and
-               type(subArray2).__name__ == 'ndarray'):
-            if (len(subArray1) != len(subArray2)):
-                # arrays are not equal size
-                return False
-            if ((len(subArray1) == 0 and len(subArray2) != 0) or (
-                len(subArray2) == 0 and len(subArray1) != 0)):
-                # arrays are not equal size
-                return False
-            if (len(subArray1) == 0 and len(subArray2) == 0):
-                # arrays are equal break to return true
-                break
-            # Check that the next dimension is still an array
-            if (type(subArray1[0]).__name__ == 'ndarray' and
-                type(subArray2[0]).__name__ == 'ndarray'):
-                subArray1 = subArray1[0]
-                subArray2 = subArray2[0]
-            else:
-                break
-        return True
 

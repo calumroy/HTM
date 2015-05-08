@@ -174,7 +174,7 @@ class HTMLayer:
         # the desiredLocalActivity parameter
         # are observed in the inhibition radius.
         # How many cells within the inhibition radius are active
-        self.desiredLocalActivity = 1
+        self.desiredLocalActivity = 3
         self.cellsPerColumn = cellsPerColumn
         # If the permanence value for a synapse is greater than this
         # value, it is said to be connected.
@@ -235,7 +235,6 @@ class HTMLayer:
             for k in range(len(c.cells)):
                 if c.activeStateArray[k][0] == self.timeStep:
                     output[y][x*self.cellsPerColumn+k] = 1
-        print "output = ", output
         return output
 
     def activeNotBurstCellGrid(self):

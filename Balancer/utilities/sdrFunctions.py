@@ -47,6 +47,32 @@ def joinInputArrays(input1, input2):
     return output
 
 
+def checkArraySizesMatch(array1, array2):
+        # Check if arrays up to dimension N are of equal size
+        subArray1 = array1
+        subArray2 = array2
+        while (type(subArray1).__name__ == 'ndarray' and
+               type(subArray2).__name__ == 'ndarray'):
+            if (len(subArray1) != len(subArray2)):
+                # arrays are not equal size
+                return False
+            if ((len(subArray1) == 0 and len(subArray2) != 0) or (
+               len(subArray2) == 0 and len(subArray1) != 0)):
+                # arrays are not equal size
+                return False
+            if (len(subArray1) == 0 and len(subArray2) == 0):
+                # arrays are equal break to return true
+                break
+            # Check that the next dimension is still an array
+            if (type(subArray1[0]).__name__ == 'ndarray' and
+               type(subArray2[0]).__name__ == 'ndarray'):
+                subArray1 = subArray1[0]
+                subArray2 = subArray2[0]
+            else:
+                break
+        return True
+
+
 def returnBlankSDRGrid(width, height):
         blankSDR = np.array([[0 for i in range(width)] for j in range(height)])
         return blankSDR
