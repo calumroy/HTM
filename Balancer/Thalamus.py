@@ -39,9 +39,9 @@ class Thalamus:
         self.numSquaresInComm = 6
         # The chance a new untested square will be
         # tried out and returned as part of the new command.
-        self.newCommChance = 0.0
+        self.newCommChance = 0.05
         # A parameter specifing how importnat maximizing future Qvalues is.
-        self.futureQvalMax = 1
+        self.futureQvalMax = 0.9
         # Learning rate. This determines how quickly Qvalues change.
         self.qValLearnRate = 0.1
 
@@ -134,28 +134,43 @@ class Thalamus:
         print "HighestQVal list = \n %s" % highestQValList
         # Store in a list (x,y,QValue).
         self.lastQValList = []
+        # The number of random selections made
+        numRandomChoices = 0
         # With a chance select each Qvalue to be part of the new command.
         for i in range(len(highestQValList)):
-            if random.random() >= self.newCommChance:
+            currentQval = highestQValList[i][2]
+            # If the Qvalue is very high then there is less chance of
+            # picking a new Q value. Normalise it with the learning rate.
+            if random.random() >= self.newCommChance*(self.qValLearnRate)/(currentQval):
                 pos_x = highestQValList[i][0]
                 pos_y = highestQValList[i][1]
                 self.lastQValList.append([pos_x, pos_y, highestQValList[i][2]])
-                # TODO
-                # Fix the awkward y scaling of the output command.
-                # Times the pos_y by two since the command input
-                # is half the total input to the HTM.
-                newCommand[pos_y*2][pos_x] = 1
+            else:
+                numRandomChoices += 1
 
         # If the return list of positions and Qvalues is too small
         # then add a random selection of squares to fill up the command.
-        if len(highestQValList) < self.numSquaresInComm:
+        if len(self.lastQValList) < self.numSquaresInComm:
             print " Thalamus choosing %s random outputs" % (self.numSquaresInComm - len(self.lastQValList))
             for i in range(self.numSquaresInComm - len(self.lastQValList)):
                 # Choose a random Qvalue to add to the new command
                 pos_x = random.randint(0, width - 1)
-                pos_y = random.randint(0, height - 1)
-                newCommand[pos_y][pos_x] = 1
+                # TODO
+                # Fix the awkward y scaling of the output command.
+                # Times the pos_y by two since the command input
+                # is half the total input to the HTM.
+                pos_y = random.randint(0, int((height - 1)/2))
                 self.lastQValList.append([pos_x, pos_y, self.QValues[pos_y][pos_x]])
+
+        # Set the squares to true in the new command
+        for i in range(len(self.lastQValList)):
+            pos_x = self.lastQValList[i][0]
+            pos_y = self.lastQValList[i][1]
+            # TODO
+            # Fix the awkward y scaling of the output command.
+            # Times the pos_y by two since the command input
+            # is half the total input to the HTM.
+            newCommand[pos_y*2][pos_x] = 1
         return newCommand
 
     def getHighestQvalues(self, nominatedQvalGrid):
