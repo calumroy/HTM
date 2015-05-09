@@ -95,7 +95,8 @@ class Column:
         # The max distance a column can inhibit another column.
         self.inhibitionRadius = 1
         # The max distance that Synapses can be made at
-        self.potentialRadius = 2
+        self.potentialRadiusWidth = 2
+        self.potentialRadiusHeight = 2
         self.permanenceInc = 0.1
         self.permanenceDec = 0.02
         self.minDutyCycle = 0.01   # The minimum firing rate of the column
@@ -174,13 +175,13 @@ class HTMLayer:
         # the desiredLocalActivity parameter
         # are observed in the inhibition radius.
         # How many cells within the inhibition radius are active
-        self.desiredLocalActivity = 3
+        self.desiredLocalActivity = 1
         self.cellsPerColumn = cellsPerColumn
         # If the permanence value for a synapse is greater than this
         # value, it is said to be connected.
         self.connectPermanence = 0.3
         # Should be smaller than activationThreshold
-        self.minThreshold = 8
+        self.minThreshold = 4
         # The minimum score needed by a cell to be added
         # to the alternative sequence.
         self.minScoreThreshold = 4
@@ -188,7 +189,7 @@ class HTMLayer:
         self.newSynapseCount = 10
         # More than this many synapses on a segment must be active for
         # the segment to be active
-        self.activationThreshold = 8
+        self.activationThreshold = 5
         self.dutyCycleAverageLength = 1000
         self.timeStep = 0
         # The output is a 2D grid representing the cells states.
@@ -303,13 +304,14 @@ class HTMLayer:
                 connSyn.append(c.potentialSynapses[i])
         c.connectedSynapses = np.append(c.connectedSynapses, connSyn)
 
-    def changeColsPotRadius(self, newPotentialRadius):
+    def changeColsPotRadius(self, newPotentialRadiusWidth, newPotentialRadiusHeight):
         # Change the potential radius of all the columns
         # This means the potential synapse list for all the
         # columns needs to be updated as well.
         for k in range(len(self.columns)):
             for c in self.columns[k]:
-                c.potentialRadius = newPotentialRadius
+                c.potentialRadiusWidth = newPotentialRadiusWidth
+                c.potentialRadiusHeight = newPotentialRadiusHeight
                 # Update the potential synapses since the potential radius has changed
                 self.updatePotentialSynapses(c)
 
@@ -318,6 +320,18 @@ class HTMLayer:
         for k in range(len(self.columns)):
             for c in self.columns[k]:
                 c.inhibitionRadius = newInhibRadius
+
+    def changeColsMinOverlap(self, newMinOverlap):
+        # Change the columns minOverlap value for all columns.
+        for k in range(len(self.columns)):
+            for c in self.columns[k]:
+                c.minOverlap = newMinOverlap
+
+    def changeColsSynDecrement(self, newPermanenceDec):
+         # Chage the columns permanence decrement value for all columns.
+        for k in range(len(self.columns)):
+            for c in self.columns[k]:
+                c.permanenceDec = newPermanenceDec
 
     def updatePotentialSynapses(self, c):
         # Update the locations of the potential synapses for column c.
@@ -341,11 +355,11 @@ class HTMLayer:
         # Cast the x position to an int so it matches up with a column number.
         inputCenter_x = int(c.pos_x*colInputRatioWidth)
         # i is pos_y j is pos_x
-        for y in range(int(inputCenter_y-c.potentialRadius),
-                       int(inputCenter_y+c.potentialRadius)+1):
+        for y in range(int(inputCenter_y-c.potentialRadiusHeight),
+                       int(inputCenter_y+c.potentialRadiusHeight)+1):
             if y >= 0 and y < inputHeight:
-                for x in range(int(inputCenter_x-c.potentialRadius),
-                               int(inputCenter_x+c.potentialRadius)+1):
+                for x in range(int(inputCenter_x-c.potentialRadiusWidth),
+                               int(inputCenter_x+c.potentialRadiusWidth)+1):
                     if x >= 0 and x < inputWidth:
                         # Create a Synapse pointing to the HTM layers input
                         #so the synapse cellIndex is -1
@@ -892,7 +906,7 @@ class HTMLayer:
         # If more potential synapses then the min overlap
         # are active then set the overlap to the maximum value possible.
         if c.overlap >= c.minOverlap:
-            maxOverlap = math.pow(2*c.potentialRadius+1, 2)
+            maxOverlap = (c.potentialRadiusWidth+1)*(c.potentialRadiusHeight+1)
             c.overlap = c.overlap + maxOverlap
             c.lastTempPoolingTime = self.timeStep
 
@@ -1265,16 +1279,33 @@ class HTMRegion:
                                                  self.cellsPerColumn))
             # Set the potential radius of column in higher levels to a larger value based on the cells per column.
             # This is done because more temporal pooling is desired in higher layers then lower ones.
-            if i != 0:
+            if i != 0 and i != highestLayer:
                 # TODO
-                # Make this more elegant. transfer potential radius parameter to the HTM layer not column.
+                # Make this more elegant.
                 # Get the potential radius of the first column in the lowest layer
-                lowerPotentialRadius = self.layerArray[i-1].columns[0][0].potentialRadius
-                lowerCellsperColumn = self.layerArray[i-1].cellsPerColumn
+                lowerPotentialRadiusWidth = self.layerArray[i-1].columns[0][0].potentialRadiusWidth
+                lowerPotentialRadiusHeight = self.layerArray[i-1].columns[0][0].potentialRadiusHeight
+                lowerCellsPerColumn = self.layerArray[i-1].cellsPerColumn
 
-                potentialRadius = lowerPotentialRadius+int(lowerCellsperColumn)
+                newPotentialRadiusWidth = lowerPotentialRadiusWidth+int(lowerCellsPerColumn)
+                newPotentialRadiusHeight = lowerPotentialRadiusHeight
                 #self.layerArray[i].desiredLocalActivity = 4
-                self.layerArray[i].changeColsPotRadius(potentialRadius)
+                self.layerArray[i].changeColsPotRadius(newPotentialRadiusWidth, newPotentialRadiusHeight)
+            if i == highestLayer:
+                # The highest layer is the command layer. It has a command feedback space
+                # which requires the columns to have a specified potential radius size.
+                # TODO
+                # fix this so the potential radius dosns't have to be calculated and set
+                # to a specific value.
+                lowerCellsPerColumn = self.layerArray[i-1].cellsPerColumn
+                newPotentialRadiusWidth = max(int(round((lowerCellsPerColumn-1)/2)), 0)
+                newPotentialRadiusHeight = 1
+                self.layerArray[i].changeColsPotRadius(newPotentialRadiusWidth, newPotentialRadiusHeight)
+                # Change the minOverlap to one for the command input
+                # to activate the correct column.
+                self.layerArray[i].changeColsMinOverlap(1)
+                # Change the columns permence decrement to disable spatial learning.
+                self.layerArray[i].changeColsSynDecrement(0.0)
 
     def updateCommandInput(self, newCommand):
         # Update the command input for the level
