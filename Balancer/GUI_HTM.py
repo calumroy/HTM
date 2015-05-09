@@ -221,6 +221,7 @@ class HTMInput(QtGui.QGraphicsView):
         # Connect up the slots and signals
         self.connectSlots(HTMGridViewer)
 
+        self.scaleScene(0.8)
         self.drawGrid(self.size)
         self.show()
 
@@ -404,6 +405,7 @@ class HTMGridViewer(QtGui.QGraphicsView):
         self.columnItems = []  # Stores all the column items in the scene
         self.infoItem = None    # Stores the info item in the scene
 
+        self.scaleScene(1.5)
         self.drawGrid(self.size)
         self.drawInfo()
         self.show()

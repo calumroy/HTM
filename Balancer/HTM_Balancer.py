@@ -185,15 +185,15 @@ class HTMLayer:
         # value, it is said to be connected.
         self.connectPermanence = 0.3
         # Should be smaller than activationThreshold
-        self.minThreshold = 4
+        self.minThreshold = 5
         # The minimum score needed by a cell to be added
         # to the alternative sequence.
-        self.minScoreThreshold = 4
+        self.minScoreThreshold = 5
         # This limits the activeSynapse array to this length. Should be renamed
         self.newSynapseCount = 10
         # More than this many synapses on a segment must be active for
         # the segment to be active
-        self.activationThreshold = 5
+        self.activationThreshold = 6
         self.dutyCycleAverageLength = 1000
         self.timeStep = 0
         # The output is a 2D grid representing the cells states.

@@ -39,9 +39,9 @@ class Thalamus:
         self.numSquaresInComm = 6
         # The chance a new untested square will be
         # tried out and returned as part of the new command.
-        self.newCommChance = 0.05
+        self.newCommChance = 0.1
         # A parameter specifing how importnat maximizing future Qvalues is.
-        self.futureQvalMax = 0.9
+        self.futureQvalMax = 0.5
         # Learning rate. This determines how quickly Qvalues change.
         self.qValLearnRate = 0.1
 
@@ -94,7 +94,7 @@ class Thalamus:
             pos_y = self.lastQValList[i][1]
             self.QValues[pos_y][pos_x] = ((1 - self.qValLearnRate) * self.QValues[pos_y][pos_x] +
                                           self.qValLearnRate * sample)
-            print "\n %s " % self.QValues[pos_y][pos_x]
+            print "\n %s, %s, %s " % (self.QValues[pos_y][pos_x], pos_x, pos_y)
 
     def pickCommand(self, predCommand):
         '''
@@ -131,27 +131,31 @@ class Thalamus:
         newCommand = SDRFunct.returnBlankSDRGrid(width, height)
         highestQValList = self.getHighestQvalues(nominatedQvalGrid)
 
-        print "HighestQVal list = \n %s" % highestQValList
+        #print "HighestQVal list = \n %s" % highestQValList
         # Store in a list (x,y,QValue).
         self.lastQValList = []
-        # The number of random selections made
-        numRandomChoices = 0
+        # The number of selections made.
+        numChoices = 0
         # With a chance select each Qvalue to be part of the new command.
         for i in range(len(highestQValList)):
-            currentQval = highestQValList[i][2]
-            # If the Qvalue is very high then there is less chance of
-            # picking a new Q value. Normalise it with the learning rate.
-            if random.random() >= self.newCommChance*(self.qValLearnRate)/(currentQval):
-                pos_x = highestQValList[i][0]
-                pos_y = highestQValList[i][1]
-                self.lastQValList.append([pos_x, pos_y, highestQValList[i][2]])
+            # Only add a certain number of the Qvalues
+            # to the output command.
+            if numChoices >= self.numSquaresInComm:
+                break
             else:
-                numRandomChoices += 1
+                currentQval = highestQValList[i][2]
+                # If the Qvalue is very high then there is less chance of
+                # picking a new Q value. Normalise it with the learning rate.
+                if random.random() >= self.newCommChance*(self.qValLearnRate)/(currentQval):
+                    pos_x = highestQValList[i][0]
+                    pos_y = highestQValList[i][1]
+                    self.lastQValList.append([pos_x, pos_y, currentQval])
+                    numChoices += 1
 
         # If the return list of positions and Qvalues is too small
         # then add a random selection of squares to fill up the command.
+        print "     Thalamus choosing %s random outputs" % (self.numSquaresInComm - len(self.lastQValList))
         if len(self.lastQValList) < self.numSquaresInComm:
-            print " Thalamus choosing %s random outputs" % (self.numSquaresInComm - len(self.lastQValList))
             for i in range(self.numSquaresInComm - len(self.lastQValList)):
                 # Choose a random Qvalue to add to the new command
                 pos_x = random.randint(0, width - 1)
@@ -174,8 +178,7 @@ class Thalamus:
         return newCommand
 
     def getHighestQvalues(self, nominatedQvalGrid):
-        # Return a list of the highest Qvalues. Return the number
-        # specified by the parameter self.numSquaresInComm
+        # Return a sorted list of the highest Qvalues (from highest to lowest).
         # Store the position of the highest Qvalues in a list
         # Each position in the list will store (x,y,Qvalue)
         qValList = []
@@ -189,11 +192,8 @@ class Thalamus:
 
         # Sort the qVal List by the Qvalue
         qValList = sorted(qValList, key=itemgetter(2))
-        # Only the self.numSquaresInComm number of Qvalues
-        # are needed. If not enough Qvalue exist in the list return
-        # a smaller or empty list.
-        qValList = qValList[:self.numSquaresInComm]
-        #print " Thalamus highest QvalList = %s" % qValList
+
+        print " Thalamus highest QvalList length = %s" % len(qValList)
         return qValList
 
     def getNomQvalues(self, grid):
@@ -222,3 +222,11 @@ class Thalamus:
         print " ERROR Thalamus grid input is larger then the QValues grid!"
         return None
 
+    def printQvalues(self):
+        # Print the Qvalues
+        # To make the array easier to display multiple by 10
+        # then cast to an int.
+        QvalsTen = np.multiply(self.QValues, 10)
+        QvalsTen = np.rint(QvalsTen)
+        QvalsTen = QvalsTen.astype(int)
+        print "Qvaules times by 10 = \n %s" % QvalsTen
