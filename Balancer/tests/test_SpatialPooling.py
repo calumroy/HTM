@@ -5,8 +5,49 @@ import numpy as np
 import GUI_HTM
 from PyQt4 import QtGui
 import sys
+import json
 from copy import deepcopy
 from utilities import simpleVerticalLineInputs as svli
+
+testParameters = {
+                    'HTM':
+                        {
+                        'numLevels': 1,
+                        'columnArrayWidth': 10,
+                        'columnArrayHeight': 30,
+                        'cellsPerColumn': 3,
+
+                        'HTMRegion': {
+                            'numLayers': 1,
+
+                            'HTMLayer': {
+                                'desiredLocalActivity': 1,
+                                'connectPermanence': 0.3,
+                                'minThreshold': 5,
+                                'minScoreThreshold': 5,
+                                'newSynapseCount': 10,
+                                'activationThreshold': 6,
+                                'dutyCycleAverageLength': 1000,
+                                'synPermanence': 0.4,
+
+                                'Column': {
+                                    'minOverlap': 3,
+                                    'boost': 1,
+                                    'inhibitionRadius': 1,
+                                    'potentialWidth': 4,
+                                    'potentialHeight': 4,
+                                    'spatialPermanenceInc': 0.1,
+                                    'spatialPermanenceDec': 0.02,
+                                    'permanenceInc': 0.1,
+                                    'permanenceDec': 0.02,
+                                    'minDutyCycle': 0.01,
+                                    'boostStep': 0,
+                                    'historyLength': 2
+                                }
+                            }
+                        }
+                    }
+                }
 
 
 class test_SpatialPooling:
@@ -21,26 +62,22 @@ class test_SpatialPooling:
         similar features.
 
         '''
-        self.width = 10
-        self.height = 30
-        self.cellsPerColumn = 3
-        self.numLevels = 1
-        self.numLayers = 1
+
+            # Open and import the parameters .json file
+        #with open('testSpatialPooling.json', 'r') as paramsFile:
+        params = testParameters
 
         # Create an array of input which will be fed to the htm so it
         # can try to temporarily pool them.
-        numInputs = self.width*self.cellsPerColumn
-        inputWidth = self.width*self.cellsPerColumn
-        inputHeight = 2*self.height
+        numInputs = params['HTM']['columnArrayWidth']*params['HTM']['cellsPerColumn']
+        inputWidth = params['HTM']['columnArrayWidth']*params['HTM']['cellsPerColumn']
+        inputHeight = 2*params['HTM']['columnArrayHeight']
 
         self.InputCreator = svli.simpleVerticalLineInputs(inputWidth, inputHeight, numInputs)
-        #self.htmlayer = HTMLayer(self.inputs[0], self.width, self.height, self.cellsPerColumn)
-        self.htm = HTM(self.numLevels,
-                       self.InputCreator.createSimGrid(),
-                       self.width,
-                       self.height,
-                       self.cellsPerColumn,
-                       self.numLayers)
+
+        self.htm = HTM(self.InputCreator.createSimGrid(),
+                       params
+                       )
 
         # Setup some parameters of the HTM
         self.setupParameters()

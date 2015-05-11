@@ -1286,7 +1286,6 @@ class HTMRegion:
             highestLayer = self.numLayers - 1
             if i == highestLayer:
                 lowerOutput = SDRFunct.joinInputArrays(self.commandInput, lowerOutput)
-
             self.layerArray = np.append(self.layerArray,
                                         HTMLayer(lowerOutput,
                                                  self.width,
@@ -1334,13 +1333,8 @@ class HTMRegion:
         # Update the input and outputs of the layers.
         # Layer 0 receives the new input.
         highestLayer = self.numLayers - 1
-        if self.numLayers != 1:
-            self.layerArray[0].updateInput(input)
-        else:
-            # The lowest layer is also the first layer so it receives the
-            # command input as well as the normal input.
-            newInput = SDRFunct.joinInputArrays(self.commandInput, input)
-            self.layerArray[0].updateInput(newInput)
+
+        self.layerArray[0].updateInput(input)
 
         # The middle layers receive inputs from the lower layer outputs
         for i in range(1, self.numLayers):
@@ -1393,7 +1387,6 @@ class HTMRegion:
             i += 1
             layer.timeStep = layer.timeStep+1
             ## Update the current layers input with the new input
-            ##self.layerArray[layerNum].updateInput(input)
             # This updates the spatial pooler
             layer.Overlap()
             layer.inhibition(layer.timeStep)
@@ -1424,10 +1417,11 @@ class HTM:
                                          for j in range(self.height)])
 
         ### Setup the inputs and outputs between levels
-        # The lowest region input needs to make room for the command
+        # Each regions input needs to make room for the command
         # feedback from the higher level.
         commandFeedback = np.array([[0 for i in range(self.width*self.cellsPerColumn)]
                                     for j in range(self.height)])
+        # The lowest region receives the new input.
         newInput = SDRFunct.joinInputArrays(commandFeedback, input)
         # Setup the new htm region with the input and size parameters defined.
         self.regionArray = np.append(self.regionArray,

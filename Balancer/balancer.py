@@ -20,14 +20,10 @@ def main():
     with open('balancer.json', 'r') as paramsFile:
         params = json.load(paramsFile)
 
-    numCells = 3  # The number of cells in a column.
-    width = 8  # The width of the columns in the HTM 2D array
-    height = 26  # The height of the columns in the HTM 2D array
-
     # This makes the input the same size as the feedback command grids
-    # It doesn't have to be though
-    inputWidth = width*numCells
-    inputHeight = height
+    # It doesn't have to be though.
+    inputWidth = params['HTM']['columnArrayWidth']*params['HTM']['cellsPerColumn']
+    inputHeight = params['HTM']['columnArrayHeight']
 
     # Create an Input object
     InputCreator = Inverted_Pendulum.InvertedPendulum(inputWidth, inputHeight)
