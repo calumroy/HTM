@@ -1248,7 +1248,6 @@ class HTMRegion:
         lowest layers and from an outside thalamus class.
         This extra input is meant to direct the HTM.
         '''
-        self.quit = False
         # The class contains multiple HTM layers stacked on one another
         self.width = columnArrayWidth
         self.height = columnArrayHeight
@@ -1388,20 +1387,21 @@ class HTMRegion:
 
 class HTM:
     #@do_cprofile  # For profiling
-    def __init__(self, numLevels, input, columnArrayWidth,
-                 columnArrayHeight, cellsPerColumn, numLayers=2):
-        self.quit = False
-        # Create a top level feedback input to store a command for the top level.
-        # Used to direct the HTM network.
-        self.topLevelFeedback = np.array([[0 for i in range(columnArrayWidth*cellsPerColumn)]
-                                        for j in range(columnArrayHeight)])
+    def __init__(self, input, params):
 
         # This class contains multiple HTM levels stacked on one another
-        self.numLevels = numLevels   # The number of levels in the HTM network
-        self.width = columnArrayWidth
-        self.height = columnArrayHeight
-        self.cellsPerColumn = cellsPerColumn
+        self.numLevels = params['HTM']['numLevels']   # The number of levels in the HTM network
+        self.width = params['HTM']['columnArrayWidth']
+        self.height = params['HTM']['columnArrayHeight']
+        self.cellsPerColumn = params['HTM']['cellsPerColumn']
         self.regionArray = np.array([], dtype=object)
+
+        # Temporary variable. numLayers is stred in the regions.
+        numLayers = params['HTM']['numLayers']
+        # Create a top level feedback input to store a command for the top level.
+        # Used to direct the HTM network.
+        self.topLevelFeedback = np.array([[0 for i in range(self.width*self.cellsPerColumn)]
+                                         for j in range(self.height)])
 
         ### Setup the inputs and outputs between levels
         # The lowest region input needs to make room for the command
@@ -1420,7 +1420,7 @@ class HTM:
         # The higher levels get inputs from the lower levels.
         #highestLevel = self.numLevels-1
         highestLayer = numLayers-1
-        for i in range(1, numLevels):
+        for i in range(1, self.numLevels):
             lowerOutput = self.regionArray[i-1].layerOutput(highestLayer)
             newInput = SDRFunct.joinInputArrays(commandFeedback, lowerOutput)
             self.regionArray = np.append(self.regionArray,

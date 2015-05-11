@@ -1,0 +1,9 @@
+{
+  "HTM": {
+    "numLevels": 2,
+    "columnArrayWidth":8,
+    "columnArrayHeight":26,
+    "cellsPerColumn":3,
+    "numLayers": 2
+  }
+}
