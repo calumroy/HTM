@@ -35,7 +35,7 @@ def do_cprofile(func):
 
 
 class Synapse:
-    def __init__(self, input, pos_x, pos_y, cellIndex):
+    def __init__(self, input, pos_x, pos_y, cellIndex, permanence):
             # Cell is -1 if the synapse connects the HTM layers input.
             # Otherwise it is a horizontal connection to the cell.
             # The start is at a column or cells position the end is at
@@ -45,7 +45,7 @@ class Synapse:
             # The end of the synapse is at this pos.
             self.pos_x = pos_x
             self.pos_y = pos_y
-            self.permanence = 0.4
+            self.permanence = permanence
 
 
 class Segment:
@@ -85,25 +85,25 @@ class Cell:
 
 
 class Column:
-    def __init__(self, length, pos_x, pos_y):
+    def __init__(self, length, pos_x, pos_y, params):
         self.cells = [Cell() for i in range(length)]
         self.pos_x = pos_x
         self.pos_y = pos_y
         self.overlap = 0.0  # As defined by the numenta white paper
-        self.minOverlap = 3
-        self.boost = 1
+        self.minOverlap = params['minOverlap']
+        self.boost = params['boost']
         # The max distance a column can inhibit another column.
-        self.inhibitionRadius = 1
+        self.inhibitionRadius = params['inhibitionRadius']
         # The max distance that Synapses can be made at
-        self.potentialWidth = 4
-        self.potentialHeight = 4
+        self.potentialWidth = params['potentialWidth']
+        self.potentialHeight = params['potentialHeight']
         # Spatial Pooler synapses inc or dec values
-        self.spatialPermanenceInc = 0.1
-        self.spatialPermanenceDec = 0.02
+        self.spatialPermanenceInc = params['spatialPermanenceInc']
+        self.spatialPermanenceDec = params['spatialPermanenceDec']
         # Sequence Pooling synapses inc or dec values
-        self.permanenceInc = 0.1
-        self.permanenceDec = 0.02
-        self.minDutyCycle = 0.01   # The minimum firing rate of the column
+        self.permanenceInc = params['permanenceInc']
+        self.permanenceDec = params['permanenceDec']
+        self.minDutyCycle = params['minDutyCycle']   # The minimum firing rate of the column
         # Keeps track of when the column was active.
         # All columns start as active. It stores the
         #numInhibition time when the column was active
@@ -113,10 +113,11 @@ class Column:
         self.overlapDutyCycle = 0.0
         # Keeps track of when the colums overlap was larger then the minoverlap
         self.overlapDutyCycleArray = np.array([0])
-        self.boostStep = 0
+        # How much to increase the boost by when boosting is needed.
+        self.boostStep = params['boostStep']
         # This determines how many previous timeSteps are stored in
         #actve predictive and learn state arrays.
-        self.historyLength = 2
+        self.historyLength = params['historyLength']
         self.highestScoredCell = None
         # A time flag to indicate the column should stop temporally pooling
         # This is set to the current time when a column has a poor overlap value
@@ -167,7 +168,7 @@ class Column:
 
 
 class HTMLayer:
-    def __init__(self, input, columnArrayWidth, columnArrayHeight, cellsPerColumn):
+    def __init__(self, input, columnArrayWidth, columnArrayHeight, cellsPerColumn, params):
         # The columns are in a 2 dimensional array columnArrayWidth by
         #columnArrayHeight.
         self.width = columnArrayWidth
@@ -179,29 +180,35 @@ class HTMLayer:
         # the desiredLocalActivity parameter
         # are observed in the inhibition radius.
         # How many cells within the inhibition radius are active
-        self.desiredLocalActivity = 1
+        self.desiredLocalActivity = params['desiredLocalActivity']
         self.cellsPerColumn = cellsPerColumn
         # If the permanence value for a synapse is greater than this
         # value, it is said to be connected.
-        self.connectPermanence = 0.3
+        self.connectPermanence = params['connectPermanence']
         # Should be smaller than activationThreshold
-        self.minThreshold = 5
+        self.minThreshold = params['minThreshold']
         # The minimum score needed by a cell to be added
         # to the alternative sequence.
-        self.minScoreThreshold = 5
+        self.minScoreThreshold = params['minScoreThreshold']
         # This limits the activeSynapse array to this length. Should be renamed
-        self.newSynapseCount = 10
+        self.newSynapseCount = params['newSynapseCount']
         # More than this many synapses on a segment must be active for
         # the segment to be active
-        self.activationThreshold = 6
-        self.dutyCycleAverageLength = 1000
+        self.activationThreshold = params['activationThreshold']
+        self.dutyCycleAverageLength = params['dutyCycleAverageLength']
         self.timeStep = 0
         # The output is a 2D grid representing the cells states.
         # It is larger then the input by a factor of the number of cells per column
         self.output = np.array([[0 for i in range(self.width * self.cellsPerColumn)] for j in range(self.height)])
         self.activeColumns = np.array([], dtype=object)
+
+        # Get the column parameters.
+        columnParams = params['Column']
+        # The starting permance of new synapses. This is used to create new synapses.
+        self.synPermanence = params['synPermanence']
+
         # Create the array storing the columns
-        self.columns = np.array([[Column(self.cellsPerColumn, i, j) for
+        self.columns = np.array([[Column(self.cellsPerColumn, i, j, columnParams) for
                                 i in range(columnArrayWidth)] for
                                 j in range(columnArrayHeight)], dtype=object)
         # Initialise the columns potential synapses.
@@ -209,6 +216,8 @@ class HTMLayer:
         for i in range(len(self.columns)):
             for c in self.columns[i]:
                 self.updatePotentialSynapses(c)
+
+
 
     def columnActiveNotBursting(self, col, timeStep):
         # Calculate which cell in a given column at the given time was active but not bursting.
@@ -368,7 +377,7 @@ class HTMLayer:
                         # Create a Synapse pointing to the HTM layers input
                         #so the synapse cellIndex is -1
                         c.potentialSynapses = np.append(c.potentialSynapses,
-                                                        [Synapse(self.Input, x, y, -1)])
+                                                        [Synapse(self.Input, x, y, -1, self.synPermanence)])
 
     def neighbours(self, c):
         # returns a list of the columns that are within the inhibitionRadius of c
@@ -578,7 +587,7 @@ class HTMLayer:
                     if self.learnState(m, j, timeStep) is True:
                         #print "time = %s synapse ends at
                         # active cell x,y,i = %s,%s,%s"%(timeStep,m.pos_x,m.pos_y,j)
-                        synapseList.append(Synapse(0, m.pos_x, m.pos_y, j))
+                        synapseList.append(Synapse(0, m.pos_x, m.pos_y, j, self.synPermanence))
         # Take a random sample from the list synapseList
         # Check that there is at least one segment
         # and the segment index isnot -1 meaning
@@ -1237,7 +1246,7 @@ class HTMLayer:
 
 
 class HTMRegion:
-    def __init__(self, input, columnArrayWidth, columnArrayHeight, cellsPerColumn, numlayers=2):
+    def __init__(self, input, columnArrayWidth, columnArrayHeight, cellsPerColumn, params):
         '''
         The HTMRegion is an object holding multiple HTMLayers. The region consists of
         simulated cortex layers.
@@ -1252,19 +1261,22 @@ class HTMRegion:
         self.width = columnArrayWidth
         self.height = columnArrayHeight
         self.cellsPerColumn = cellsPerColumn
-        self.numLayers = numlayers  # The number of HTM layers that make up a region.
+        self.numLayers = params['numLayers']  # The number of HTM layers that make up a region.
         self.layerArray = np.array([], dtype=object)
         # Make a place to store the thalamus command.
         self.commandInput = np.array([[0 for i in range(self.width*cellsPerColumn)]
                                      for j in range(self.height)])
 
-        self.setupLayers(input)
+        self.setupLayers(input, params['HTMLayer'])
 
-    def setupLayers(self, input):
+    def setupLayers(self, input, htmLayerParams):
         # Set up the inputs to the HTM layers.
         # Layer 0 gets the new input.
-        self.layerArray = np.append(self.layerArray, HTMLayer(input, self.width,
-                                                              self.height, self.cellsPerColumn))
+        self.layerArray = np.append(self.layerArray, HTMLayer(input,
+                                                              self.width,
+                                                              self.height,
+                                                              self.cellsPerColumn,
+                                                              htmLayerParams))
         # The higher layers receive the lower layers output.
         for i in range(1, self.numLayers):
             lowerOutput = self.layerArray[i-1].output
@@ -1279,7 +1291,8 @@ class HTMRegion:
                                         HTMLayer(lowerOutput,
                                                  self.width,
                                                  self.height,
-                                                 self.cellsPerColumn))
+                                                 self.cellsPerColumn,
+                                                 htmLayerParams))
             # Set the potential radius of column in higher levels to a larger value based on the cells per column.
             # This is done because more temporal pooling is desired in higher layers then lower ones.
             if i != 0 and i != highestLayer:
@@ -1342,6 +1355,12 @@ class HTMRegion:
         # Return the output for the given layer.
         return self.layerArray[layer].output
 
+    def regionOutput(self):
+        # Return the output form the entire region.
+        # This will be the output from the highest layer.
+        highestLayer = self.numLayers - 1
+        return self.layerOutput(highestLayer)
+
     def layerPredCommandOutput(self, layer):
         # Return the given layers predicted command output.
         # This is the predictive cells from the command space.
@@ -1396,8 +1415,9 @@ class HTM:
         self.cellsPerColumn = params['HTM']['cellsPerColumn']
         self.regionArray = np.array([], dtype=object)
 
-        # Temporary variable. numLayers is stred in the regions.
-        numLayers = params['HTM']['numLayers']
+        # Get just the parameters for the HTMRegion
+        htmRegionParams = params['HTM']['HTMRegion']
+
         # Create a top level feedback input to store a command for the top level.
         # Used to direct the HTM network.
         self.topLevelFeedback = np.array([[0 for i in range(self.width*self.cellsPerColumn)]
@@ -1415,20 +1435,19 @@ class HTM:
                                                self.width,
                                                self.height,
                                                self.cellsPerColumn,
-                                               numLayers)
+                                               htmRegionParams)
                                      )
         # The higher levels get inputs from the lower levels.
         #highestLevel = self.numLevels-1
-        highestLayer = numLayers-1
         for i in range(1, self.numLevels):
-            lowerOutput = self.regionArray[i-1].layerOutput(highestLayer)
+            lowerOutput = self.regionArray[i-1].regionOutput()
             newInput = SDRFunct.joinInputArrays(commandFeedback, lowerOutput)
             self.regionArray = np.append(self.regionArray,
                                          HTMRegion(newInput,
                                                    self.width,
                                                    self.height,
                                                    self.cellsPerColumn,
-                                                   numLayers)
+                                                   htmRegionParams)
                                          )
 
         # create a place to store layers so they can be reverted.
