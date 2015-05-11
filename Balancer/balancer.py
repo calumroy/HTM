@@ -15,7 +15,7 @@ import Inverted_Pendulum
 def main():
     app = QtGui.QApplication(sys.argv)
 
-    numLevels = 1  # The number of levels.
+    numLevels = 2  # The number of levels.
     numCells = 3  # The number of cells in a column.
     width = 8  # The width of the columns in the HTM 2D array
     height = 26  # The height of the columns in the HTM 2D array

@@ -1419,8 +1419,9 @@ class HTM:
                                      )
         # The higher levels get inputs from the lower levels.
         #highestLevel = self.numLevels-1
-        for i in range(1, numLevels-1):
-            lowerOutput = self.regionArray[i-1].layerOutput()
+        highestLayer = numLayers-1
+        for i in range(1, numLevels):
+            lowerOutput = self.regionArray[i-1].layerOutput(highestLayer)
             newInput = SDRFunct.joinInputArrays(commandFeedback, lowerOutput)
             self.regionArray = np.append(self.regionArray,
                                          HTMRegion(newInput,
@@ -1486,7 +1487,8 @@ class HTM:
             lowerLevel = i-1
             higherLevel = i+1
             # Set the output of the lower level
-            lowerLevelOutput = self.regionArray[lowerLevel].regionOutput()
+            highestLayer = self.regionArray[lowerLevel].numLayers - 1
+            lowerLevelOutput = self.regionArray[lowerLevel].layerOutput(highestLayer)
             # Check to make sure this isn't the highest level
             if higherLevel < self.numLevels:
                 # Get the feedback command from the higher level

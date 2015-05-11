@@ -1118,7 +1118,7 @@ class HTMNetwork(QtGui.QWidget):
         ########################################################################
         print "PART 1 Update Input"
         # Get the command output in the form of an SDR.
-        # The command output will be from the top layer in a level.
+        # The command output will be from the top layer in the bottom level.
         topLayer = self.htm.regionArray[0].numLayers-1
         commandGrid = self.htm.regionArray[0].layerActCommandOutput(topLayer)
 
