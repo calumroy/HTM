@@ -5,10 +5,11 @@
         "columnArrayHeight": 26,
         "cellsPerColumn": 3,
 
-        "HTMRegion": {
+        "HTMRegions": [{
             "numLayers": 2,
+            "enableCommandFeedback": 1,
 
-            "HTMLayer": {
+            "HTMLayers": [{
                 "desiredLocalActivity": 1,
                 "connectPermanence": 0.3,
                 "minThreshold": 5,
@@ -18,12 +19,12 @@
                 "dutyCycleAverageLength": 1000,
                 "synPermanence": 0.4,
 
-                "Column": {
+                "Columns": [{
                     "minOverlap": 3,
                     "boost": 1,
                     "inhibitionRadius": 1,
-                    "potentialWidth": 4,
-                    "potentialHeight": 4,
+                    "potentialWidth": 6,
+                    "potentialHeight": 6,
                     "spatialPermanenceInc": 0.1,
                     "spatialPermanenceDec": 0.02,
                     "permanenceInc": 0.1,
@@ -31,8 +32,88 @@
                     "minDutyCycle": 0.01 ,
                     "boostStep": 0,
                     "historyLength": 2
-                }
-            }
-        }
+                }]
+            },
+            {
+                "desiredLocalActivity": 1,
+                "connectPermanence": 0.3,
+                "minThreshold": 5,
+                "minScoreThreshold": 5,
+                "newSynapseCount": 10,
+                "activationThreshold": 6,
+                "dutyCycleAverageLength": 1000,
+                "synPermanence": 0.4,
+
+                "Columns": [{
+                    "minOverlap": 1,
+                    "boost": 1,
+                    "inhibitionRadius": 0,
+                    "potentialWidth": 3,
+                    "potentialHeight": 2,
+                    "spatialPermanenceInc": 0.1,
+                    "spatialPermanenceDec": 0.0,
+                    "permanenceInc": 0.1,
+                    "permanenceDec": 0.02,
+                    "minDutyCycle": 0.01 ,
+                    "boostStep": 0,
+                    "historyLength": 2
+                }]
+            }]
+        },
+        {
+            "numLayers": 2,
+            "enableCommandFeedback": 1,
+
+            "HTMLayers": [{
+                "desiredLocalActivity": 2,
+                "connectPermanence": 0.3,
+                "minThreshold": 5,
+                "minScoreThreshold": 5,
+                "newSynapseCount": 10,
+                "activationThreshold": 6,
+                "dutyCycleAverageLength": 1000,
+                "synPermanence": 0.4,
+
+                "Columns": [{
+                    "minOverlap": 3,
+                    "boost": 1,
+                    "inhibitionRadius": 1,
+                    "potentialWidth": 6,
+                    "potentialHeight": 6,
+                    "spatialPermanenceInc": 0.1,
+                    "spatialPermanenceDec": 0.02,
+                    "permanenceInc": 0.1,
+                    "permanenceDec": 0.02,
+                    "minDutyCycle": 0.01 ,
+                    "boostStep": 0,
+                    "historyLength": 2
+                }]
+            },
+            {
+                "desiredLocalActivity": 2,
+                "connectPermanence": 0.3,
+                "minThreshold": 5,
+                "minScoreThreshold": 5,
+                "newSynapseCount": 10,
+                "activationThreshold": 6,
+                "dutyCycleAverageLength": 1000,
+                "synPermanence": 0.4,
+
+                "Columns": [{
+                    "minOverlap": 2,
+                    "boost": 1,
+                    "inhibitionRadius": 1,
+                    "potentialWidth": 16,
+                    "potentialHeight": 8,
+                    "spatialPermanenceInc": 0.1,
+                    "spatialPermanenceDec": 0.0,
+                    "permanenceInc": 0.1,
+                    "permanenceDec": 0.02,
+                    "minDutyCycle": 0.01 ,
+                    "boostStep": 0,
+                    "historyLength": 2
+                }]
+            }]
+        }]
     }
 }

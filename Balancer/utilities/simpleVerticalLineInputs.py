@@ -33,6 +33,11 @@ class simpleVerticalLineInputs:
         # Required function for a InputCreator class
         pass
 
+    def getReward(self):
+        # Required function for a InputCreator class
+        reward = 0
+        return reward
+
     def createSimGrid(self):
         # Required function for a InputCreator class
         newGrid = None

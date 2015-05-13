@@ -17,10 +17,11 @@ testParameters = {
                         'columnArrayHeight': 30,
                         'cellsPerColumn': 3,
 
-                        'HTMRegion': {
+                        'HTMRegions': [{
                             'numLayers': 1,
+                            'enableCommandFeedback': 0,
 
-                            'HTMLayer': {
+                            'HTMLayers': [{
                                 'desiredLocalActivity': 1,
                                 'connectPermanence': 0.3,
                                 'minThreshold': 5,
@@ -30,7 +31,7 @@ testParameters = {
                                 'dutyCycleAverageLength': 1000,
                                 'synPermanence': 0.4,
 
-                                'Column': {
+                                'Columns': [{
                                     'minOverlap': 3,
                                     'boost': 1,
                                     'inhibitionRadius': 1,
@@ -43,9 +44,9 @@ testParameters = {
                                     'minDutyCycle': 0.01,
                                     'boostStep': 0,
                                     'historyLength': 2
-                                }
-                            }
-                        }
+                                }]
+                            }]
+                        }]
                     }
                 }
 

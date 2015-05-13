@@ -23,7 +23,12 @@ class measureTemporalPooling:
         if self.grid is not None:
             totalPrevActiveIns = np.sum(self.grid != 0)
             totalAndGrids = np.sum(np.logical_and(grid != 0, self.grid != 0))
-            percentTemp = float(totalAndGrids) / float(totalPrevActiveIns)
+            if totalPrevActiveIns > 0:
+                percentTemp = float(totalAndGrids) / float(totalPrevActiveIns)
+            else:
+                # In this case there is no active columns. This means the spatial
+                # pooler is not working or the inputs are empty!
+                percentTemp = 0
             #print "         totalAndGrids = %s" % totalAndGrids
             self.temporalAverage = (float(percentTemp) +
                                     float(self.temporalAverage*(self.numInputGrids-1)))/float(self.numInputGrids)

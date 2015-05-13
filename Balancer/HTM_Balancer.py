@@ -202,22 +202,34 @@ class HTMLayer:
         self.output = np.array([[0 for i in range(self.width * self.cellsPerColumn)] for j in range(self.height)])
         self.activeColumns = np.array([], dtype=object)
 
-        # Get the column parameters.
-        columnParams = params['Column']
         # The starting permance of new synapses. This is used to create new synapses.
         self.synPermanence = params['synPermanence']
 
         # Create the array storing the columns
-        self.columns = np.array([[Column(self.cellsPerColumn, i, j, columnParams) for
-                                i in range(columnArrayWidth)] for
-                                j in range(columnArrayHeight)], dtype=object)
+        self.columns = np.array([[]], dtype=object)
+        # Setup the columns array.
+        self.setupColumns(params['Columns'])
+
+    def setupColumns(self, columnParams):
+        # Get just the parameters for the columns
+        # Note: The parameters can come in a list of dictionaries,
+        # one for each column or a shorter list specifying only some columns.
+        # If only one or a few columns have parameters specified then all the
+        # rest of the columns get the same last parameters specified.
+        numColParams = len(columnParams)
+        self.columns = np.array([[Column(self.cellsPerColumn,
+                                         i,
+                                         j,
+                                         columnParams[min(i*self.width+j, numColParams-1)]
+                                         )
+                                for i in range(self.width)] for
+                                j in range(self.height)], dtype=object)
+
         # Initialise the columns potential synapses.
         # Work out the potential feedforward connections each column could make to the input.
         for i in range(len(self.columns)):
             for c in self.columns[i]:
                 self.updatePotentialSynapses(c)
-
-
 
     def columnActiveNotBursting(self, col, timeStep):
         # Calculate which cell in a given column at the given time was active but not bursting.
@@ -1266,63 +1278,43 @@ class HTMRegion:
         # Make a place to store the thalamus command.
         self.commandInput = np.array([[0 for i in range(self.width*cellsPerColumn)]
                                      for j in range(self.height)])
+        # Setup space in the input for a command feedback SDR
+        self.enableCommandFeedback = params['enableCommandFeedback']
 
-        self.setupLayers(input, params['HTMLayer'])
+        self.setupLayers(input, params['HTMLayers'])
 
     def setupLayers(self, input, htmLayerParams):
         # Set up the inputs to the HTM layers.
+        # Note the params comes in a list of dics, one for each layer.
         # Layer 0 gets the new input.
+        bottomLayerParams = htmLayerParams[0]
         self.layerArray = np.append(self.layerArray, HTMLayer(input,
                                                               self.width,
                                                               self.height,
                                                               self.cellsPerColumn,
-                                                              htmLayerParams))
+                                                              bottomLayerParams))
         # The higher layers receive the lower layers output.
         for i in range(1, self.numLayers):
+            # Try to get the parameters for this layer else use the
+            # last specified params from the highest layer.
+            if len(htmLayerParams) >= i+1:
+                layersParams = htmLayerParams[i]
+            else:
+                layersParams = htmLayerParams[-1]
+
             lowerOutput = self.layerArray[i-1].output
 
             # The highest layer receives the lower layers input and
             # an input from the thalamus equal in size to the lower layers input.
             highestLayer = self.numLayers - 1
-            if i == highestLayer:
+            if i == highestLayer and self.enableCommandFeedback == 1:
                 lowerOutput = SDRFunct.joinInputArrays(self.commandInput, lowerOutput)
             self.layerArray = np.append(self.layerArray,
                                         HTMLayer(lowerOutput,
                                                  self.width,
                                                  self.height,
                                                  self.cellsPerColumn,
-                                                 htmLayerParams))
-            # Set the potential radius of column in higher levels to a larger value based on the cells per column.
-            # This is done because more temporal pooling is desired in higher layers then lower ones.
-            if i != 0 and i != highestLayer:
-                # TODO
-                # Make this more elegant.
-                # Get the potential radius of the first column in the lowest layer
-                lowerPotentialWidth = self.layerArray[i-1].columns[0][0].potentialWidth
-                lowerPotentialHeight = self.layerArray[i-1].columns[0][0].potentialHeight
-                lowerCellsPerColumn = self.layerArray[i-1].cellsPerColumn
-
-                newPotentialWidth = lowerPotentialWidth+int(lowerCellsPerColumn)
-                newPotentialHeight = lowerPotentialHeight
-                #self.layerArray[i].desiredLocalActivity = 4
-                self.layerArray[i].changeColsPotRadius(newPotentialWidth, newPotentialHeight)
-            if i == highestLayer:
-                # The highest layer is the command layer. It has a command feedback space
-                # which requires the columns to have a specified potential radius size.
-                # TODO
-                # fix this so the potential radius dosns't have to be calculated and set
-                # to a specific value.
-                cellsPerColumn = self.layerArray[i].cellsPerColumn
-                newPotentialWidth = cellsPerColumn
-                newPotentialHeight = 2
-                self.layerArray[i].changeColsPotRadius(newPotentialWidth, newPotentialHeight)
-                # Change the minOverlap to one for the command input
-                # to activate the correct column.
-                self.layerArray[i].changeColsMinOverlap(1)
-                # Change the columns permence decrement to disable spatial learning.
-                self.layerArray[i].changeColsSynSpatialDecrement(0.0)
-                # Change the inihibiton radius for every column.
-                self.layerArray[i].changeColsInhibRadius(0)
+                                                 layersParams))
 
     def updateCommandInput(self, newCommand):
         # Update the command input for the level
@@ -1341,7 +1333,7 @@ class HTMRegion:
             lowerOutput = self.layerArray[i - 1].output
             # The highest layer receives the lower layers input and
             # the commandInput for the level, equal in size to the lower layers input.
-            if i == highestLayer:
+            if i == highestLayer and self.enableCommandFeedback == 1:
                 lowerOutput = SDRFunct.joinInputArrays(self.commandInput, lowerOutput)
             self.layerArray[i].updateInput(lowerOutput)
 
@@ -1409,7 +1401,9 @@ class HTM:
         self.regionArray = np.array([], dtype=object)
 
         # Get just the parameters for the HTMRegion
-        htmRegionParams = params['HTM']['HTMRegion']
+        # Note the params comes in a list of dictionaries, one for each region.
+        htmRegionParams = params['HTM']['HTMRegions']
+        bottomRegionsParams = htmRegionParams[0]
 
         # Create a top level feedback input to store a command for the top level.
         # Used to direct the HTM network.
@@ -1429,11 +1423,17 @@ class HTM:
                                                self.width,
                                                self.height,
                                                self.cellsPerColumn,
-                                               htmRegionParams)
+                                               bottomRegionsParams)
                                      )
         # The higher levels get inputs from the lower levels.
         #highestLevel = self.numLevels-1
         for i in range(1, self.numLevels):
+            # Try to get the parameters for this region else use the
+            # last specified params from the highest region.
+            if len(htmRegionParams) >= i+1:
+                regionsParam = htmRegionParams[i]
+            else:
+                regionsParam = htmRegionParams[-1]
             lowerOutput = self.regionArray[i-1].regionOutput()
             newInput = SDRFunct.joinInputArrays(commandFeedback, lowerOutput)
             self.regionArray = np.append(self.regionArray,
@@ -1441,7 +1441,7 @@ class HTM:
                                                    self.width,
                                                    self.height,
                                                    self.cellsPerColumn,
-                                                   htmRegionParams)
+                                                   regionsParam)
                                          )
 
         # create a place to store layers so they can be reverted.

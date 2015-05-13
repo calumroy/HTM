@@ -8,8 +8,99 @@ import sys
 from copy import deepcopy
 from utilities import simpleVerticalLineInputs as svli, measureTemporalPooling as mtp
 
+testParameters = {
+                    'HTM':
+                        {
+                        'numLevels': 1,
+                        'columnArrayWidth': 10,
+                        'columnArrayHeight': 30,
+                        'cellsPerColumn': 3,
 
-class test_TemporalPooling:
+                        'HTMRegions': [{
+                            'numLayers': 3,
+                            'enableCommandFeedback': 0,
+
+                            'HTMLayers': [{
+                                'desiredLocalActivity': 1,
+                                'connectPermanence': 0.3,
+                                'minThreshold': 5,
+                                'minScoreThreshold': 5,
+                                'newSynapseCount': 10,
+                                'activationThreshold': 6,
+                                'dutyCycleAverageLength': 1000,
+                                'synPermanence': 0.4,
+
+                                'Columns': [{
+                                    'minOverlap': 3,
+                                    'boost': 1,
+                                    'inhibitionRadius': 1,
+                                    'potentialWidth': 4,
+                                    'potentialHeight': 4,
+                                    'spatialPermanenceInc': 0.1,
+                                    'spatialPermanenceDec': 0.02,
+                                    'permanenceInc': 0.1,
+                                    'permanenceDec': 0.02,
+                                    'minDutyCycle': 0.01,
+                                    'boostStep': 0,
+                                    'historyLength': 2
+                                }]
+                            },
+                            {
+                                'desiredLocalActivity': 2,
+                                'connectPermanence': 0.3,
+                                'minThreshold': 5,
+                                'minScoreThreshold': 5,
+                                'newSynapseCount': 10,
+                                'activationThreshold': 6,
+                                'dutyCycleAverageLength': 1000,
+                                'synPermanence': 0.4,
+
+                                'Columns': [{
+                                    'minOverlap': 3,
+                                    'boost': 1,
+                                    'inhibitionRadius': 2,
+                                    'potentialWidth': 8,
+                                    'potentialHeight': 8,
+                                    'spatialPermanenceInc': 0.1,
+                                    'spatialPermanenceDec': 0.02,
+                                    'permanenceInc': 0.1,
+                                    'permanenceDec': 0.02,
+                                    'minDutyCycle': 0.01,
+                                    'boostStep': 0,
+                                    'historyLength': 2
+                                }]
+                            },
+                            {
+                                'desiredLocalActivity': 1,
+                                'connectPermanence': 0.3,
+                                'minThreshold': 5,
+                                'minScoreThreshold': 5,
+                                'newSynapseCount': 10,
+                                'activationThreshold': 6,
+                                'dutyCycleAverageLength': 1000,
+                                'synPermanence': 0.4,
+
+                                'Columns': [{
+                                    'minOverlap': 3,
+                                    'boost': 1,
+                                    'inhibitionRadius': 1,
+                                    'potentialWidth': 20,
+                                    'potentialHeight': 8,
+                                    'spatialPermanenceInc': 0.1,
+                                    'spatialPermanenceDec': 0.02,
+                                    'permanenceInc': 0.1,
+                                    'permanenceDec': 0.02,
+                                    'minDutyCycle': 0.01,
+                                    'boostStep': 0,
+                                    'historyLength': 2
+                                }]
+                            }]
+                        }]
+                    }
+                }
+
+
+class test_temporalPooling:
     def setUp(self):
         '''
         This test will use multiple regions in one level.
@@ -21,6 +112,9 @@ class test_TemporalPooling:
         of steps the top most layer is only changing slightly compared to
         the bottom layer then temporal pooling is occuring.
         '''
+
+        params = testParameters
+
         self.width = 10
         self.height = 30
         self.cellsPerColumn = 3
@@ -29,37 +123,18 @@ class test_TemporalPooling:
 
         # Create an array of input which will be fed to the htm so it
         # can try to temporarily pool them.
-        numInputs = self.width*self.cellsPerColumn
-        inputWidth = self.width*self.cellsPerColumn
-        inputHeight = 2*self.height
+        numInputs = params['HTM']['columnArrayWidth']*params['HTM']['cellsPerColumn']
+        inputWidth = params['HTM']['columnArrayWidth']*params['HTM']['cellsPerColumn']
+        inputHeight = 2*params['HTM']['columnArrayHeight']
 
         self.InputCreator = svli.simpleVerticalLineInputs(inputWidth, inputHeight, numInputs)
         #self.htmlayer = HTMLayer(self.inputs[0], self.width, self.height, self.cellsPerColumn)
-        self.htm = HTM(self.numLevels,
-                       self.InputCreator.createSimGrid(),
-                       self.width,
-                       self.height,
-                       self.cellsPerColumn,
-                       self.numLayers)
-
-        # Setup some parameters of the HTM
-        self.setupParameters()
+        self.htm = HTM(self.InputCreator.createSimGrid(),
+                       params
+                       )
 
         # Measure the temporal pooling
         self.temporalPooling = mtp.measureTemporalPooling()
-
-    def setupParameters(self):
-        # Setup some parameters of the HTM
-        self.htm.regionArray[0].layerArray[1].desiredLocalActivity = 4
-        self.htm.regionArray[0].layerArray[2].desiredLocalActivity = 4
-
-        # We need to limit the number of actve columns in the higher layers
-        # This is because they have larger potential radiuses and desired local activity.
-        self.htm.regionArray[0].layerArray[1].changeColsInhibRadius(3)
-        self.htm.regionArray[0].layerArray[2].changeColsInhibRadius(2)
-        #self.htm.regionArray[1].layerArray[0].desiredLocalActivity = 4
-        #self.htm.regionArray[1].layerArray[0].changeColsPotRadius(4)
-        #self.htm.regionArray[1].layerArray[1].desiredLocalActivity = 4
 
     def step(self):
         # Update the inputs and run them through the HTM levels just once.
@@ -88,6 +163,10 @@ class test_TemporalPooling:
             htmOutput = self.htm.levelOutput(self.numLevels-1)
             tempPoolPercent = self.temporalPooling.temporalPoolingPercent(htmOutput)
             print "Temporal pooling percent = %s" % tempPoolPercent
+
+        # app = QtGui.QApplication(sys.argv)
+        # self.htmGui = GUI_HTM.HTMGui(self.htm, self.InputCreator)
+        # sys.exit(app.exec_())
 
         # More then this percentage of temporal pooling should have occurred
         assert tempPoolPercent >= 0.75

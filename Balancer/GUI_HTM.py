@@ -797,24 +797,28 @@ class HTMNetwork(QtGui.QWidget):
         self.inputHeight = len(self.htm.regionArray[0].layerArray[0].Input)
         self.InputCreator = InputCreator
 
-        # get the number of layers in a level so each layer can be displayed
-        self.numLayers = self.htm.regionArray[0].numLayers
-
         # Create a thalamus class
         # The width of the the thalamus should match the width of the input grid.
         self.thalamus = Thalamus.Thalamus(self.width*self.numCells, self.height)
 
-        # Create the HTM grid veiwer widgets.
+        # Create the widgets to veiw htm layers and their inputs.
         # Each one views a different level of the htm
-        self.HTMNetworkGrid = [HTMGridViewer(self.htm) for i in range(self.numLevels*self.numLayers)]
-
-        # Create the input veiwer widgets.
-        # Each one views the input to a different level of the htm
-        self.inputGrid = [HTMInput(self.htm, self.HTMNetworkGrid[i])
-                          for i in range(self.numLevels*self.numLayers)]
-
-        # Initialise each htm and input view to display different layers and levels
-        self.setupViews()
+        self.HTMNetworkGrid = []
+        self.inputGrid = []
+        countNum = 0
+        for i in range(self.numLevels):
+            # Get the number of layers in the level in the htm.
+            numLayers = self.htm.regionArray[i].numLayers
+            for j in range(numLayers):
+                # HTM grid veiwer widgets.
+                self.HTMNetworkGrid.append(HTMGridViewer(self.htm))
+                self.inputGrid.append(HTMInput(self.htm, self.HTMNetworkGrid[countNum]))
+                # Setup each viewer to display the correct level and layer
+                self.setLevel(self.HTMNetworkGrid[-1], i)
+                self.setLevel(self.inputGrid[-1], i)
+                self.setLayer(self.HTMNetworkGrid[-1], j)
+                self.setLayer(self.inputGrid[-1], j)
+                countNum += 1
 
         # Used to create and save new views
         self.markedHTMViews = []
@@ -845,18 +849,6 @@ class HTMNetwork(QtGui.QWidget):
         self.makeButtons()
         #self.setWindowTitle('Main window')
         self.show()
-
-    def setupViews(self):
-        # Initialise each htm and input view to display different layers and levels
-        # Workout which htm view and input view should show which layer in which level
-        # Just initialise them in order
-        for i in range(len(self.HTMNetworkGrid)):
-            displayLevel = int(math.floor(i/self.numLayers))
-            displayLayer = i % self.numLayers
-            self.setLevel(self.HTMNetworkGrid[i], displayLevel)
-            self.setLevel(self.inputGrid[i], displayLevel)
-            self.setLayer(self.HTMNetworkGrid[i], displayLayer)
-            self.setLayer(self.inputGrid[i], displayLayer)
 
     def setInput(self, width, height):
         input = np.array([[0 for i in range(width)] for j in range(height)])
@@ -1043,12 +1035,16 @@ class HTMNetwork(QtGui.QWidget):
 
         # Add each pair of input and HTM layer views to the splitter frames
         # There is an input and htm view for each layer in every level.
+        countNum = 0
         for i in range(self.numLevels):
             self.frameSplitterH[i].setOrientation(QtCore.Qt.Horizontal)
-            for j in range(self.numLayers):
+            # Get the number of layers in the level in the htm.
+            numLayers = self.htm.regionArray[i].numLayers
+            for j in range(numLayers):
                 # Add to each horizontal splitter every layer in a particular level
-                self.frameSplitterH[i].addWidget(self.inputGrid[i*self.numLayers+j])
-                self.frameSplitterH[i].addWidget(self.HTMNetworkGrid[i*self.numLayers+j])
+                self.frameSplitterH[i].addWidget(self.inputGrid[countNum])
+                self.frameSplitterH[i].addWidget(self.HTMNetworkGrid[countNum])
+                countNum += 1
             #Add each horizontal frame splitter to the vertical one
             self.frameSplitter.addWidget(self.frameSplitterH[i])
 
@@ -1155,11 +1151,16 @@ class HTMNetwork(QtGui.QWidget):
         #######################################################################
         # Check if the view should be updated
         if updateViewer is True:
-            for i in range(self.numLevels*self.numLayers):
-                # Set the input viewers array to self.input
-                self.inputGrid[i].updateGrid()
-                # Update the columns and cells of the HTM viewers
-                self.HTMNetworkGrid[i].updateGrid()
+            countNum = 0
+            for i in range(self.numLevels):
+                # Get the number of layers in the level in the htm.
+                numLayers = self.htm.regionArray[i].numLayers
+                for j in range(numLayers):
+                    # Set the input viewers array to self.input
+                    self.inputGrid[countNum].updateGrid()
+                    # Update the columns and cells of the HTM viewers
+                    self.HTMNetworkGrid[countNum].updateGrid()
+                    countNum += 1
 
         print "Number of TimeSteps=%s" % (self.iteration)
         print "------------------------------------------"
