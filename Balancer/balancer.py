@@ -31,6 +31,7 @@ def main():
     # Create a HTM object
     htm = HTM_V.HTM(InputCreator.createSimGrid(), params)
 
+    # Create and run the GUI
     ex = GUI_HTM.HTMGui(htm, InputCreator)
     sys.exit(app.exec_())
 

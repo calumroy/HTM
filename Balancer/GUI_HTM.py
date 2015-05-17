@@ -797,10 +797,6 @@ class HTMNetwork(QtGui.QWidget):
         self.inputHeight = len(self.htm.regionArray[0].layerArray[0].Input)
         self.InputCreator = InputCreator
 
-        # Create a thalamus class
-        # The width of the the thalamus should match the width of the input grid.
-        self.thalamus = Thalamus.Thalamus(self.width*self.numCells, self.height)
-
         # Create the widgets to veiw htm layers and their inputs.
         # Each one views a different level of the htm
         self.HTMNetworkGrid = []
@@ -1122,14 +1118,9 @@ class HTMNetwork(QtGui.QWidget):
         # work out a new state.
         self.InputCreator.step(commandGrid)
 
-        # Get the predicted command from the command space.
-        # Pass this to the thalamus
-        predCommGrid = self.htm.regionArray[0].layerPredCommandOutput(topLayer)
-        #print "predCommGrid = %s" % predCommGrid
-        thalamusCommand = self.thalamus.pickCommand(predCommGrid)
-
-        # Update level 0 of the htm with the thalamus command
-        self.htm.regionArray[0].updateCommandInput(thalamusCommand)
+        # Update the thalamus in each command layer within each level.
+        # This selects a new command to try.
+        self.htm.updateAllThalamus()
 
         #######################################################################
         # PART 2 RUN THE NEW INPUT THROUGHT THE HTM
@@ -1141,12 +1132,13 @@ class HTMNetwork(QtGui.QWidget):
         self.htm.spatialTemporal(newInput)
 
         #######################################################################
-        # PART 3 UPDATE THE THALAMUS
+        # PART 3 REWARD THE THALAMUS
         #######################################################################
         # Update the Thalamus class by either rewarding it or not
-        # Get a reward from the simulation and pass it to the thalamus.
+        # Get a reward from the simulation.
+        # Update Each Thalamus in the HTM heirarchy.
         currentReward = self.InputCreator.getReward()
-        self.thalamus.rewardThalamus(currentReward)
+        self.htm.rewardAllThalamus(currentReward)
 
         #######################################################################
         # Check if the view should be updated

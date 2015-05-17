@@ -10,6 +10,7 @@ import math
 #import pprint
 import copy
 from utilities import sdrFunctions as SDRFunct
+import Thalamus
 
 ##Struct = {'field1': 'some val', 'field2': 'some val'}
 ##myStruct = { 'num': 1}
@@ -1135,7 +1136,7 @@ class HTMLayer:
                 # check the cell with the highest score.
                 if c.highestScoredCell is not None:
                     if buPredicted is False and c.cells[c.highestScoredCell].score >= self.minScoreThreshold:
-                        print"best SCORE active x, y, i = %s, %s, %s score = %s"%(c.pos_x, c.pos_y,c.highestScoredCell, c.cells[c.highestScoredCell].score)
+                        #print"best SCORE active x, y, i = %s, %s, %s score = %s"%(c.pos_x, c.pos_y,c.highestScoredCell, c.cells[c.highestScoredCell].score)
                         buPredicted = True
                         self.activeStateAdd(c, c.highestScoredCell, timeStep)
                         lcChosen = True
@@ -1283,6 +1284,16 @@ class HTMRegion:
 
         self.setupLayers(input, params['HTMLayers'])
 
+        # create and store a thalamus class if the
+        # command feedback param is true.
+        self.thalamus = None
+        if self.enableCommandFeedback == 1:
+            # The width of the the thalamus should match the width of the input grid.
+            thalamusParams = params['Thalamus']
+            self.thalamus = Thalamus.Thalamus(self.width*self.cellsPerColumn,
+                                              self.height,
+                                              thalamusParams)
+
     def setupLayers(self, input, htmLayerParams):
         # Set up the inputs to the HTM layers.
         # Note the params comes in a list of dics, one for each layer.
@@ -1315,6 +1326,26 @@ class HTMRegion:
                                                  self.height,
                                                  self.cellsPerColumn,
                                                  layersParams))
+
+    def updateThalamus(self):
+        # Update the thalamus.
+        # This updates the command input that comes from
+        # the thalamus.
+        # Get the predicted command from the command space.
+        # Pass this to the thalamus
+        if self.thalamus is not None:
+            topLayer = self.numLayers-1
+            predCommGrid = self.layerPredCommandOutput(topLayer)
+            #print "predCommGrid = %s" % predCommGrid
+            thalamusCommand = self.thalamus.pickCommand(predCommGrid)
+
+            # Update each level of the htm with the thalamus command
+            self.updateCommandInput(thalamusCommand)
+
+    def rewardThalamus(self, reward):
+        # Reward the Thalamus.
+        if self.thalamus is not None:
+            self.thalamus.rewardThalamus(reward)
 
     def updateCommandInput(self, newCommand):
         # Update the command input for the level
@@ -1521,6 +1552,16 @@ class HTM:
         highestLayer = self.regionArray[level].numLayers-1
         return self.regionArray[level].layerOutput(highestLayer)
         #return self.regionArray[level].regionOutput()
+
+    def updateAllThalamus(self):
+        # Update all the thalaums classes in each region
+        for i in range(self.numLevels):
+            self.regionArray[i].updateThalamus()
+
+    def rewardAllThalamus(self, reward):
+        # Reward the thalamus classes in each region
+        for i in range(self.numLevels):
+            self.regionArray[i].rewardThalamus(reward)
 
     #@do_cprofile  # For profiling
     def spatialTemporal(self, input):

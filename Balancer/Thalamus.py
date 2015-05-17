@@ -17,7 +17,7 @@ from operator import itemgetter
 
 
 class Thalamus:
-    def __init__(self, columnArrayWidth, columnArrayHeight):
+    def __init__(self, columnArrayWidth, columnArrayHeight, params):
         '''
         The thalamus contains a Qvalues grid variable whose purpose is to
         store in a 2d array Qvalues which are used and updated.
@@ -36,14 +36,14 @@ class Thalamus:
 
         # Policy Parameters
         # The number of squares that should be active for a new command.
-        self.numSquaresInComm = 6
+        self.numSquaresInComm = params['numSquaresInComm']
         # The chance a new untested square will be
         # tried out and returned as part of the new command.
-        self.newCommChance = 0.0
+        self.newCommChance = params['newCommChance']
         # A parameter specifing how importnat maximizing future Qvalues is.
-        self.futureQvalMax = 0.5
+        self.futureQvalMax = params['futureQvalMax']
         # Learning rate. This determines how quickly Qvalues change.
-        self.qValLearnRate = 0.1
+        self.qValLearnRate = params['qValLearnRate']
 
         # Store the last Qvalues which makes it into the last output.
         # This list is used to update those Qvalues, stored as (x,y,Qvalue).
@@ -194,6 +194,8 @@ class Thalamus:
                 pos_y = highestQValList[0][1]
                 self.lastQValList.append([pos_x, pos_y, currentQval])
                 numChoices += 1
+        else:
+            print "     highestQValList is expty"
 
         print "     Thalamus choosing %s random outputs" % (1-numChoices)
         if numChoices == 0:
