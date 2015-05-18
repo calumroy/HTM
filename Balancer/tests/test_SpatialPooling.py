@@ -23,6 +23,7 @@ testParameters = {
 
                             'HTMLayers': [{
                                 'desiredLocalActivity': 1,
+                                'centerPotSynapses': 1,
                                 'connectPermanence': 0.3,
                                 'minThreshold': 5,
                                 'minScoreThreshold': 5,

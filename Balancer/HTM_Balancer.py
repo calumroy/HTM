@@ -181,6 +181,9 @@ class HTMLayer:
         # are observed in the inhibition radius.
         # How many cells within the inhibition radius are active
         self.desiredLocalActivity = params['desiredLocalActivity']
+        # If true then all the potential synapses for a column are centered
+        # around the columns position else they are to the right of the columns pos.
+        self.centerPotSynapses = params['centerPotSynapses']
         self.cellsPerColumn = cellsPerColumn
         # If the permanence value for a synapse is greater than this
         # value, it is said to be connected.
@@ -373,20 +376,31 @@ class HTMLayer:
         # Calculate the ratio between columns and the input space.
         colInputRatioHeight = float(inputHeight) / float(columnHeight)
         colInputRatioWidth = float(inputWidth) / float(columnWidth)
-        #print "Column to input height ratio = %f" % colInputRatioHeight
-        #print "Column to input width ratio = %f" % colInputRatioWidth
-        #print "Input width = %s" % inputWidth
-        #print "Input height = %s" % inputHeight
         # Cast the y position to an int so it matches up with a row number.
         inputCenter_y = int(c.pos_y*colInputRatioHeight)
         # Cast the x position to an int so it matches up with a column number.
         inputCenter_x = int(c.pos_x*colInputRatioWidth)
-        # i is pos_y j is pos_x
-        for y in range(int(inputCenter_y),
-                       int(inputCenter_y+c.potentialHeight)):
+
+        # Define a range of pos values around the column depending on parameters.
+        # This forms a rectangle of input squares that are covered by the pot synapses.
+        if self.centerPotSynapses == 0:
+            # This setting is used for the command space.
+            topPos_y = inputCenter_y
+            bottomPos_y = inputCenter_y+c.potentialHeight
+            leftPos_x = inputCenter_x
+            rightPos_x = inputCenter_x+c.potentialWidth
+        else:
+            # This setting is used for normal input space.
+            topPos_y = inputCenter_y - c.potentialHeight/2
+            bottomPos_y = inputCenter_y + c.potentialHeight/2 + 1
+            leftPos_x = inputCenter_x - c.potentialWidth/2
+            rightPos_x = inputCenter_x + c.potentialWidth/2 + 1
+
+        for y in range(int(topPos_y),
+                       int(bottomPos_y)):
             if y >= 0 and y < inputHeight:
-                for x in range(int(inputCenter_x),
-                               int(inputCenter_x+c.potentialWidth)):
+                for x in range(int(leftPos_x),
+                               int(rightPos_x)):
                     if x >= 0 and x < inputWidth:
                         # Create a Synapse pointing to the HTM layers input
                         #so the synapse cellIndex is -1

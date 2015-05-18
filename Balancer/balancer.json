@@ -17,6 +17,7 @@
 
             "HTMLayers": [{
                 "desiredLocalActivity": 1,
+                "centerPotSynapses": 1,
                 "connectPermanence": 0.3,
                 "minThreshold": 5,
                 "minScoreThreshold": 5,
@@ -43,6 +44,7 @@
             },
             {
                 "desiredLocalActivity": 1,
+                "centerPotSynapses": 0,
                 "connectPermanence": 0.3,
                 "minThreshold": 5,
                 "minScoreThreshold": 5,
@@ -79,7 +81,8 @@
             },
 
             "HTMLayers": [{
-                "desiredLocalActivity": 2,
+                "desiredLocalActivity": 1,
+                "centerPotSynapses": 1,
                 "connectPermanence": 0.3,
                 "minThreshold": 5,
                 "minScoreThreshold": 5,
@@ -93,8 +96,8 @@
                     "minOverlap": 3,
                     "boost": 1,
                     "inhibitionRadius": 1,
-                    "potentialWidth": 12,
-                    "potentialHeight": 6,
+                    "potentialWidth": 7,
+                    "potentialHeight": 7,
                     "spatialPermanenceInc": 0.1,
                     "spatialPermanenceDec": 0.02,
                     "permanenceInc": 0.1,
@@ -105,7 +108,8 @@
                 }]
             },
             {
-                "desiredLocalActivity": 1,
+                "desiredLocalActivity": 2,
+                "centerPotSynapses": 0,
                 "connectPermanence": 0.3,
                 "minThreshold": 5,
                 "minScoreThreshold": 5,
