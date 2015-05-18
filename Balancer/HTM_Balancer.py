@@ -53,8 +53,7 @@ class Segment:
     def __init__(self):
         self.predict = False
         self.index = -1
-        self.sequenceSegment = 0
-        # Stores the last time step that this segment was predicting activity
+        self.sequenceSegment = 0    # Stores the last time step that this segment was predicting activity
         # Stores the synapses that have been created and
         #have a larger permenence than 0.0
         self.synapses = []
@@ -193,6 +192,8 @@ class HTMLayer:
         self.minScoreThreshold = params['minScoreThreshold']
         # This limits the activeSynapse array to this length. Should be renamed
         self.newSynapseCount = params['newSynapseCount']
+        # The maximum number of segments allowed by a cell
+        self.maxNumSegments = params['maxNumSegments']
         # More than this many synapses on a segment must be active for
         # the segment to be active
         self.activationThreshold = params['activationThreshold']
@@ -471,19 +472,43 @@ class HTMLayer:
                 maxActiveDutyCycle = c.activeDutyCycle
         return maxActiveDutyCycle
 
-    def deleteEmptySegments(self, c, i):
+    def deleteSegments(self, c, i):
         # Delete the segments that have no synapses in them.
-        # This should only be done before or after learning
-        deleteEmptySegments = []
+        # Also delete the most unused segments if too many exist.
+        # This should only be done before or after learning since a
+        # segments index in a cells segments list is used for learning.
+        deleteSegments = []
         # This is a list of the indicies of the segments that will be deleted
         #print "Delete seg in Cell i = %s" % i
         for s in range(len(c.cells[i].segments)):
             if len(c.cells[i].segments[s].synapses) == 0:
-                deleteEmptySegments.append(c.cells[i].segments[s])
-        #if len(deleteEmptySegments) > 0:  # Used for printing only
-        #    print "Deleted %s segments from x, y, i=%s, %s, %s segindex = %s"%(len(deleteEmptySegments), c.pos_x,c.pos_y,i,deleteEmptySegments)
-        for d in deleteEmptySegments:
+                deleteSegments.append(c.cells[i].segments[s])
+        for d in deleteSegments:
             c.cells[i].segments.remove(d)
+
+        deleteSegments = []
+        numSegments = len(c.cells[i].segments)
+        if numSegments > self.maxNumSegments:
+            # The max number of segments allowed has been reached.
+            # Find the most unused segment and delete it.
+            deleteSegments = self.findLeastUsedSeg(c, i)
+        for d in deleteSegments:
+            c.cells[i].segments.remove(d)
+
+    def findLeastUsedSeg(self, c, i):
+        # Find the most unused segment from the column c cell i
+        # segments list. Return it in a list.
+        leastUsedSeg = []
+        unusedSegment = None
+        oldestTime = None
+
+        for s in c.cells[i].segments:
+            if (((s.sequenceSegment < oldestTime) and s.sequenceSegment != 0)
+               or oldestTime is None):
+                oldestTime = s.sequenceSegment
+                unusedSegment = s
+        leastUsedSeg = [unusedSegment]
+        return leastUsedSeg
 
     def deleteWeakSynapses(self, c, i, segIndex):
         # Delete the synapses that have a permanence
@@ -1247,13 +1272,12 @@ class HTMLayer:
                         #print "INCORRECT predictive
                         #state for x,y,cell = %s,%s,%s"%(c.pos_x,c.pos_y,i)
                         self.adaptSegments(c, i, False)
-                    # After the learning delete any segments
-                    #that have zero synapses in them.
-                    # This must be done after learning since
-                    #during learning the index of the segment
-                    # is used to identify each segment and this
-                    #changes when segments are deleted.
-                    self.deleteEmptySegments(c, i)
+                    # After the learning delete segments if they
+                    # have to few synapses or too many segments exist.
+                    # This must be done after learning since during learning
+                    # the index of the segment is used to identify each segment and this
+                    # changes when segments are deleted.
+                    self.deleteSegments(c, i)
         # Update the output of the layer
         self.updateOutput()
 

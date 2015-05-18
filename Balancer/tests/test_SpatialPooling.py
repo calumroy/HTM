@@ -27,6 +27,7 @@ testParameters = {
                                 'minThreshold': 5,
                                 'minScoreThreshold': 5,
                                 'newSynapseCount': 10,
+                                'maxNumSegments': 10,
                                 'activationThreshold': 6,
                                 'dutyCycleAverageLength': 1000,
                                 'synPermanence': 0.4,
