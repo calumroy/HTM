@@ -954,6 +954,12 @@ class HTMLayer:
         # overlap a column could have. This guarantees the column will
         # win later when inhibition occurs.
 
+        for s in c.potentialSynapses:
+            # Check if the input that this synapses
+            # is connected to is active.
+            inputActive = self.Input[s.pos_y][s.pos_x]
+            c.overlap = c.overlap + inputActive
+
         if c.overlap >= c.minOverlap:
             # The col has a good overlap value and should allow temp pooling
             # to continue on the next time step. Set the time flag to not the
@@ -996,25 +1002,23 @@ class HTMLayer:
                 c.overlap = 0.0
                 self.updateConnectedSynapses(c)
 
-                # Calculate the overlap
-                for s in c.connectedSynapses:
-                    # Check if the input that this synapses
-                    # is connected to is active.
-                    #print "s.pos_y = %s s.pos_x = %s" % (s.pos_y, s.pos_x)
-                    #print "input width = %s input height = %s" % (len(self.Input[0]), len(self.Input))
-                    inputActive = self.Input[s.pos_y][s.pos_x]
-                    c.overlap = c.overlap + inputActive
-
                 # Temporal pooling is done if the column was active but not bursting one timestep ago.
                 if self.columnActiveNotBursting(c, self.timeStep-1) is not None:
                     self.temporalPool(c)
+                else:
+                    # Calculate the overlap for the non temporally pooled columns.
+                    for s in c.connectedSynapses:
+                        # Check if the input that this synapses
+                        # is connected to is active.
+                        inputActive = self.Input[s.pos_y][s.pos_x]
+                        c.overlap = c.overlap + inputActive
 
                 if c.overlap < c.minOverlap:
                     c.overlap = 0.0
                 else:
                     c.overlap = c.overlap*c.boost
                     self.updateOverlapDutyCycle(c)
-                #print "%d %d %d" %(c.overlap,c.minOverlap,c.boost)
+                #print "%d %d %d" % (c.overlap, c.minOverlap, c.boost)
 
     def inhibition(self, timeStep):
         '''
@@ -1025,33 +1029,46 @@ class HTMLayer:
         #print "length active columns before deleting = %s" % len(self.activeColumns)
         self.activeColumns = np.array([], dtype=object)
         #print "actve cols before %s" %self.activeColumns
-
-        for i in range(len(self.columns)):
-            for c in self.columns[i]:
-                if c.overlap > 0:
-                    minLocalActivity = self.kthScore(self.neighbours(c), self.desiredLocalActivity)
-                    #print "current column = (%s,%s)"%(c.pos_x,c.pos_y)
-                    if c.overlap > minLocalActivity:
+        allColumns = self.columns.flatten().tolist()
+        # Get all the columns in a 1D array then sort them based on their overlap value.
+        #allColumns = allColumns[np.lexsort(allColumns.overlap, axis=None)]
+        allColumns.sort(key=lambda x: x.overlap, reverse=True)
+        # Now start from the columns with the highest overlap and inhibit
+        # columns with smaller overlaps.
+        for c in allColumns:
+            if c.overlap > 0:
+                # Get the neighbours of the column
+                neighbourCols = self.neighbours(c)
+                minLocalActivity = self.kthScore(neighbourCols, self.desiredLocalActivity)
+                #print "current column = (%s, %s) overlap = %d min = %d" % (c.pos_x, c.pos_y,
+                #                                                            c.overlap, minLocalActivity)
+                if c.overlap > minLocalActivity:
+                    self.activeColumns = np.append(self.activeColumns, c)
+                    self.columnActiveAdd(c, timeStep)
+                    # print "ACTIVE COLUMN x,y = %s, %s overlap = %d min = %d" % (c.pos_x, c.pos_y,
+                    #                                                             c.overlap, minLocalActivity)
+                elif c.overlap == minLocalActivity:
+                    # Check the neighbours and see how many have an overlap
+                    # larger then the minLocalctivity or are already active.
+                    # These columns will be set active.
+                    numActiveNeighbours = 0
+                    for d in neighbourCols:
+                        if (d.overlap > minLocalActivity or self.columnActiveState(d, self.timeStep) is True):
+                            numActiveNeighbours += 1
+                    # if less then the desired local activity have been set
+                    # or will be set as active then activate this column as well.
+                    if numActiveNeighbours < self.desiredLocalActivity:
+                        #print "Activated column x,y = %s, %s numActiveNeighbours = %s" % (c.pos_x, c.pos_y, numActiveNeighbours)
                         self.activeColumns = np.append(self.activeColumns, c)
                         self.columnActiveAdd(c, timeStep)
-                        #print "ACTIVE COLUMN x,y = %s, %s overlap = %d min = %d" % (c.pos_x, c.pos_y,
-                        #                                                            c.overlap, minLocalActivity)
-                    if c.overlap == minLocalActivity:
-                        # Check the neighbours and see how many have an overlap
-                        # larger then the minLocalctivity or are already active.
-                        # These columns will be set active.
-                        numActiveNeighbours = 0
-                        for d in self.neighbours(c):
-                            if (d.overlap > minLocalActivity or self.columnActiveState(d, self.timeStep) is True):
-                                numActiveNeighbours += 1
-                        # if less then the desired local activity have been set
-                        # or will be set as active then activate this column as well.
-                        if numActiveNeighbours < self.desiredLocalActivity:
-                            #print "Activated column x,y = %s, %s numActiveNeighbours = %s" % (c.pos_x, c.pos_y, numActiveNeighbours)
-                            self.activeColumns = np.append(self.activeColumns, c)
-                            self.columnActiveAdd(c, timeStep)
-                self.updateActiveDutyCycle(c)
-                # Update the active duty cycle variable of every column
+                    else:
+                        # Set the overlap score for the losing columns to zero
+                        c.overlap = 0
+                else:
+                    # Set the overlap score for the losing columns to zero
+                    c.overlap = 0
+            self.updateActiveDutyCycle(c)
+            # Update the active duty cycle variable of every column
 
     def learning(self):
         '''
@@ -1247,20 +1264,12 @@ class HTMLayer:
                         # Need this to hand to getSegmentActiveSynapses\
                 if columnPredicting is True:
                     # Set the most predicting cell in
-                    #the column as the predicting cell.
-                    #print "time = %s segment x,y,cell,
-                    #segindex = %s,%s,%s,%s is active and NOW
-                    #PREDICTING"%(timeStep,c.pos_x,c.pos_y,mostPredCell,
-                        #mostPredSegment)
+                    # the column as the predicting cell.
                     self.predictiveStateAdd(c, mostPredCell, timeStep)
-                    activeUpdate = self.getSegmentActiveSynapses(c, mostPredCell, timeStep, mostPredSegment, False)
-                    c.cells[mostPredCell].segmentUpdateList.append(activeUpdate)
-                    # This differs to the CLA. All our segments are only active
-                    # when in a predicting state so we don't need predSegment.
-                    #predSegment=self.getBestMatchingSegment(c,i,timeStep-1)
-                    #predUpdate=self.getSegmentActiveSynapses
-                    #(c,i,timeStep-1,predSegment,True)
-                    #c.cells[i].segmentUpdateList.append(predUpdate)
+                    # Only create a new update structure if the cell wasn't already predicting
+                    if self.predictiveState(c, mostPredCell, timeStep-1) is False:
+                        activeUpdate = self.getSegmentActiveSynapses(c, mostPredCell, timeStep, mostPredSegment, False)
+                        c.cells[mostPredCell].segmentUpdateList.append(activeUpdate)
 
     def sequenceLearning(self, timeStep):
         # Third function called for the sequence pooler.

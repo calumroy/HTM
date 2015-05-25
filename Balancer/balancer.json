@@ -95,7 +95,7 @@
                 "Columns": [{
                     "minOverlap": 3,
                     "boost": 1,
-                    "inhibitionRadius": 1,
+                    "inhibitionRadius": 2,
                     "potentialWidth": 7,
                     "potentialHeight": 7,
                     "spatialPermanenceInc": 0.1,

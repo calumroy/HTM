@@ -235,7 +235,7 @@ class HTMInput(QtGui.QGraphicsView):
     def drawColumnInputs(self, pos_x, pos_y):
         #print "Selected pos_x = %s pos_y = %s" % (pos_x, pos_y)
         column = self.htm.regionArray[self.level].layerArray[self.layer].columns[pos_y][pos_x]
-        print "     overlap = %s" % column.overlap
+        print "     overlap = %s minOverlap = %s" % (column.overlap, column.minOverlap)
         red = QtGui.QColor(0xFF, 0, 0, 0xFF)
         transpBlue = QtGui.QColor(0, 0, 0xFF, 0x30)
         green = QtGui.QColor(0, 0xFF, 0, 0xFF)

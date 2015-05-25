@@ -62,7 +62,7 @@ testParameters = {
                                 'Columns': [{
                                     'minOverlap': 3,
                                     'boost': 1,
-                                    'inhibitionRadius': 2,
+                                    'inhibitionRadius': 1,
                                     'potentialWidth': 8,
                                     'potentialHeight': 8,
                                     'spatialPermanenceInc': 0.1,
@@ -75,8 +75,8 @@ testParameters = {
                                 }]
                             },
                             {
-                                'desiredLocalActivity': 1,
-                                'centerPotSynapses': 0,
+                                'desiredLocalActivity': 2,
+                                'centerPotSynapses': 1,
                                 'connectPermanence': 0.3,
                                 'minThreshold': 5,
                                 'minScoreThreshold': 5,
@@ -89,7 +89,7 @@ testParameters = {
                                 'Columns': [{
                                     'minOverlap': 3,
                                     'boost': 1,
-                                    'inhibitionRadius': 3,
+                                    'inhibitionRadius': 4,
                                     'potentialWidth': 20,
                                     'potentialHeight': 8,
                                     'spatialPermanenceInc': 0.1,
@@ -170,9 +170,9 @@ class test_temporalPooling:
             tempPoolPercent = self.temporalPooling.temporalPoolingPercent(htmOutput)
             print "Temporal pooling percent = %s" % tempPoolPercent
 
-        app = QtGui.QApplication(sys.argv)
-        self.htmGui = GUI_HTM.HTMGui(self.htm, self.InputCreator)
-        sys.exit(app.exec_())
+        # app = QtGui.QApplication(sys.argv)
+        # self.htmGui = GUI_HTM.HTMGui(self.htm, self.InputCreator)
+        # sys.exit(app.exec_())
 
         # More then this percentage of temporal pooling should have occurred
         assert tempPoolPercent >= 0.75
@@ -249,9 +249,9 @@ class test_temporalPooling:
                 tempPoolPercent[layer] = self.temporalPoolingMeasures[layer].temporalPoolingPercent(gridOutput)
                 #print "Layer %s Temporal pooling percent = %s" % (layer, tempPoolPercent[layer])
 
-        #app = QtGui.QApplication(sys.argv)
-        #self.htmGui = GUI_HTM.HTMGui(self.htm, self.InputCreator)
-        #sys.exit(app.exec_())
+        # app = QtGui.QApplication(sys.argv)
+        # self.htmGui = GUI_HTM.HTMGui(self.htm, self.InputCreator)
+        # sys.exit(app.exec_())
 
         # Less then this percentage of temporal pooling should have occurred
         for i in range(len(tempPoolPercent)):
