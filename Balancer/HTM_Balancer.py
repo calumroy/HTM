@@ -1322,6 +1322,8 @@ class HTMRegion:
         self.height = columnArrayHeight
         self.cellsPerColumn = cellsPerColumn
         self.numLayers = params['numLayers']  # The number of HTM layers that make up a region.
+        # Enable space in the first layers input for feedback from higher levels.
+        self.enableHigherLevFb = params['enableHigherLevFb']
         self.layerArray = np.array([], dtype=object)
         # Make a place to store the thalamus command.
         self.commandInput = np.array([[0 for i in range(self.width*cellsPerColumn)]
@@ -1483,18 +1485,17 @@ class HTM:
         htmRegionParams = params['HTM']['HTMRegions']
         bottomRegionsParams = htmRegionParams[0]
 
-        # Create a top level feedback input to store a command for the top level.
-        # Used to direct the HTM network.
-        self.topLevelFeedback = np.array([[0 for i in range(self.width*self.cellsPerColumn)]
-                                         for j in range(self.height)])
-
         ### Setup the inputs and outputs between levels
         # Each regions input needs to make room for the command
         # feedback from the higher level.
         commandFeedback = np.array([[0 for i in range(self.width*self.cellsPerColumn)]
                                     for j in range(self.height)])
         # The lowest region receives the new input.
-        newInput = SDRFunct.joinInputArrays(commandFeedback, input)
+        # If the region has enablehigherLevFb parameter enabled add extra space to the input.
+        if bottomRegionsParams['enableHigherLevFb'] == 1:
+            newInput = SDRFunct.joinInputArrays(commandFeedback, input)
+        else:
+            newInput = input
         # Setup the new htm region with the input and size parameters defined.
         self.regionArray = np.append(self.regionArray,
                                      HTMRegion(newInput,
@@ -1512,8 +1513,14 @@ class HTM:
                 regionsParam = htmRegionParams[i]
             else:
                 regionsParam = htmRegionParams[-1]
+
             lowerOutput = self.regionArray[i-1].regionOutput()
-            newInput = SDRFunct.joinInputArrays(commandFeedback, lowerOutput)
+            # If the region has higherLevFb param enabled add extra space to the input.
+            if regionsParam['enableHigherLevFb'] == 1:
+                newInput = SDRFunct.joinInputArrays(commandFeedback, lowerOutput)
+            else:
+                newInput = lowerOutput
+
             self.regionArray = np.append(self.regionArray,
                                          HTMRegion(newInput,
                                                    self.width,
@@ -1536,7 +1543,7 @@ class HTM:
         self.HTMOriginal = copy.deepcopy(self.regionArray)
 
     def loadRegions(self):
-        # Save the synases for the command area so they can be reloaded.
+        # Save the synapses for the command area so they can be reloaded.
         if self.HTMOriginal is not None:
             print "\n    LOAD COMMAND SYN "
             self.regionArray = self.HTMOriginal
@@ -1559,14 +1566,13 @@ class HTM:
 
         # The lowest levels lowest layer gets this new input.
         # All other levels and layers get inputs from lower levels and layers.
-        if self.numLevels > 1:
-            commFeedbackLev1 = self.levelOutput(1)
-        # If there is only one level then the
-        # thalamus input is added to the input.
-        if self.numLevels == 1:
-            # This is the highest level so get the
-            # top level feedback command.
-            commFeedbackLev1 = self.topLevelFeedback
+        if self.regionArray[0].enableHigherLevFb == 1:
+            if self.numLevels > 1:
+                commFeedbackLev1 = self.levelOutput(1)
+            else:
+                # This is the highest level but the enable higher level feedback
+                # command is enabled. In this case we will just use the current levels command.
+                commFeedbackLev1 = self.levelOutput(0)
         newInput = SDRFunct.joinInputArrays(commFeedbackLev1, input)
         self.regionArray[0].updateRegionInput(newInput)
 
@@ -1580,14 +1586,15 @@ class HTM:
             # Set the output of the lower level
             highestLayer = self.regionArray[lowerLevel].numLayers - 1
             lowerLevelOutput = self.regionArray[lowerLevel].layerOutput(highestLayer)
-            # Check to make sure this isn't the highest level
-            if higherLevel < self.numLevels:
-                # Get the feedback command from the higher level
-                commFeedbackLevN = self.levelOutput(higherLevel)
-            else:
-                # This is the highest level so get the
-                # top level feedback command.
-                commFeedbackLevN = self.topLevelFeedback
+            if self.regionArray[i].enableHigherLevFb == 1:
+                # Check to make sure this isn't the highest level
+                if higherLevel < self.numLevels:
+                    # Get the feedback command from the higher level
+                    commFeedbackLevN = self.levelOutput(higherLevel)
+                else:
+                    # This is the highest level but the enable higher level feedback
+                    # command is enabled. In this case we will just use the current levels command.
+                    commFeedbackLevN = self.levelOutput(i)
 
             # Update the newInput for the current level in the HTM
             newInput = SDRFunct.joinInputArrays(commFeedbackLevN, lowerLevelOutput)
@@ -1603,7 +1610,10 @@ class HTM:
     def updateAllThalamus(self):
         # Update all the thalaums classes in each region
         for i in range(self.numLevels):
-            self.regionArray[i].updateThalamus()
+            # TODO
+            # HAck to make higher levels thalamus choose commands slower
+            if self.regionArray[i].layerArray[0].timeStep % (2*i+1) == 0:
+                self.regionArray[i].updateThalamus()
 
     def rewardAllThalamus(self, reward):
         # Reward the thalamus classes in each region

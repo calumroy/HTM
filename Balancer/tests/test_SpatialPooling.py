@@ -19,10 +19,11 @@ testParameters = {
 
                         'HTMRegions': [{
                             'numLayers': 1,
+                            'enableHigherLevFb': 0,
                             'enableCommandFeedback': 0,
 
                             'HTMLayers': [{
-                                'desiredLocalActivity': 1,
+                                'desiredLocalActivity': 2,
                                 'centerPotSynapses': 1,
                                 'connectPermanence': 0.3,
                                 'minThreshold': 5,
@@ -267,5 +268,6 @@ class test_SpatialPooling:
         # sys.exit(app.exec_())
 
         #from PyQt4.QtCore import pyqtRemoveInputHook; import ipdb; pyqtRemoveInputHook(); ipdb.set_trace()
-        assert similarPerIn1 >= 0.49 and similarPerIn1 <= 0.51
-        assert similarPerIn2 >= 0.49 and similarPerIn2 <= 0.51
+        # Not exactly 50% since on the edges of the two patterns new columns may activate.
+        assert similarPerIn1 >= 0.48 and similarPerIn1 <= 0.52
+        assert similarPerIn2 >= 0.48 and similarPerIn2 <= 0.52

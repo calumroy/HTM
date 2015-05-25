@@ -7,6 +7,7 @@
 
         "HTMRegions": [{
             "numLayers": 2,
+            "enableHigherLevFb": 0,
             "enableCommandFeedback": 1,
             "Thalamus": {
                 "numSquaresInComm": 6,
@@ -28,7 +29,7 @@
                 "synPermanence": 0.4,
 
                 "Columns": [{
-                    "minOverlap": 3,
+                    "minOverlap": 6,
                     "boost": 1,
                     "inhibitionRadius": 1,
                     "potentialWidth": 6,
@@ -72,7 +73,8 @@
         },
         {
             "numLayers": 2,
-            "enableCommandFeedback": 1,
+            "enableHigherLevFb": 0,
+            "enableCommandFeedback": 0,
             "Thalamus": {
                 "numSquaresInComm": 6,
                 "newCommChance": 0.2,
@@ -81,7 +83,7 @@
             },
 
             "HTMLayers": [{
-                "desiredLocalActivity": 1,
+                "desiredLocalActivity": 2,
                 "centerPotSynapses": 1,
                 "connectPermanence": 0.3,
                 "minThreshold": 5,
@@ -93,11 +95,11 @@
                 "synPermanence": 0.4,
 
                 "Columns": [{
-                    "minOverlap": 3,
+                    "minOverlap": 5,
                     "boost": 1,
                     "inhibitionRadius": 2,
                     "potentialWidth": 7,
-                    "potentialHeight": 7,
+                    "potentialHeight": 5,
                     "spatialPermanenceInc": 0.1,
                     "spatialPermanenceDec": 0.02,
                     "permanenceInc": 0.1,
@@ -108,7 +110,7 @@
                 }]
             },
             {
-                "desiredLocalActivity": 2,
+                "desiredLocalActivity": 1,
                 "centerPotSynapses": 0,
                 "connectPermanence": 0.3,
                 "minThreshold": 5,
@@ -120,11 +122,11 @@
                 "synPermanence": 0.4,
 
                 "Columns": [{
-                    "minOverlap": 1,
+                    "minOverlap": 6,
                     "boost": 1,
-                    "inhibitionRadius": 0,
-                    "potentialWidth": 3,
-                    "potentialHeight": 2,
+                    "inhibitionRadius": 3,
+                    "potentialWidth": 20,
+                    "potentialHeight": 5,
                     "spatialPermanenceInc": 0.1,
                     "spatialPermanenceDec": 0.0,
                     "permanenceInc": 0.1,

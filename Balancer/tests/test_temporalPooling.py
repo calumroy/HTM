@@ -18,6 +18,7 @@ testParameters = {
 
                         'HTMRegions': [{
                             'numLayers': 3,
+                            'enableHigherLevFb': 0,
                             'enableCommandFeedback': 0,
 
                             'HTMLayers': [{
