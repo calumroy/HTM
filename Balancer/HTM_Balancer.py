@@ -1431,6 +1431,16 @@ class HTMRegion:
         highestLayer = self.numLayers - 1
         return self.layerOutput(highestLayer)
 
+    def commandSpaceOutput(self, layer):
+        # Return the output from the command space
+        # This is the top half of the output from the selected layer
+        layerHeight = self.layerArray[layer].height
+        wholeOutput = self.layerArray[layer].output
+        halfLayerHeight = int(layerHeight/2)
+
+        commSpaceOutput = wholeOutput[0:halfLayerHeight, :]
+        return commSpaceOutput
+
     def layerPredCommandOutput(self, layer):
         # Return the given layers predicted command output.
         # This is the predictive cells from the command space.
@@ -1493,7 +1503,7 @@ class HTM:
         # Each regions input needs to make room for the command
         # feedback from the higher level.
         commandFeedback = np.array([[0 for i in range(self.width*self.cellsPerColumn)]
-                                    for j in range(self.height)])
+                                    for j in range(int(self.height/2))])
         # The lowest region receives the new input.
         # If the region has enablehigherLevFb parameter enabled add extra space to the input.
         if bottomRegionsParams['enableHigherLevFb'] == 1:
@@ -1608,7 +1618,8 @@ class HTM:
         # Return the output from the desired level.
         # The output will be from the highest layer in the level.
         highestLayer = self.regionArray[level].numLayers-1
-        return self.regionArray[level].layerOutput(highestLayer)
+        #return self.regionArray[level].layerOutput(highestLayer)
+        return self.regionArray[level].commandSpaceOutput(highestLayer)
         #return self.regionArray[level].regionOutput()
 
     def updateAllThalamus(self):

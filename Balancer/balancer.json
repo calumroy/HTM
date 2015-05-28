@@ -7,13 +7,13 @@
 
         "HTMRegions": [{
             "numLayers": 2,
-            "enableHigherLevFb": 0,
+            "enableHigherLevFb": 1,
             "enableCommandFeedback": 1,
             "Thalamus": {
-                "numSquaresInComm": 6,
-                "newCommChance": 0.0001,
+                "numSquaresInComm": 14,
+                "newCommChance": 0.0,
                 "futureQvalMax": 0.5,
-                "qValLearnRate": 0.1
+                "qValLearnRate": 0.2
             },
 
             "HTMLayers": [{
@@ -29,7 +29,7 @@
                 "synPermanence": 0.4,
 
                 "Columns": [{
-                    "minOverlap": 8,
+                    "minOverlap": 5,
                     "boost": 1,
                     "inhibitionRadius": 2,
                     "potentialWidth": 6,
@@ -74,10 +74,10 @@
         {
             "numLayers": 2,
             "enableHigherLevFb": 0,
-            "enableCommandFeedback": 0,
+            "enableCommandFeedback": 1,
             "Thalamus": {
                 "numSquaresInComm": 6,
-                "newCommChance": 0.2,
+                "newCommChance": 0.05,
                 "futureQvalMax": 0.5,
                 "qValLearnRate": 0.1
             },
@@ -110,7 +110,7 @@
                 }]
             },
             {
-                "desiredLocalActivity": 3,
+                "desiredLocalActivity": 1,
                 "centerPotSynapses": 0,
                 "connectPermanence": 0.3,
                 "minThreshold": 5,
@@ -122,11 +122,11 @@
                 "synPermanence": 0.4,
 
                 "Columns": [{
-                    "minOverlap": 3,
+                    "minOverlap": 1,
                     "boost": 1,
-                    "inhibitionRadius": 5,
-                    "potentialWidth": 60,
-                    "potentialHeight": 8,
+                    "inhibitionRadius": 0,
+                    "potentialWidth": 3,
+                    "potentialHeight": 2,
                     "spatialPermanenceInc": 0.1,
                     "spatialPermanenceDec": 0.0,
                     "permanenceInc": 0.1,

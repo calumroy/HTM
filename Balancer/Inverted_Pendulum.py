@@ -78,11 +78,13 @@ class InvertedPendulum():
         if self.vel < -self.maxAcc:
             self.vel = -self.maxAcc
         self.angle = self.angle+self.vel
-        # Limit the angle
+        # Limit the angle and set velocity to zero
         if self.angle > self.maxAngle:
             self.angle = self.maxAngle
+            self.vel = 0
         if self.angle < self.minAngle:
             self.angle = self.minAngle
+            self.vel = 0
         print " self.angle = %s, vel = %s, acc = %s " % (self.angle, self.vel, acc)
         return self.angle
 
