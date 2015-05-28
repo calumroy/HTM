@@ -11,7 +11,7 @@
             "enableCommandFeedback": 1,
             "Thalamus": {
                 "numSquaresInComm": 6,
-                "newCommChance": 0.05,
+                "newCommChance": 0.0001,
                 "futureQvalMax": 0.5,
                 "qValLearnRate": 0.1
             },
@@ -29,9 +29,9 @@
                 "synPermanence": 0.4,
 
                 "Columns": [{
-                    "minOverlap": 6,
+                    "minOverlap": 8,
                     "boost": 1,
-                    "inhibitionRadius": 1,
+                    "inhibitionRadius": 2,
                     "potentialWidth": 6,
                     "potentialHeight": 4,
                     "spatialPermanenceInc": 0.1,
@@ -83,7 +83,7 @@
             },
 
             "HTMLayers": [{
-                "desiredLocalActivity": 2,
+                "desiredLocalActivity": 3,
                 "centerPotSynapses": 1,
                 "connectPermanence": 0.3,
                 "minThreshold": 5,
@@ -97,9 +97,9 @@
                 "Columns": [{
                     "minOverlap": 5,
                     "boost": 1,
-                    "inhibitionRadius": 2,
-                    "potentialWidth": 7,
-                    "potentialHeight": 5,
+                    "inhibitionRadius": 5,
+                    "potentialWidth": 60,
+                    "potentialHeight": 8,
                     "spatialPermanenceInc": 0.1,
                     "spatialPermanenceDec": 0.02,
                     "permanenceInc": 0.1,
@@ -110,7 +110,7 @@
                 }]
             },
             {
-                "desiredLocalActivity": 1,
+                "desiredLocalActivity": 3,
                 "centerPotSynapses": 0,
                 "connectPermanence": 0.3,
                 "minThreshold": 5,
@@ -122,11 +122,11 @@
                 "synPermanence": 0.4,
 
                 "Columns": [{
-                    "minOverlap": 6,
+                    "minOverlap": 3,
                     "boost": 1,
-                    "inhibitionRadius": 3,
-                    "potentialWidth": 20,
-                    "potentialHeight": 5,
+                    "inhibitionRadius": 5,
+                    "potentialWidth": 60,
+                    "potentialHeight": 8,
                     "spatialPermanenceInc": 0.1,
                     "spatialPermanenceDec": 0.0,
                     "permanenceInc": 0.1,

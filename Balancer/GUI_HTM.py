@@ -424,7 +424,7 @@ class HTMGridViewer(QtGui.QGraphicsView):
         transpRed = QtGui.QColor(0x00, 0, 0xFF, 0xA0)
         pen = QtGui.QPen(QtGui.QColor(transpRed))
         brush = QtGui.QBrush(pen.color().darker(150))
-        self.infoItem = HTMInfo(0, -4*self.size, 4*self.size, pen, brush)
+        self.infoItem = HTMInfo(-4*self.size, 0, 4*self.size, pen, brush)
         self.updateInfo()
         #self.infoItem.setFlag(QtGui.QGraphicsItem.ItemIsMovable)
         self.scene.addItem(self.infoItem)

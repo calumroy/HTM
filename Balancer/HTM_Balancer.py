@@ -120,10 +120,10 @@ class Column:
         self.historyLength = params['historyLength']
         self.highestScoredCell = None
         # A time flag to indicate the column should stop temporally pooling
-        # This is set to the current time when a column has a poor overlap value
+        # This is set to the next timestep when a column has a poor overlap value for the current time
         # but it is temporally pooling. On the next time step if the overlap is
         # still poor the column should not keep temporally pooling (being activated).
-        self.stopTempAfterTime = -1
+        self.stopTempAtTime = -1
         # The last time temporal pooling occurred
         self.lastTempPoolingTime = -1
 
@@ -954,32 +954,36 @@ class HTMLayer:
         # overlap a column could have. This guarantees the column will
         # win later when inhibition occurs.
 
-        for s in c.potentialSynapses:
-            # Check if the input that this synapses
-            # is connected to is active.
-            inputActive = self.Input[s.pos_y][s.pos_x]
-            c.overlap = c.overlap + inputActive
+        for s in c.connectedSynapses:
+                # Check if the input that this synapses is connected to is active.
+                inputActive = self.Input[s.pos_y][s.pos_x]
+                c.overlap = c.overlap + inputActive
 
         if c.overlap >= c.minOverlap:
             # The col has a good overlap value and should allow temp pooling
             # to continue on the next time step. Set the time flag to not the
             # current time to allow this (we'll use zero).
-            c.stopTempAfterTime = 0
+            c.stopTempAtTime = 0
 
-        # If the time flag for temporal pooling was not set one time step ago
-        # the we should perform temporal pooling.
-        if c.stopTempAfterTime != (self.timeStep - 1):
+        # If the time flag for temporal pooling was not set to now
+        # then we should perform temporal pooling.
+        if c.stopTempAtTime != (self.timeStep):
             if c.overlap < c.minOverlap:
                 # The current col has a poor overlap and should stop temporal
-                # pooling on the timestep.
-                c.stopTempAfterTime = self.timeStep
-
-        # If more potential synapses then the min overlap
-        # are active then set the overlap to the maximum value possible.
-        if c.overlap >= c.minOverlap:
-            maxOverlap = (c.potentialWidth)*(c.potentialHeight)
-            c.overlap = c.overlap + maxOverlap
-            c.lastTempPoolingTime = self.timeStep
+                # pooling on the next timestep.
+                c.stopTempAtTime = self.timeStep+1
+            # Recalculate the overlap using the potential synapses not just the connected.
+            c.overlap = 0
+            for s in c.potentialSynapses:
+                # Check if the input that this synapses is connected to is active.
+                inputActive = self.Input[s.pos_y][s.pos_x]
+                c.overlap = c.overlap + inputActive
+            # If more potential synapses then the min overlap
+            # are active then set the overlap to the maximum value possible.
+            if c.overlap >= c.minOverlap:
+                maxOverlap = (c.potentialWidth)*(c.potentialHeight)
+                c.overlap = c.overlap + maxOverlap
+                c.lastTempPoolingTime = self.timeStep
 
     def Overlap(self):
         """
