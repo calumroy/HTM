@@ -252,22 +252,6 @@ class HTMLayer:
         else:
             return None
 
-    def activeCellGrid(self):
-        # Return a grid representing the cells in the columns which are active.
-        # Cells in a column are placed in adjacent grid cells right of each other.
-        # Eg. A HTM layer with 10 rows, 5 columns and 3 cells per column would produce an
-        # activeCellGrid of 10*3 = 15 columns and 10 rows.
-
-        output = np.array([[0 for i in range(self.width*self.cellsPerColumn)]
-                          for j in range(self.height)])
-        for c in self.activeColumns:
-            x = c.pos_x
-            y = c.pos_y
-            for k in range(len(c.cells)):
-                if c.activeStateArray[k][0] == self.timeStep:
-                    output[y][x*self.cellsPerColumn+k] = 1
-        return output
-
     def activeNotBurstCellGrid(self):
         # Return a grid representing the cells in the columns which are active but
         # not bursting. Cells in a column are placed in adjacent grid cells right of each other.
@@ -940,11 +924,12 @@ class HTMLayer:
     def updateInput(self, newInput):
         # Update the input
         #Check to see if this input is the same size as the last and is a 2d numpy array
-        try:
-            assert len(newInput.shape) == 2
-            assert newInput.shape == self.Input.shape
+        if type(newInput) == np.ndarray and len(newInput.shape) == 2:
+            if newInput.shape != self.Input.shape:
+                print "         New input size width,height = %s, %s" % (len(newInput[0]), len(newInput))
+                print "         does not match old input size = %s,%s" % (len(self.Input[0]), len(self.Input))
             self.Input = newInput
-        except ValueError:
+        else:
             print "New Input is not a 2D numpy array!"
 
     def temporalPool(self, c):
@@ -1455,16 +1440,6 @@ class HTMRegion:
         PredGridOut = np.array_split(totalPredGrid, 2)[0]
 
         return PredGridOut
-
-    def layerActCommandOutput(self, layer):
-        # Return the given layers active command output.
-        totalActiveGrid = self.layerArray[layer].activeCellGrid()
-        # This is the active cells from the command space.
-        # The command space is assumed to be the top half of the
-        # columns.
-        # Divide the active cell grid into two and take the
-        # top most part which is the command space. Return the top at index[0].
-        return np.array_split(totalActiveGrid, 2)[0]
 
     def spatialTemporal(self):
         i = 0
