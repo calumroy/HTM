@@ -76,3 +76,4 @@ def checkArraySizesMatch(array1, array2):
 def returnBlankSDRGrid(width, height):
         blankSDR = np.array([[0 for i in range(width)] for j in range(height)])
         return blankSDR
+

@@ -1112,7 +1112,7 @@ class HTMNetwork(QtGui.QWidget):
         # Get the command output in the form of an SDR.
         # The command output will be from the top layer in the bottom level.
         topLayer = self.htm.regionArray[0].numLayers-1
-        commandGrid = self.htm.regionArray[0].layerActCommandOutput(topLayer)
+        commandGrid = self.htm.regionArray[0].commandSpaceOutput(topLayer)
 
         # Use the command output from the top layer to give to the simulator so it can
         # work out a new state.

@@ -23,7 +23,7 @@ def main():
     # This makes the input the same size as the feedback command grids
     # It doesn't have to be though.
     inputWidth = params['HTM']['columnArrayWidth']*params['HTM']['cellsPerColumn']
-    inputHeight = params['HTM']['columnArrayHeight']
+    inputHeight = int(params['HTM']['columnArrayHeight']/2)
 
     # Create an Input object
     InputCreator = Inverted_Pendulum.InvertedPendulum(inputWidth, inputHeight)

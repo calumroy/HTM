@@ -70,7 +70,7 @@ class InvertedPendulum():
         # Calculate the new position of the pendulum after applying the specified acceleration.
         # Simple pendulum for now!
 
-        self.vel = self.vel+acc
+        self.vel = acc
         self.angle = self.angle + self.vel
         # Limit the velocity
         if self.vel > self.maxAcc:
