@@ -214,6 +214,10 @@ class HTMLayer:
         self.columns = np.array([[]], dtype=object)
         # Setup the columns array.
         self.setupColumns(params['Columns'])
+        # A var storing the timestep when randomActiveSynapses was last called.
+        self.lastCallTorandomActiveSynapses = 0
+        # A list of all potential synapses that are active
+        self.activeSynapseList = []
 
     def setupColumns(self, columnParams):
         # Get just the parameters for the columns
@@ -614,16 +618,20 @@ class HTMLayer:
         # Randomly add self.newSynapseCount-len(synapses) number of Synapses
         # that connect with cells that are active
         #print "randomActiveSynapses time = %s"%timeStep
-        synapseList = []
-        # A list of all potential synapses that are active
-        for l in range(len(self.columns)):
-        # Can't use c since c already represents a column
-            for m in self.columns[l]:
-                for j in range(len(m.learnStateArray)):
-                    if self.learnState(m, j, timeStep) is True:
-                        #print "time = %s synapse ends at
-                        # active cell x,y,i = %s,%s,%s"%(timeStep,m.pos_x,m.pos_y,j)
-                        synapseList.append(Synapse(0, m.pos_x, m.pos_y, j, self.synPermanence))
+        # If this is the first time randomActiveSynapses has been called this
+        # timestep then create a Synapse list.
+        if self.lastCallTorandomActiveSynapses != timeStep:
+            self.lastCallTorandomActiveSynapses = timeStep
+            # Update the list of all potential synapses that are active.
+            self.activeSynapseList = []
+            for l in range(len(self.columns)):
+            # Can't use c since c already represents a column
+                for m in self.columns[l]:
+                    for j in range(len(m.learnStateArray)):
+                        if self.learnState(m, j, timeStep) is True:
+                            #print "time = %s synapse ends at
+                            # active cell x,y,i = %s,%s,%s"%(timeStep,m.pos_x,m.pos_y,j)
+                            self.activeSynapseList.append(Synapse(0, m.pos_x, m.pos_y, j, self.synPermanence))
         # Take a random sample from the list synapseList
         # Check that there is at least one segment
         # and the segment index isnot -1 meaning
@@ -635,8 +643,8 @@ class HTMLayer:
         # Make sure that the number of new synapses
         # to choose isn't larger than the
         #total amount of active synapses to choose from but is larger than zero.
-        if numNewSynapses > len(synapseList):
-            numNewSynapses = len(synapseList)
+        if numNewSynapses > len(self.activeSynapseList):
+            numNewSynapses = len(self.activeSynapseList)
         if numNewSynapses <= 0:
             numNewSynapses = 0
             #print "%s new synapses from len(synList) =
@@ -644,7 +652,7 @@ class HTMLayer:
             # return an empty list. This means this
             # segment has too many synapses already
             return []
-        return random.sample(synapseList, numNewSynapses)
+        return random.sample(self.activeSynapseList, numNewSynapses)
 
     def getActiveSegment(self, c, i, t):
         # Returns a sequence segment if there are none
@@ -1088,8 +1096,9 @@ class HTMLayer:
 
 
     def updateActiveState(self, timeStep):
-        # First function called to update the sequence pooler.
-        """ This function has been modified to the CLA whitepaper but it resembles
+        """
+        First function called to update the sequence pooler.
+        This function has been modified to the CLA whitepaper but it resembles
         a similar modification made in NUPIC. To turn this feature off just set the
         parameter "minScoreThreshold" in the HTMLayer Class to a large number say 1000000
 
