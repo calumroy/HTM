@@ -7,6 +7,11 @@ import math
 
 
 '''
+A class used to calculate the overlap values for columns
+in a single HTM layer. This class uses theano functions
+to speed up the computation. Can be implemented on a GPU
+see theano documents for enabling GPU calculations.
+
 Take a numpy input 2D matrix and convert this into a
 theano tensor where the tensor holds inputs that are connected
 by potential synapses to columns.
@@ -36,7 +41,9 @@ This is the sum of 1's for each columsn input.
 
 
 class OverlapCalculator():
-    def __init__(self, potentialWidth, potentialHeight, centerPotSynapses=1):
+    def __init__(self, potentialWidth, potentialHeight,
+                 centerPotSynapses, connectedPerm,
+                 minOverlap):
         # Overlap Parameters
         ###########################################
         # Specifies if the potential synapses are centered
@@ -44,7 +51,8 @@ class OverlapCalculator():
         self.centerPotSynapses = centerPotSynapses
         self.potentialWidth = potentialWidth
         self.potentialHeight = potentialHeight
-        self.connectedPermParam = 0.3
+        self.connectedPermParam = connectedPerm
+        self.minOverlap = minOverlap
 
         # Create theano variables and functions
         ############################################
@@ -73,7 +81,6 @@ class OverlapCalculator():
         # If the matrix value is less then the connectedPermParam
         # return zero.
         self.checkConn = T.switch(T.lt(self.connectedPermParam, self.j), self.k, 0.0)
-
         # Use enable downcast so the numpy arrays of float 64 can be downcast to float32
         self.getConnectedSynInput = function([self.j, self.k],
                                              self.checkConn,
@@ -85,6 +92,15 @@ class OverlapCalculator():
         self.b = T.matrix(dtype='float32')
         self.m = self.b.sum(axis=1)
         self.calcOverlap = function([self.b], self.m, allow_input_downcast=True)
+
+        # Create the theano function for calculating
+        # if an overlap value is larger then minOverlap.
+        # If not then set to zero.
+        self.currOverlap = T.vector(dtype='float32')
+        self.ch_over = T.switch(T.lt(self.minOverlap, self.currOverlap), self.currOverlap, 0.0)
+        self.checkMinOverlap = function([self.currOverlap],
+                                        self.ch_over,
+                                        allow_input_downcast=True)
 
     def addPaddingToInput(self, inputGrid):
         topPos_y = 0
@@ -156,19 +172,29 @@ class OverlapCalculator():
         colInputPotSyn = self.getColInputs(inputGrid)
         # Call the theano functions to calculate the overlap value.
         connectedSynInputs = self.getConnectedSynInput(colSynPerm, colInputPotSyn)
-        print connectedSynInputs
+        print "connectedSynInputs = \n%s" % connectedSynInputs
         colOverlapVals = self.calcOverlap(connectedSynInputs)
         print colOverlapVals
         return colOverlapVals
 
+    def removeSmallOverlaps(self, colOverlapVals):
+        # Set any overlap values that are smaller then the
+        # minOverlap value to zero.
+        self.minOverlap = minOverlap
+        newColOverlapVals = self.checkMinOverlap(colOverlapVals)
+        print newColOverlapVals
+        return newColOverlapVals
+
 
 if __name__ == '__main__':
 
-    potWidth = 4
-    potHeight = 4
+    potWidth = 2
+    potHeight = 2
     centerPotSynapses = 1
-    numRows = 40
-    numCols = 40
+    numRows = 4
+    numCols = 4
+    connectedPerm = 0.3
+    minOverlap = 3
     numPotSyn = potWidth * potHeight
     numColumns = numRows * numCols
     # Create an array representing the permanences of colums synapses
@@ -180,11 +206,19 @@ if __name__ == '__main__':
     newInputMat = np.random.randint(2, size=(numRows, numCols))
 
     # Create an instance of the overlap calculation class
-    overlapCalc = OverlapCalculator(potWidth, potHeight, centerPotSynapses)
+    overlapCalc = OverlapCalculator(potWidth,
+                                    potHeight,
+                                    centerPotSynapses,
+                                    connectedPerm,
+                                    minOverlap)
 
     print "newInputMat = \n%s" % newInputMat
     #potSyn = np.random.rand(1, 1, 4, 4)
 
-    colInputs = overlapCalc.calculateOverlap(colSynPerm, newInputMat)
-    print "len(colInputs) = %s" % len(colInputs)
+    colOverlaps = overlapCalc.calculateOverlap(colSynPerm, newInputMat)
+    print "len(colOverlaps) = %s" % len(colOverlaps)
+    print "colOverlaps = \n%s" % colOverlaps
+
+    # limit the overlap values so they are larger then minOverlap
+    colInputs = overlapCalc.removeSmallOverlaps(colOverlaps)
 
