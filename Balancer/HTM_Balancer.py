@@ -1461,7 +1461,7 @@ class HTMRegion:
             layer.Overlap()
             layer.inhibition(layer.timeStep)
             layer.learning()
-            # This Updates the temporal pooler
+            # This Updates the sequence pooler
             layer.updateActiveState(layer.timeStep)
             layer.updatePredictiveState(layer.timeStep)
             layer.sequenceLearning(layer.timeStep)
