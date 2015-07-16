@@ -137,7 +137,7 @@ class test_RunTime:
         # Run the inputs through the htm just once and obtain the column SDR outputs.
         self.nSteps(1)
 
-        from PyQt4.QtCore import pyqtRemoveInputHook; import ipdb; pyqtRemoveInputHook(); ipdb.set_trace()
+        #from PyQt4.QtCore import pyqtRemoveInputHook; import ipdb; pyqtRemoveInputHook(); ipdb.set_trace()
 
         # app = QtGui.QApplication(sys.argv)
         # self.htmGui = GUI_HTM.HTMGui(self.htm, self.InputCreator)
