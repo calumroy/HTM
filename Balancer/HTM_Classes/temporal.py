@@ -23,13 +23,9 @@ the columns that are temporally pooling are given a maximum overlap value.
 
 class TemporalPoolCalculator():
     def __init__(self, potentialWidth, potentialHeight,
-                 centerPotSynapses,
                  minOverlap):
         # Temporal Parameters
         ###########################################
-        # Specifies if the potential synapses are centered
-        # over the columns
-        self.centerPotSynapses = centerPotSynapses
         self.potentialWidth = potentialWidth
         self.potentialHeight = potentialHeight
         self.minOverlap = minOverlap
@@ -88,7 +84,7 @@ class TemporalPoolCalculator():
         self.potSynInputs = T.matrix(dtype='float32')
         self.oldOverlapVal = T.vector(dtype='float32')
         self.m_potSum = self.potSynInputs.sum(axis=1)
-        self.checkMinOverlap = T.switch(T.lt(self.m_potSum, self.minOverlap), 0.0, self.maxOverlap)
+        self.checkMinOverlap = T.switch(T.lt(self.m_potSum, self.minOverlap), 0.0, self.oldOverlapVal + self.maxOverlap)
         self.checkPotOverlap = T.switch(T.gt(self.n_doTemp, 0.0), self.checkMinOverlap, self.oldOverlapVal)
         # Use enable downcast so the numpy arrays of float 64 can be downcast to float32
         self.calcPotOverlap = function([self.n_doTemp,
@@ -124,6 +120,14 @@ class TemporalPoolCalculator():
                                                            doTempPoolMat
                                                            )
         print "updatedTempStopTime = \n%s" % updatedTempStopTime
+        print "doTempPoolMat = \n%s" % doTempPoolMat
+        print "colInputPotSyn = \n%s" % colInputPotSyn
+        print "colOverlapVals = \n%s" % colOverlapVals
+        newTempPoolOverlapVals = self.calcPotOverlap(doTempPoolMat,
+                                                     colInputPotSyn,
+                                                     colOverlapVals
+                                                     )
+        print "newTempPoolOverlapVals = \n%s" % newTempPoolOverlapVals
 
 
 if __name__ == '__main__':
@@ -131,19 +135,21 @@ if __name__ == '__main__':
     potWidth = 2
     potHeight = 2
     centerPotSynapses = 1
-    minOverlap = 3
+    minOverlap = 2
     historyLen = 2
     numCols = 16
     timeStep = 4
+
+    tempPooler = TemporalPoolCalculator(potWidth, potHeight, minOverlap)
+
+    # Some made up inputs to test with
+    colActNotBurst = np.random.randint(7, size=(numCols, historyLen))
+    colOverlapVals = np.random.randint(potWidth * potHeight, size=(numCols))
+    colInputPotSyn = np.random.randint(2, size=(numCols, potWidth * potHeight))
+    colStopTempAtTime = np.random.randint(2, size=(numCols))
     # To get the above input array from a htm use something like the following
     # allCols = self.htm.regionArray[0].layerArray[0].columns.flatten()
     # colActNotBurst = np.array([allCols[j].activeStateArray for j in range(1600)])
-
-    tempPooler = TemporalPoolCalculator(potWidth, potHeight, centerPotSynapses, minOverlap)
-    colActNotBurst = np.random.randint(7, size=(numCols, historyLen))
-    colOverlapVals = np.random.randint(6, size=(numCols))
-    colInputPotSyn = np.random.randint(2, size=(numCols, historyLen))
-    colStopTempAtTime = np.random.randint(2, size=(numCols))
 
     tempPooler.calculateTemporalPool(colActNotBurst, timeStep, colOverlapVals,
                                      colInputPotSyn, colStopTempAtTime)
