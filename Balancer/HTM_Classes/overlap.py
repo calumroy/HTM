@@ -200,6 +200,7 @@ if __name__ == '__main__':
     # Create an array representing the permanences of colums synapses
     colSynPerm = np.random.rand(numColumns, numPotSyn)
     # To get the above array from a htm use
+    # allCols = self.htm.regionArray[0].layerArray[0].columns.flatten()
     # colPotSynPerm = np.array([[allCols[j].potentialSynapses[i].permanence for i in range(36)] for j in range(1600)])
 
     print "colSynPerm = \n%s" % colSynPerm
