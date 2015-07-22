@@ -150,6 +150,8 @@ if __name__ == '__main__':
     # To get the above input array from a htm use something like the following
     # allCols = self.htm.regionArray[0].layerArray[0].columns.flatten()
     # colActNotBurst = np.array([allCols[j].activeStateArray for j in range(1600)])
+    # colStopTempAtTime = np.array([allCols[j].stopTempAtTime for j in range(1600)])
+    # Get colInputPotSyn from the overlap theano class.
 
     tempPooler.calculateTemporalPool(colActNotBurst, timeStep, colOverlapVals,
                                      colInputPotSyn, colStopTempAtTime)

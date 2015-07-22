@@ -175,7 +175,7 @@ class OverlapCalculator():
         print "connectedSynInputs = \n%s" % connectedSynInputs
         colOverlapVals = self.calcOverlap(connectedSynInputs)
         print colOverlapVals
-        return colOverlapVals
+        return colOverlapVals, colInputPotSyn
 
     def removeSmallOverlaps(self, colOverlapVals):
         # Set any overlap values that are smaller then the
@@ -216,10 +216,15 @@ if __name__ == '__main__':
     print "newInputMat = \n%s" % newInputMat
     #potSyn = np.random.rand(1, 1, 4, 4)
 
-    colOverlaps = overlapCalc.calculateOverlap(colSynPerm, newInputMat)
+    # Return both the overlap values and the inputs from
+    # the potential synapses to all columns.
+    colOverlaps, colPotInputs = overlapCalc.calculateOverlap(colSynPerm, newInputMat)
     print "len(colOverlaps) = %s" % len(colOverlaps)
     print "colOverlaps = \n%s" % colOverlaps
 
     # limit the overlap values so they are larger then minOverlap
     colInputs = overlapCalc.removeSmallOverlaps(colOverlaps)
+
+    print "colPotInputs = \n%s" % colPotInputs
+
 
