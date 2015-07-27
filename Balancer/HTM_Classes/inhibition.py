@@ -3,6 +3,7 @@ from theano import function
 import numpy as np
 from theano.sandbox.neighbours import images2neibs
 from theano import tensor
+
 from theano.tensor.sort import argsort, sort
 from theano import Mode
 import math
@@ -41,6 +42,16 @@ class inhibitionCalculator():
         # Create theano variables and functions
         ############################################
         # Create the theano function for calculating
+        # the addition of a small tie breaker value to each overlap value.
+        self.o_grid = T.matrix(dtype='float32')
+        self.tie_grid = T.matrix(dtype='float32')
+        self.add_vals = T.add(self.o_grid, self.tie_grid)
+        self.add_tieBreaker = function([self.o_grid, self.tie_grid],
+                                       self.add_vals,
+                                       on_unused_input='warn',
+                                       allow_input_downcast=True)
+
+        # Create the theano function for calculating
         # the inputs to a column from an input grid.
         self.kernalSize = (self.potentialWidth, self.potentialHeight)
         # poolstep is how far to move the kernal in each direction.
@@ -65,30 +76,17 @@ class inhibitionCalculator():
         self.sort_vect = function([self.o_mat, self.axis], self.arg_sort)
 
         # Create the theano function for calculating
-        # if a column should be active or not based on the sorted
-        # overlap values it can inhibit and the unsorted overlap
-        # inhibition values.
-        # Each column has a minLocalActivity value associated with it.
-        # This minLocalActivity is broadcasted from a vector to a matrix.
-        # This allows comparison between each cols inhib overlap values and
-        # the minLocalActivity for that col.
-        self.minLocalActivity = T.matrix(dtype='float32')
-        self.s_ColOMat = T.matrix(dtype='float32')
-
-        self.check_eq_minLocAct = T.switch(T.eq(self.s_ColOMat, self.minLocalActivity),
-                                           1, 0)
-        self.sum_eq_matRows = self.check_eq_minLocAct.sum(axis=1)
-
-        self.check_gt_minLocAct = T.switch(T.gt(self.s_ColOMat, self.minLocalActivity),
-                                           1, 0)
-        self.sum_gt_matRows = self.check_gt_minLocAct.sum(axis=1)
-        self.get_colInhibActivity = function([self.s_ColOMat,
-                                             self.minLocalActivity],
-                                             [self.sum_gt_matRows,
-                                             self.sum_eq_matRows],
-                                             on_unused_input='warn',
-                                             allow_input_downcast=True
-                                             )
+        # if a column should be active or not based on whether it
+        # has an overlap greater then or equal to the minLocalActivity.
+        self.minLocalActivity = T.vector(dtype='float32')
+        self.colOMat = T.vector(dtype='float32')
+        self.check_gteq_minLocAct = T.switch(T.lt(self.minLocalActivity, self.colOMat), 1, 0)
+        self.get_activeCol = function([self.colOMat,
+                                      self.minLocalActivity],
+                                      self.check_gteq_minLocAct,
+                                      on_unused_input='warn',
+                                      allow_input_downcast=True
+                                      )
 
     def addPaddingToInput(self, inputGrid):
         topPos_y = 0
@@ -158,22 +156,52 @@ class inhibitionCalculator():
     def calculateInhibCols(self, overlapsGrid):
         # Take the overlapsGrid and calulate a binary list
         # describing the active columns ( 1 is active, 0 not active).
+
+        height, width = overlapsGrid.shape
+        numCols = width * height
+        print " width, height, numCols = %s, %s, %s" % (width, height, numCols)
         print "overlapsGrid = \n%s" % overlapsGrid
+        # Take the colOverlapMat and add a small number to each overlap
+        # value based on that row and col number. This helps when deciding
+        # how to break ties in the inhibition stage. Note this is not a random value!
+        # Make sure the tiebreaker contains values less then 1.
+        normValue = 1.0/float(numCols)
+        tieBreaker = np.array([[(i+j*width)*normValue for i in range(width)] for j in range(height)])
+        print "tieBreaker = \n%s" % tieBreaker
+        # Add the tieBreaker value to the overlap values.
+        overlapsGrid = self.add_tieBreaker(overlapsGrid, tieBreaker)
+        print "overlapsGrid = \n%s" % overlapsGrid
+        # Calculate the overlaps associated with columns that can be inhibited.
         colOverlapMat = self.getColInhibInputs(overlapsGrid)
         print "colOverlapMat = \n%s" % colOverlapMat
+        # Sort the colOverlap matrix for each row. A row hold the inhib overlap
+        # values for a single column.
         sortedColOverlapMat = self.sortOverlapMatrix(colOverlapMat)
         # Get the minLocalActivity for each col.
-        minLocalAct = sortedColOverlapMat[:, -(self.desiredLocalActivity+1)]
+        minOverlapIndex = self.desiredLocalActivity
+        # check to make sure minOverlapIndex is smaller then the width of
+        # the sortedColOverlapMat matrix.
+        if minOverlapIndex > len(sortedColOverlapMat[0]):
+            minOverlapIndex = len(sortedColOverlapMat[0])
+        minLocalAct = sortedColOverlapMat[:, -(minOverlapIndex)]
         print "minLocalAct = \n%s" % minLocalAct
-        # Broadcast minLocalActivity so it is the same dim as colOverlapMat
-        widthColOverlapMat = len(sortedColOverlapMat[0])
-        minLocalAct = np.tile(np.array([minLocalAct]).transpose(), (1, widthColOverlapMat))
+
+        # Now calculate for each column if its overlap value is larger then the
+        # minLocalActivity number.
+        # First take the colOverlaps matrix and flatten it into a vector.
+        colOverlapVect = overlapsGrid.flatten().tolist()
+        print "colOverlapVect = \n%s" % colOverlapVect
+        activeCols = self.get_activeCol(colOverlapVect, minLocalAct)
+
+        print "activeCols = \n%s" % activeCols
+        minLocalAct = minLocalAct.reshape(height, width)
         print "minLocalAct = \n%s" % minLocalAct
-        # Now calculate which cols inhib overlap values are larger then and which
-        # are equal to the minLocalActivity for each column.
-        gtMinLocalSum, eqMinLocalSum = self.get_colInhibActivity(sortedColOverlapMat, minLocalAct)
-        print "gtMinLocalSum = \n%s" % gtMinLocalSum
-        print "eqMinLocalSum = \n%s" % eqMinLocalSum
+        print "overlapsGrid = \n%s" % overlapsGrid
+
+        # Convert the vector back into a matrix
+        activeCols = activeCols.reshape(height, width)
+        print "activeCols = \n%s" % activeCols
+        return activeCols
 
     def sortOverlapMatrix(self, colOverlapVals):
         # colOverlapVals, each row is a list of overlaps values that
@@ -187,12 +215,12 @@ class inhibitionCalculator():
 
 if __name__ == '__main__':
 
-    potWidth = 3
-    potHeight = 3
+    potWidth = 2
+    potHeight = 2
     centerInhib = 1
     numRows = 4
-    numCols = 4
-    desiredLocalActivity = 10
+    numCols = 5
+    desiredLocalActivity = 2
 
      # Some made up inputs to test with
     colOverlapGrid = np.random.randint(10, size=(numCols, numRows))
@@ -200,6 +228,6 @@ if __name__ == '__main__':
     inhibCalculator = inhibitionCalculator(potWidth, potHeight,
                                            desiredLocalActivity, centerInhib)
 
-    inhibCalculator.calculateInhibCols(colOverlapGrid)
+    activeColumns = inhibCalculator.calculateInhibCols(colOverlapGrid)
 
 
