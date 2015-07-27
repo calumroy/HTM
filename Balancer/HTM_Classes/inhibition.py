@@ -1,5 +1,5 @@
 import theano.tensor as T
-from theano import function
+from theano import function, shared
 import numpy as np
 from theano.sandbox.neighbours import images2neibs
 from theano import tensor
@@ -28,16 +28,23 @@ is active or not.
 
 
 class inhibitionCalculator():
-    def __init__(self, potentialInhibWidth, potentialInhibHeight,
+    def __init__(self, width, height, potentialInhibWidth, potentialInhibHeight,
                  desiredLocalActivity, centerInhib=1):
         # Temporal Parameters
         ###########################################
         # Specifies if the potential synapses are centered
         # over the columns
         self.centerInhib = centerInhib
+        self.width = width
+        self.height = height
         self.potentialWidth = potentialInhibWidth
         self.potentialHeight = potentialInhibHeight
         self.desiredLocalActivity = desiredLocalActivity
+        # Store how much padding is added to the input grid
+        self.topPos_y = 0
+        self.bottomPos_y = 0
+        self.leftPos_x = 0
+        self.rightPos_x = 0
 
         # Create theano variables and functions
         ############################################
@@ -78,54 +85,63 @@ class inhibitionCalculator():
         # Create the theano function for calculating
         # if a column should be active or not based on whether it
         # has an overlap greater then or equal to the minLocalActivity.
-        self.minLocalActivity = T.vector(dtype='float32')
-        self.colOMat = T.vector(dtype='float32')
-        self.check_gteq_minLocAct = T.switch(T.lt(self.minLocalActivity, self.colOMat), 1, 0)
+        self.minLocalActivity = T.matrix(dtype='float32')
+        self.colOMat = T.matrix(dtype='float32')
+        self.colActSharedVect = shared(np.array([1 for i in range(self.width * self.height)]))
+        self.check_gt_zero = T.switch(T.gt(self.colOMat, 0), 1, 0)
+        self.check_gteq_minLocAct = T.switch(T.ge(self.colOMat, self.minLocalActivity), self.check_gt_zero, 0)
+        # Calculate where in the grid of columns the current overlap value comes from.
+        self.indexActCol = tensor.eq(self.check_gteq_minLocAct, 1).nonzero()
         self.get_activeCol = function([self.colOMat,
                                       self.minLocalActivity],
-                                      self.check_gteq_minLocAct,
+                                      [self.check_gteq_minLocAct,
+                                      self.indexActCol[1],
+                                      self.indexActCol[0]],
                                       on_unused_input='warn',
                                       allow_input_downcast=True
                                       )
 
+        #### END of Theano functions and variables definitions
+        #################################################################
+        # Now Also calcualte a convole grid so the columns position
+        # in the resulting col inhib overlap matrix can be tracked.
+        self.incrementingMat = np.array([[1+i+self.width*j for i in range(self.width)] for j in range(self.height)])
+        self.colConvolePatternIndex = self.getColInhibInputs(self.incrementingMat)
+
     def addPaddingToInput(self, inputGrid):
-        topPos_y = 0
-        bottomPos_y = 0
-        leftPos_x = 0
-        rightPos_x = 0
 
         if self.centerInhib == 0:
             # The potential inhibited columns are not centered around each column.
             # This means only the right side and bottom of the input
             # need padding.
-            topPos_y = 0
-            bottomPos_y = self.potentialHeight-1
-            leftPos_x = 0
-            rightPos_x = self.potentialWidth-1
+            self.topPos_y = 0
+            self.bottomPos_y = self.potentialHeight-1
+            self.leftPos_x = 0
+            self.rightPos_x = self.potentialWidth-1
         else:
             # The otential inhibited columns are centered over the column
             # This means all sides of the input need padding.
-            topPos_y = self.potentialHeight/2
-            bottomPos_y = int(math.ceil(self.potentialHeight/2.0))-1
-            leftPos_x = self.potentialWidth/2
-            rightPos_x = int(math.ceil(self.potentialWidth/2.0))-1
+            self.topPos_y = self.potentialHeight/2
+            self.bottomPos_y = int(math.ceil(self.potentialHeight/2.0))-1
+            self.leftPos_x = self.potentialWidth/2
+            self.rightPos_x = int(math.ceil(self.potentialWidth/2.0))-1
 
         # Make sure all are larger then zero still
-        if topPos_y < 0:
-            topPos_y = 0
-        if bottomPos_y < 0:
-            bottomPos_y = 0
-        if leftPos_x < 0:
-            leftPos_x = 0
-        if rightPos_x < 0:
-            rightPos_x = 0
+        if self.topPos_y < 0:
+            self.topPos_y = 0
+        if self.bottomPos_y < 0:
+            self.bottomPos_y = 0
+        if self.leftPos_x < 0:
+            self.leftPos_x = 0
+        if self.rightPos_x < 0:
+            self.rightPos_x = 0
 
         # Add the padding around the edges of the input.
         inputGrid = np.lib.pad(inputGrid,
                               ((0, 0),
                                (0, 0),
-                               (topPos_y, bottomPos_y),
-                               (leftPos_x, rightPos_x)),
+                               (self.topPos_y, self.bottomPos_y),
+                               (self.leftPos_x, self.rightPos_x)),
                                'constant',
                                constant_values=(0))
 
@@ -178,6 +194,7 @@ class inhibitionCalculator():
         # values for a single column.
         sortedColOverlapMat = self.sortOverlapMatrix(colOverlapMat)
         # Get the minLocalActivity for each col.
+        # Plus one because of the range.
         minOverlapIndex = self.desiredLocalActivity
         # check to make sure minOverlapIndex is smaller then the width of
         # the sortedColOverlapMat matrix.
@@ -186,21 +203,20 @@ class inhibitionCalculator():
         minLocalAct = sortedColOverlapMat[:, -(minOverlapIndex)]
         print "minLocalAct = \n%s" % minLocalAct
 
-        # Now calculate for each column if its overlap value is larger then the
-        # minLocalActivity number.
         # First take the colOverlaps matrix and flatten it into a vector.
-        colOverlapVect = overlapsGrid.flatten().tolist()
-        print "colOverlapVect = \n%s" % colOverlapVect
-        activeCols = self.get_activeCol(colOverlapVect, minLocalAct)
+        # Broadcast minLocalActivity so it is the same dim as colOverlapMat
+        widthColOverlapMat = len(sortedColOverlapMat[0])
+        minLocalAct = np.tile(np.array([minLocalAct]).transpose(), (1, widthColOverlapMat))
+        # Now calculate for each columns list of overlap values, which are larger
+        # then the minLocalActivity number.
+        activeCols, activeColInd_x, activeColInd_y = self.get_activeCol(colOverlapMat, minLocalAct)
 
-        print "activeCols = \n%s" % activeCols
-        minLocalAct = minLocalAct.reshape(height, width)
         print "minLocalAct = \n%s" % minLocalAct
-        print "overlapsGrid = \n%s" % overlapsGrid
-
-        # Convert the vector back into a matrix
-        activeCols = activeCols.reshape(height, width)
+        print "colOverlapMat = \n%s" % colOverlapMat
         print "activeCols = \n%s" % activeCols
+        print "activeColInd_x = \n%s" % activeColInd_x
+        print "activeColInd_y = \n%s" % activeColInd_y
+
         return activeCols
 
     def sortOverlapMatrix(self, colOverlapVals):
@@ -223,11 +239,14 @@ if __name__ == '__main__':
     desiredLocalActivity = 2
 
      # Some made up inputs to test with
-    colOverlapGrid = np.random.randint(10, size=(numCols, numRows))
+    colOverlapGrid = np.random.randint(10, size=(numRows, numCols))
 
-    inhibCalculator = inhibitionCalculator(potWidth, potHeight,
+    inhibCalculator = inhibitionCalculator(numCols, numRows,
+                                           potWidth, potHeight,
                                            desiredLocalActivity, centerInhib)
 
     activeColumns = inhibCalculator.calculateInhibCols(colOverlapGrid)
+    print "incrementingMat = \n%s" % inhibCalculator.incrementingMat
+    print "convole col pat = \n%s" % inhibCalculator.colConvolePatternIndex
 
 
