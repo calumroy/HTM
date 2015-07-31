@@ -3,6 +3,7 @@ from theano import function, shared
 import numpy as np
 from theano.sandbox.neighbours import images2neibs
 from theano import tensor
+from theano.tensor import set_subtensor
 
 from theano.tensor.sort import argsort, sort
 from theano import Mode
@@ -39,6 +40,7 @@ class inhibitionCalculator():
         self.height = height
         self.potentialWidth = potentialInhibWidth
         self.potentialHeight = potentialInhibHeight
+        self.areaKernel = self.potentialWidth * self.potentialHeight
         self.desiredLocalActivity = desiredLocalActivity
         # Store how much padding is added to the input grid
         self.topPos_y = 0
@@ -60,7 +62,7 @@ class inhibitionCalculator():
 
         # Create the theano function for calculating
         # the inputs to a column from an input grid.
-        self.kernalSize = (self.potentialWidth, self.potentialHeight)
+        self.kernalSize = (self.potentialHeight, self.potentialWidth)
         # poolstep is how far to move the kernal in each direction.
         self.poolstep = (1, 1)
         # Create the theano function for calculating the overlaps of
@@ -87,19 +89,61 @@ class inhibitionCalculator():
         # has an overlap greater then or equal to the minLocalActivity.
         self.minLocalActivity = T.matrix(dtype='float32')
         self.colOMat = T.matrix(dtype='float32')
-        self.colActSharedVect = shared(np.array([1 for i in range(self.width * self.height)]))
         self.check_gt_zero = T.switch(T.gt(self.colOMat, 0), 1, 0)
         self.check_gteq_minLocAct = T.switch(T.ge(self.colOMat, self.minLocalActivity), self.check_gt_zero, 0)
-        # Calculate where in the grid of columns the current overlap value comes from.
-        self.indexActCol = tensor.eq(self.check_gteq_minLocAct, 1).nonzero()
+        #self.indexActCol = tensor.eq(self.check_gteq_minLocAct, 1).nonzero()
         self.get_activeCol = function([self.colOMat,
                                       self.minLocalActivity],
-                                      [self.check_gteq_minLocAct,
-                                      self.indexActCol[1],
-                                      self.indexActCol[0]],
+                                      [self.check_gteq_minLocAct],
                                       on_unused_input='warn',
                                       allow_input_downcast=True
                                       )
+
+        # Create the theano function for calculating
+        # a vector of the columns which should stay active because they
+        # won the inhibition convolution for all columns.
+        self.col_pat = T.matrix(dtype='int8')
+        self.act_cols = T.matrix(dtype='float32')
+        self.col_num = T.matrix(dtype='int8')
+        self.win_colconvole = T.matrix(dtype='float32')
+        self.set_winners = self.act_cols[self.col_pat-1, self.col_num]    # self.act_cols[self.col_pat-1, self.col_num]
+        #self.get_colwinners = T.switch(T.gt(self.col_pat, 0), self.set_winners, 1)
+        self.get_activeColMat = function([self.act_cols,
+                                          self.col_pat,
+                                          self.col_num],
+                                         self.set_winners,
+                                         on_unused_input='warn',
+                                         allow_input_downcast=True
+                                         )
+
+        # Create the theano function for calculating
+        # the sum of the rows from the output of the theano
+        # function get_activeColVect. If all the rows are zero
+        # then the col this row represents should be set as active.
+        self.col_winConPat = T.matrix(dtype='float32')
+        self.non_padSum = T.vector(dtype='float32')
+        self.w_cols = self.col_winConPat.sum(axis=1)
+        self.test_lcol = T.switch(T.eq(self.w_cols, self.non_padSum), 1, 0)
+        self.get_activeColVect = function([self.col_winConPat,
+                                           self.non_padSum],
+                                          self.test_lcol,
+                                          allow_input_downcast=True)
+
+        # Create the theano function for calculating
+        # the sum of the rows of the input matrix.
+        self.in_mat1 = T.matrix(dtype='float32')
+        self.out_summat2 = self.in_mat1.sum(axis=1)
+        self.get_sumRowMat = function([self.in_mat1],
+                                      self.out_summat2,
+                                      allow_input_downcast=True)
+
+        # Create the theano function for calculating
+        # if the input matrix is larger then 0 (element wise).
+        self.in_mat2 = T.matrix(dtype='float32')
+        self.lt_zer0 = T.switch(T.gt(self.in_mat2, 0), 1, 0)
+        self.get_gtZeroMat = function([self.in_mat2],
+                                      self.lt_zer0,
+                                      allow_input_downcast=True)
 
         #### END of Theano functions and variables definitions
         #################################################################
@@ -107,6 +151,69 @@ class inhibitionCalculator():
         # in the resulting col inhib overlap matrix can be tracked.
         self.incrementingMat = np.array([[1+i+self.width*j for i in range(self.width)] for j in range(self.height)])
         self.colConvolePatternIndex = self.getColInhibInputs(self.incrementingMat)
+        print "colConvole = \n%s" % self.colConvolePatternIndex
+
+        # Calculate a matrix storing the location of the numbers from
+        # colConvolePatternIndex.
+        unConvoleTestIn = np.array(
+            [[0,0,0,1],
+             [0,0,1,2],
+             [0,0,2,3],
+             [0,0,3,4],
+             [0,0,4,5],
+             [0,1,0,6],
+             [1,2,6,7]])
+        print "test unconvole = \n%s" % self.calculateConvolePattern(unConvoleTestIn)
+
+        self.unConvolePattern = self.calculateConvolePattern(self.colConvolePatternIndex)
+        print "unConvolePattern = \n%s" % self.unConvolePattern
+
+        self.nonPaddingSumVect = self.get_gtZeroMat(self.unConvolePattern)
+        self.nonPaddingSumVect = self.get_sumRowMat(self.nonPaddingSumVect)
+        print "nonPaddingSumVect = \n%s" % self.nonPaddingSumVect
+
+    def calculateConvolePattern(self, inputGrid):
+        '''
+        Determine the row number locations of the column
+        numbers in the inputGrid.
+
+        eg.
+        inputGrid                   Calculated output
+        [[  0.   0.   0.   1.]      [[  7.   6.   2.   1.]
+         [  0.   0.   1.   2.]       [  0.   7.   3.   2.]
+         [  0.   0.   2.   3.]       [  0.   0.   4.   3.]
+         [  0.   0.   3.   4.]       [  0.   0.   5.   4.]
+         [  0.   0.   4.   5.]       [  0.   0.   0.   5.]
+         [  0.   1.   0.   6.]       [  0.   0.   7.   6.]
+         [  1.   2.   6.   7.]]      [  0.   0.   0.   7.]]
+
+         Note: height = numCols = self.width * self.height
+        '''
+
+        width = len(inputGrid[0])
+        height = len(inputGrid)
+
+        outputGrid = np.array([[0 for i in range(width)] for j in range(height)])
+
+        #print "width = %s height = %s" % (width, height)
+        curColNum = 0
+        curRowNum = 0
+        for c in range(width):
+            # Search for the column numbers.
+            # They are always in order down the column
+            curColNum = 1
+            curRowNum = 0
+            for r in range(height):
+                if inputGrid[r, c] > curColNum:
+                    curRowNum = curRowNum + inputGrid[r, c] - curColNum
+                    curColNum = inputGrid[r, c]
+
+                if inputGrid[r, c] == curColNum:
+                    curColNum += 1
+                    curRowNum += 1
+                    outputGrid[inputGrid[r, c]-1, c] = r+1
+
+        return outputGrid
 
     def addPaddingToInput(self, inputGrid):
 
@@ -145,7 +252,7 @@ class inhibitionCalculator():
                                'constant',
                                constant_values=(0))
 
-        print "inputGrid = \n%s" % inputGrid
+        #print "inputGrid = \n%s" % inputGrid
 
         return inputGrid
 
@@ -209,15 +316,31 @@ class inhibitionCalculator():
         minLocalAct = np.tile(np.array([minLocalAct]).transpose(), (1, widthColOverlapMat))
         # Now calculate for each columns list of overlap values, which are larger
         # then the minLocalActivity number.
-        activeCols, activeColInd_x, activeColInd_y = self.get_activeCol(colOverlapMat, minLocalAct)
+        activeCols = self.get_activeCol(colOverlapMat, minLocalAct)
+        activeCols = activeCols[0]
 
         print "minLocalAct = \n%s" % minLocalAct
         print "colOverlapMat = \n%s" % colOverlapMat
         print "activeCols = \n%s" % activeCols
-        print "activeColInd_x = \n%s" % activeColInd_x
-        print "activeColInd_y = \n%s" % activeColInd_y
+        print "self.incrementingMat = \n%s" % self.incrementingMat
+        #print "self.colConvolePatternIndex = \n%s" % self.colConvolePatternIndex
+        print "self.unConvolePattern = \n%s" % self.unConvolePattern
 
-        return activeCols
+        col_num = np.array([[i for i in range(self.potentialWidth*self.potentialHeight)]
+                            for j in range(self.width*self.height)])
+        print "col_num = \n%s" % col_num
+
+        colwinners = self.get_activeColMat(activeCols,
+                                           self.unConvolePattern,
+                                           col_num)
+
+        print "self.nonPaddingSumVect = \n%s" % self.nonPaddingSumVect
+        print "colwinners = \n%s" % colwinners
+
+        activeColumnVect = self.get_activeColVect(colwinners, self.nonPaddingSumVect)
+        print "activeColumnVect = \n%s" % activeColumnVect
+
+        return activeColumnVect
 
     def sortOverlapMatrix(self, colOverlapVals):
         # colOverlapVals, each row is a list of overlaps values that
@@ -234,9 +357,9 @@ if __name__ == '__main__':
     potWidth = 2
     potHeight = 2
     centerInhib = 1
-    numRows = 4
-    numCols = 5
-    desiredLocalActivity = 2
+    numRows = 5
+    numCols = 4
+    desiredLocalActivity = 1
 
      # Some made up inputs to test with
     colOverlapGrid = np.random.randint(10, size=(numRows, numCols))
@@ -246,7 +369,11 @@ if __name__ == '__main__':
                                            desiredLocalActivity, centerInhib)
 
     activeColumns = inhibCalculator.calculateInhibCols(colOverlapGrid)
-    print "incrementingMat = \n%s" % inhibCalculator.incrementingMat
-    print "convole col pat = \n%s" % inhibCalculator.colConvolePatternIndex
+
+    activeColumns = activeColumns.reshape((numRows, numCols))
+    print "activeColumns = \n%s" % activeColumns
+
+    print "original overlaps = \n%s" % colOverlapGrid
+    #print "activeColumns = \n%s" % activeColumns
 
 
