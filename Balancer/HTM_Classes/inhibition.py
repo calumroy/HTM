@@ -100,13 +100,14 @@ class inhibitionCalculator():
                                       )
 
         # Create the theano function for calculating
-        # a vector of the columns which should stay active because they
+        # a matrix of the columns which should stay active because they
         # won the inhibition convolution for all columns.
-        self.col_pat = T.matrix(dtype='int8')
+        self.col_pat = T.matrix(dtype='int32')
         self.act_cols = T.matrix(dtype='float32')
-        self.col_num = T.matrix(dtype='int8')
-        self.win_colconvole = T.matrix(dtype='float32')
-        self.set_winners = self.act_cols[self.col_pat-1, self.col_num]    # self.act_cols[self.col_pat-1, self.col_num]
+        self.col_num = T.matrix(dtype='int32')
+        # A Bug exists if the position at act_cols[0, 0] is not zero.
+        # ( This may occur if kernel not centered, centerInhib = 0)
+        self.set_winners = self.act_cols[T.switch(T.gt(self.col_pat-1,0),self.col_pat-1,0), T.switch(T.ge(self.col_pat-1,0),self.col_num,0)]    # self.act_cols[self.col_pat-1, self.col_num]
         #self.get_colwinners = T.switch(T.gt(self.col_pat, 0), self.set_winners, 1)
         self.get_activeColMat = function([self.act_cols,
                                           self.col_pat,
@@ -118,8 +119,8 @@ class inhibitionCalculator():
 
         # Create the theano function for calculating
         # the sum of the rows from the output of the theano
-        # function get_activeColVect. If all the rows are zero
-        # then the col this row represents should be set as active.
+        # function get_activeColMat. If all the number of elements in a row
+        # equal to one then set the col this row represents as active.
         self.col_winConPat = T.matrix(dtype='float32')
         self.non_padSum = T.vector(dtype='float32')
         self.w_cols = self.col_winConPat.sum(axis=1)
@@ -138,12 +139,89 @@ class inhibitionCalculator():
                                       allow_input_downcast=True)
 
         # Create the theano function for calculating
+        # the sum of the rows of the input vector.
+        self.in_vect2 = T.vector(dtype='float32')
+        self.out_sumvect2 = self.in_vect2.sum(axis=0)
+        self.get_sumRowVec = function([self.in_vect2],
+                                      self.out_sumvect2,
+                                      allow_input_downcast=True)
+
+        # Create the theano function for calculating
         # if the input matrix is larger then 0 (element wise).
         self.in_mat2 = T.matrix(dtype='float32')
         self.lt_zer0 = T.switch(T.gt(self.in_mat2, 0), 1, 0)
         self.get_gtZeroMat = function([self.in_mat2],
                                       self.lt_zer0,
                                       allow_input_downcast=True)
+
+        # Create the theano function for calculating
+        # if the input vector is larger then 0 (element wise).
+        self.in_vect1 = T.vector(dtype='float32')
+        self.gt_zeroVect = T.switch(T.gt(self.in_vect1, 0), 1, 0)
+        self.get_gtZeroVect = function([self.in_vect1],
+                                       self.gt_zeroVect,
+                                       allow_input_downcast=True)
+
+        # Create the theano function for calculating
+        # the updated inhibited columns list.
+        # A vector is passed in representing which columns have been
+        # inhibited, active or not updated yet.
+        ## Another input vector represents the winning columns,
+        # (this is braodcasted so its size equals colInConvoleList)
+        # The last input is the colInConvoleList matrix.
+        #self.inhib_cols = T.vector(dtype='float32')
+        self.win_columns = T.matrix(dtype='float32')
+        self.col_inConvoleMat = T.matrix(dtype='int32')
+        self.mat_colNum = T.matrix(dtype='int32')
+        #self.ch_inhCols = self.win_columns[self.col_inConvoleMat-1]
+        self.get_aCols = self.win_columns[self.col_inConvoleMat-1, self.mat_colNum]
+        self.check_rCols = T.switch(T.gt(self.col_inConvoleMat, 0), self.get_aCols, 0)
+        self.set_inhibCols = function([self.win_columns,
+                                       self.col_inConvoleMat,
+                                       self.mat_colNum],
+                                      self.check_rCols,
+                                      allow_input_downcast=True)
+
+        # Create the theano function for calculating
+        # the updated inhibiton matrix for the columns.
+        # The output is the colInConvoleList where each
+        # position represents an inhibited or not col.
+        self.inh_colVect = T.vector(dtype='float32')
+        self.col_inConvoleMat2 = T.matrix(dtype='int32')
+        self.get_upInhibCols = self.inh_colVect[self.col_inConvoleMat2 - 1]
+        self.check_gtZero = T.switch(T.gt(self.col_inConvoleMat2, 0), self.get_upInhibCols, 0)
+        self.check_vectValue = function([self.inh_colVect,
+                                         self.col_inConvoleMat2],
+                                        self.check_gtZero,
+                                        allow_input_downcast=True)
+
+        # Create the theano function for calculating
+        # the first input vector minus the second.
+        self.in_vect3 = T.vector(dtype='int32')
+        self.in_vect4 = T.vector(dtype='int32')
+        self.out_minusvect = self.in_vect3 - self.in_vect4
+        self.minus_vect = function([self.in_vect3,
+                                    self.in_vect4],
+                                   self.out_minusvect,
+                                   allow_input_downcast=True)
+
+        # Create the theano function for calculating
+        # a matrix of the columns which should stay active because they
+        # where not inhibited and won their convole overlap group.
+        self.curr_winCols = T.matrix(dtype='int8')
+        self.col_pat2 = T.matrix(dtype='int32')
+        self.cur_inhib_cols = T.vector(dtype='int32')
+        self.col_num2 = T.matrix(dtype='int32')
+        self.set_newWinners = T.switch(T.gt(self.cur_inhib_cols[self.col_pat2-1] + self.curr_winCols[self.col_pat2-1, self.col_num2], 1), 1, self.curr_winCols)
+        self.get_newColwinners = T.switch(T.gt(self.col_pat2-1, 0), self.set_newWinners, 1)
+        self.get_newActiveColMat = function([self.curr_winCols,
+                                             self.col_pat2,
+                                             self.cur_inhib_cols,
+                                             self.col_num2],
+                                            self.get_newColwinners,
+                                            on_unused_input='warn',
+                                            allow_input_downcast=True
+                                            )
 
         #### END of Theano functions and variables definitions
         #################################################################
@@ -165,10 +243,10 @@ class inhibitionCalculator():
              [1,2,6,7]])
         print "test unconvole = \n%s" % self.calculateConvolePattern(unConvoleTestIn)
 
-        self.unConvolePattern = self.calculateConvolePattern(self.colConvolePatternIndex)
-        print "unConvolePattern = \n%s" % self.unConvolePattern
+        self.colInConvoleList = self.calculateConvolePattern(self.colConvolePatternIndex)
+        print "colInConvoleList = \n%s" % self.colInConvoleList
 
-        self.nonPaddingSumVect = self.get_gtZeroMat(self.unConvolePattern)
+        self.nonPaddingSumVect = self.get_gtZeroMat(self.colInConvoleList)
         self.nonPaddingSumVect = self.get_sumRowMat(self.nonPaddingSumVect)
         print "nonPaddingSumVect = \n%s" % self.nonPaddingSumVect
 
@@ -297,11 +375,10 @@ class inhibitionCalculator():
         # Calculate the overlaps associated with columns that can be inhibited.
         colOverlapMat = self.getColInhibInputs(overlapsGrid)
         print "colOverlapMat = \n%s" % colOverlapMat
-        # Sort the colOverlap matrix for each row. A row hold the inhib overlap
+        # Sort the colOverlap matrix for each row. A row holds the inhib overlap
         # values for a single column.
         sortedColOverlapMat = self.sortOverlapMatrix(colOverlapMat)
         # Get the minLocalActivity for each col.
-        # Plus one because of the range.
         minOverlapIndex = self.desiredLocalActivity
         # check to make sure minOverlapIndex is smaller then the width of
         # the sortedColOverlapMat matrix.
@@ -314,7 +391,7 @@ class inhibitionCalculator():
         # Broadcast minLocalActivity so it is the same dim as colOverlapMat
         widthColOverlapMat = len(sortedColOverlapMat[0])
         minLocalAct = np.tile(np.array([minLocalAct]).transpose(), (1, widthColOverlapMat))
-        # Now calculate for each columns list of overlap values, which are larger
+        # Now calculate for each columns list of overlap values, which ones are larger
         # then the minLocalActivity number.
         activeCols = self.get_activeCol(colOverlapMat, minLocalAct)
         activeCols = activeCols[0]
@@ -324,21 +401,67 @@ class inhibitionCalculator():
         print "activeCols = \n%s" % activeCols
         print "self.incrementingMat = \n%s" % self.incrementingMat
         #print "self.colConvolePatternIndex = \n%s" % self.colConvolePatternIndex
-        print "self.unConvolePattern = \n%s" % self.unConvolePattern
+        print "self.colInConvoleList = \n%s" % self.colInConvoleList
 
         col_num = np.array([[i for i in range(self.potentialWidth*self.potentialHeight)]
                             for j in range(self.width*self.height)])
-        print "col_num = \n%s" % col_num
+        #print "col_num = \n%s" % col_num
 
         colwinners = self.get_activeColMat(activeCols,
-                                           self.unConvolePattern,
+                                           self.colInConvoleList,
                                            col_num)
 
         print "self.nonPaddingSumVect = \n%s" % self.nonPaddingSumVect
         print "colwinners = \n%s" % colwinners
+        print "self.colConvolePatternIndex = \n%s" % self.colConvolePatternIndex
 
         activeColumnVect = self.get_activeColVect(colwinners, self.nonPaddingSumVect)
         print "activeColumnVect = \n%s" % activeColumnVect
+
+        # Create a vector one element for each col. 1 means the col has
+        # been inhibited.
+        widthColConvolePat = len(self.colConvolePatternIndex[0])
+        print "widthColConvolePat = %s" % widthColConvolePat
+        colWinnersMat = np.tile(np.array([activeColumnVect]).transpose(), (1, widthColConvolePat))
+        print "colWinnersMat = \n%s" % colWinnersMat
+        print "colWinnersMat shape w, h = %s,%s" % (len(colWinnersMat[0]), len(colWinnersMat))
+        #print "self.colInConvoleList shape w, h = %s,%s" % (len(self.colInConvoleList[0]), len(self.colInConvoleList))
+
+        inhibitedCols = self.set_inhibCols(colWinnersMat, self.colConvolePatternIndex, col_num)
+
+        print "inhibitedCols = \n%s" % inhibitedCols
+
+        inhibitedColsVect = self.get_sumRowMat(inhibitedCols)
+
+        print "inhibitedColsVect = \n%s" % inhibitedColsVect
+
+        updatedInhibCols = self.check_vectValue(inhibitedColsVect, self.colInConvoleList)
+        print "updatedInhibCols = \n%s" % updatedInhibCols
+
+        inhibitedColsVect = self.get_sumRowMat(updatedInhibCols)
+        inhibOrActCols = self.get_gtZeroVect(inhibitedColsVect)
+
+        print "inhibOrActCols = \n%s" % inhibOrActCols
+        # Calculate a list of columns that where just inhibited.
+        # Just minus the inhibOrActCols vect with the activeColumnVect.
+        inhibCols = self.minus_vect(inhibOrActCols, activeColumnVect)
+        print "inhibCols = \n%s" % inhibCols
+        # Sum the updatedInhibCols vector and compare to the number of cols
+        # If equal then all columns have been inhibited or are active.
+        notInhibOrActNum = self.width * self.height - self.get_sumRowVec(inhibOrActCols)
+        print "notInhibOrActNum = %s" % notInhibOrActNum
+
+        # If notInhibOrActNum is larger then zero then do the following in a loop
+        # Calculate an updated colWinners matrix by looking at each position
+        # and seeing if that column represented in that position is now inhibited.
+        # If so set that position to 1.
+        #while notInhibOrActNum > 0:
+        #newActiveCols =
+        newColWinners = self.get_newActiveColMat(colwinners,
+                                                 self.colInConvoleList,
+                                                 inhibCols,
+                                                 col_num)
+        print "newColWinners = \n%s" % newColWinners
 
         return activeColumnVect
 
@@ -357,8 +480,8 @@ if __name__ == '__main__':
     potWidth = 2
     potHeight = 2
     centerInhib = 1
-    numRows = 5
-    numCols = 4
+    numRows = 4
+    numCols = 5
     desiredLocalActivity = 1
 
      # Some made up inputs to test with
