@@ -85,6 +85,22 @@ class inhibitionCalculator():
         self.sort_vect = function([self.o_mat, self.axis], self.arg_sort)
 
         # Create the theano function for calculating
+        # the minOverlap from the sorted vector of overlaps for each column.
+        # This function takes a vector of indicies indicating where the
+        # minLocalActivity resides for each row in the matrix.
+        # Note: the sorted overlap matrix goes from low to highest so use neg index.
+        self.min_OIndex = T.vector(dtype='int32')
+        self.s_ColOMat = T.matrix(dtype='float32')
+        self.row_numVect = T.vector(dtype='int32')
+        self.get_indPosVal = self.s_ColOMat[self.row_numVect, -self.min_OIndex]
+        self.get_minLocAct = function([self.min_OIndex,
+                                       self.s_ColOMat,
+                                       self.row_numVect],
+                                      self.get_indPosVal,
+                                      allow_input_downcast=True
+                                      )
+
+        # Create the theano function for calculating
         # if a column should be active or not based on whether it
         # has an overlap greater then or equal to the minLocalActivity.
         self.minLocalActivity = T.matrix(dtype='float32')
@@ -94,7 +110,7 @@ class inhibitionCalculator():
         #self.indexActCol = tensor.eq(self.check_gteq_minLocAct, 1).nonzero()
         self.get_activeCol = function([self.colOMat,
                                       self.minLocalActivity],
-                                      [self.check_gteq_minLocAct],
+                                      self.check_gteq_minLocAct,
                                       on_unused_input='warn',
                                       allow_input_downcast=True
                                       )
@@ -104,14 +120,14 @@ class inhibitionCalculator():
         # won the inhibition convolution for all columns.
         self.col_pat = T.matrix(dtype='int32')
         self.act_cols = T.matrix(dtype='float32')
-        self.col_num = T.matrix(dtype='int32')
+        self.col_num2 = T.matrix(dtype='int32')
         # A Bug exists if the position at act_cols[0, 0] is not zero.
         # ( This may occur if kernel not centered, centerInhib = 0)
-        self.set_winners = self.act_cols[T.switch(T.gt(self.col_pat-1,0),self.col_pat-1,0), T.switch(T.ge(self.col_pat-1,0),self.col_num,0)]    # self.act_cols[self.col_pat-1, self.col_num]
+        self.set_winners = self.act_cols[T.switch(T.gt(self.col_pat-1,0),self.col_pat-1,0), T.switch(T.ge(self.col_pat-1,0),self.col_num2,0)]    # self.act_cols[self.col_pat-1, self.col_num]
         #self.get_colwinners = T.switch(T.gt(self.col_pat, 0), self.set_winners, 1)
         self.get_activeColMat = function([self.act_cols,
                                           self.col_pat,
-                                          self.col_num],
+                                          self.col_num2],
                                          self.set_winners,
                                          on_unused_input='warn',
                                          allow_input_downcast=True
@@ -169,11 +185,9 @@ class inhibitionCalculator():
         ## Another input vector represents the winning columns,
         # (this is braodcasted so its size equals colInConvoleList)
         # The last input is the colInConvoleList matrix.
-        #self.inhib_cols = T.vector(dtype='float32')
         self.win_columns = T.matrix(dtype='float32')
         self.col_inConvoleMat = T.matrix(dtype='int32')
         self.mat_colNum = T.matrix(dtype='int32')
-        #self.ch_inhCols = self.win_columns[self.col_inConvoleMat-1]
         self.get_aCols = self.win_columns[self.col_inConvoleMat-1, self.mat_colNum]
         self.check_rCols = T.switch(T.gt(self.col_inConvoleMat, 0), self.get_aCols, 0)
         self.set_inhibCols = function([self.win_columns,
@@ -211,17 +225,33 @@ class inhibitionCalculator():
         self.curr_winCols = T.matrix(dtype='int8')
         self.col_pat2 = T.matrix(dtype='int32')
         self.cur_inhib_cols = T.vector(dtype='int32')
-        self.col_num2 = T.matrix(dtype='int32')
-        self.set_newWinners = T.switch(T.gt(self.cur_inhib_cols[self.col_pat2-1] + self.curr_winCols[self.col_pat2-1, self.col_num2], 1), 1, self.curr_winCols)
-        self.get_newColwinners = T.switch(T.gt(self.col_pat2-1, 0), self.set_newWinners, 1)
+        self.col_num3 = T.matrix(dtype='int32')
+        self.set_newWinners = T.switch(T.gt(self.cur_inhib_cols[self.col_pat2-1] + self.curr_winCols[self.col_pat2-1, self.col_num3], 1), 1, self.curr_winCols)
+        self.get_newColwinners = T.switch(T.ge(self.col_pat2-1, 0), self.set_newWinners, 1)
         self.get_newActiveColMat = function([self.curr_winCols,
                                              self.col_pat2,
                                              self.cur_inhib_cols,
-                                             self.col_num2],
+                                             self.col_num3],
                                             self.get_newColwinners,
                                             on_unused_input='warn',
                                             allow_input_downcast=True
                                             )
+
+        # Create the theano function for calculating
+        # if a column in the matrix is inhibited.
+        # Any inhibited columns should be set as zero.
+        # Any columns not iinhibited should be set to the inpu matrix value.
+        self.act_cols2 = T.matrix(dtype='float32')
+        self.col_pat3 = T.matrix(dtype='int32')
+        self.cur_inhib_cols2 = T.vector(dtype='int32')
+        self.set_winToZero = T.switch(T.eq(self.cur_inhib_cols2[self.col_pat3-1], 1), 0, self.act_cols2)
+        self.check_lZeroCol = T.switch(T.ge(self.col_pat3-1, 0), self.set_winToZero, 0)
+        self.check_inhibCols = function([self.act_cols2,
+                                         self.col_pat3,
+                                         self.cur_inhib_cols2],
+                                        self.check_lZeroCol,
+                                        allow_input_downcast=True
+                                        )
 
         #### END of Theano functions and variables definitions
         #################################################################
@@ -249,6 +279,19 @@ class inhibitionCalculator():
         self.nonPaddingSumVect = self.get_gtZeroMat(self.colInConvoleList)
         self.nonPaddingSumVect = self.get_sumRowMat(self.nonPaddingSumVect)
         print "nonPaddingSumVect = \n%s" % self.nonPaddingSumVect
+
+        # The folowing variables are used for indicies when looking up values
+        # in matricies from within a theano function.
+        # Create a matrix that just holds the column number for each element
+        self.col_num = np.array([[i for i in range(self.potentialWidth*self.potentialHeight)]
+                                for j in range(self.width*self.height)])
+        # Create just a vector storing the row numbers for each column.
+        # This is just an incrementing vector from zero to the number of columns - 1
+        self.row_numVect = np.array([i for i in range(self.width*self.height)])
+
+        # Create a vector of minOverlap indicies. This stores the position
+        # for each col where the minOverlap resides, in the sorted Convole overlap mat
+        self.minOverlapIndex = np.array([self.desiredLocalActivity for i in range(self.width*self.height)])
 
     def calculateConvolePattern(self, inputGrid):
         '''
@@ -354,7 +397,84 @@ class inhibitionCalculator():
         print "inputInhibCols.shape = %s,%s" % inputInhibCols.shape
         return inputInhibCols
 
-    def calculateInhibCols(self, overlapsGrid):
+    def calculateActiveCol(self, colOverlapMat):
+        # Sort the colOverlap matrix for each row. A row holds the inhib overlap
+        # values for a single column.
+        sortedColOverlapMat = self.sortOverlapMatrix(colOverlapMat)
+        # Get the minLocalActivity for each col.
+        minLocalAct = self.get_minLocAct(self.minOverlapIndex,
+                                         sortedColOverlapMat,
+                                         self.row_numVect)
+        #print "minLocalAct = \n%s" % minLocalAct
+
+        # First take the colOverlaps matrix and flatten it into a vector.
+        # Broadcast minLocalActivity so it is the same dim as colOverlapMat
+        widthColOverlapMat = len(sortedColOverlapMat[0])
+        minLocalAct = np.tile(np.array([minLocalAct]).transpose(), (1, widthColOverlapMat))
+        # Now calculate for each columns list of overlap values, which ones are larger
+        # then the minLocalActivity number.
+        activeCols = self.get_activeCol(colOverlapMat, minLocalAct)
+
+        #print "minLocalAct = \n%s" % minLocalAct
+        #print "colOverlapMat = \n%s" % colOverlapMat
+        #print "activeCols = \n%s" % activeCols
+
+        return activeCols
+
+    def calculateActiveColumnVect(self, activeCols):
+        # Calculate for each column a list of columns which that column can
+        # be inhibited by. Set the winning columns in this list as one.
+        colwinners = self.get_activeColMat(activeCols,
+                                           self.colInConvoleList,
+                                           self.col_num)
+
+        #print "self.nonPaddingSumVect = \n%s" % self.nonPaddingSumVect
+        #print "colwinners = \n%s" % colwinners
+        #print "self.colConvolePatternIndex = \n%s" % self.colConvolePatternIndex
+
+        # Now calculate which columns won all their colwinners list.
+        # This creates a vector telling us which columns have the highest
+        # overlap values and should be active.
+        activeColumnVect = self.get_activeColVect(colwinners, self.nonPaddingSumVect)
+        #print "activeColumnVect = \n%s" % activeColumnVect
+
+        return activeColumnVect
+
+    def calculateInhibCols(self, activeColumnVect):
+        # Now calculate a list of inhibited columns.
+        # Create a vector one element for each col. 1 means the col has
+        # been inhibited.
+        widthColConvolePat = len(self.colConvolePatternIndex[0])
+        #print "widthColConvolePat = %s" % widthColConvolePat
+        colWinnersMat = np.tile(np.array([activeColumnVect]).transpose(), (1, widthColConvolePat))
+        #print "colWinnersMat = \n%s" % colWinnersMat
+        #print "colWinnersMat shape w, h = %s,%s" % (len(colWinnersMat[0]), len(colWinnersMat))
+        #print "self.colInConvoleList shape w, h = %s,%s" % (len(self.colInConvoleList[0]), len(self.colInConvoleList))
+
+        inhibitedCols = self.set_inhibCols(colWinnersMat,
+                                           self.colConvolePatternIndex,
+                                           self.col_num)
+        #print "inhibitedCols = \n%s" % inhibitedCols
+        inhibitedColsVect = self.get_sumRowMat(inhibitedCols)
+        #print "inhibitedColsVect = \n%s" % inhibitedColsVect
+        updatedInhibCols = self.check_vectValue(inhibitedColsVect, self.colInConvoleList)
+        #print "updatedInhibCols = \n%s" % updatedInhibCols
+        inhibitedColsVect = self.get_sumRowMat(updatedInhibCols)
+        inhibOrActCols = self.get_gtZeroVect(inhibitedColsVect)
+        #print "inhibOrActCols = \n%s" % inhibOrActCols
+        # Calculate a list of columns that where just inhibited.
+        # Just minus the inhibOrActCols vect with the activeColumnVect.
+        inhibCols = self.minus_vect(inhibOrActCols, activeColumnVect)
+        #print "inhibCols = \n%s" % inhibCols
+
+        # Sum the updatedInhibCols vector and compare to the number of cols
+        # If equal then all columns have been inhibited or are active.
+        notInhibOrActNum = self.width * self.height - self.get_sumRowVec(inhibOrActCols)
+        print "notInhibOrActNum = %s" % notInhibOrActNum
+
+        return inhibCols, notInhibOrActNum
+
+    def calculateWinningCols(self, overlapsGrid):
         # Take the overlapsGrid and calulate a binary list
         # describing the active columns ( 1 is active, 0 not active).
 
@@ -375,93 +495,48 @@ class inhibitionCalculator():
         # Calculate the overlaps associated with columns that can be inhibited.
         colOverlapMat = self.getColInhibInputs(overlapsGrid)
         print "colOverlapMat = \n%s" % colOverlapMat
-        # Sort the colOverlap matrix for each row. A row holds the inhib overlap
-        # values for a single column.
-        sortedColOverlapMat = self.sortOverlapMatrix(colOverlapMat)
-        # Get the minLocalActivity for each col.
-        minOverlapIndex = self.desiredLocalActivity
-        # check to make sure minOverlapIndex is smaller then the width of
-        # the sortedColOverlapMat matrix.
-        if minOverlapIndex > len(sortedColOverlapMat[0]):
-            minOverlapIndex = len(sortedColOverlapMat[0])
-        minLocalAct = sortedColOverlapMat[:, -(minOverlapIndex)]
-        print "minLocalAct = \n%s" % minLocalAct
 
-        # First take the colOverlaps matrix and flatten it into a vector.
-        # Broadcast minLocalActivity so it is the same dim as colOverlapMat
-        widthColOverlapMat = len(sortedColOverlapMat[0])
-        minLocalAct = np.tile(np.array([minLocalAct]).transpose(), (1, widthColOverlapMat))
-        # Now calculate for each columns list of overlap values, which ones are larger
-        # then the minLocalActivity number.
-        activeCols = self.get_activeCol(colOverlapMat, minLocalAct)
-        activeCols = activeCols[0]
+        activeCols = self.calculateActiveCol(colOverlapMat)
+        activeColumnVect = self.calculateActiveColumnVect(activeCols)
+        inhibCols, notInhibOrActNum = self.calculateInhibCols(activeColumnVect)
 
-        print "minLocalAct = \n%s" % minLocalAct
-        print "colOverlapMat = \n%s" % colOverlapMat
-        print "activeCols = \n%s" % activeCols
-        print "self.incrementingMat = \n%s" % self.incrementingMat
-        #print "self.colConvolePatternIndex = \n%s" % self.colConvolePatternIndex
-        print "self.colInConvoleList = \n%s" % self.colInConvoleList
-
-        col_num = np.array([[i for i in range(self.potentialWidth*self.potentialHeight)]
-                            for j in range(self.width*self.height)])
-        #print "col_num = \n%s" % col_num
-
-        colwinners = self.get_activeColMat(activeCols,
-                                           self.colInConvoleList,
-                                           col_num)
-
-        print "self.nonPaddingSumVect = \n%s" % self.nonPaddingSumVect
-        print "colwinners = \n%s" % colwinners
-        print "self.colConvolePatternIndex = \n%s" % self.colConvolePatternIndex
-
-        activeColumnVect = self.get_activeColVect(colwinners, self.nonPaddingSumVect)
+        activeColumnVect = activeColumnVect.reshape((self.height, self.width))
         print "activeColumnVect = \n%s" % activeColumnVect
+        print "original overlaps = \n%s" % colOverlapGrid
 
-        # Create a vector one element for each col. 1 means the col has
-        # been inhibited.
-        widthColConvolePat = len(self.colConvolePatternIndex[0])
-        print "widthColConvolePat = %s" % widthColConvolePat
-        colWinnersMat = np.tile(np.array([activeColumnVect]).transpose(), (1, widthColConvolePat))
-        print "colWinnersMat = \n%s" % colWinnersMat
-        print "colWinnersMat shape w, h = %s,%s" % (len(colWinnersMat[0]), len(colWinnersMat))
-        #print "self.colInConvoleList shape w, h = %s,%s" % (len(self.colInConvoleList[0]), len(self.colInConvoleList))
+        # If notInhibOrActNum is larger then zero then do the following in a loop:
+        # Calculate an updated colWinners matrix by looking at each position in the
+        # colOverlapMat and see if that column represented in that position is
+        # now inhibited. If so set its overlap value to zero and recalculate the
+        # sortedColOverlapMat. Then recalculate the minOverlapIndex for that column.
 
-        inhibitedCols = self.set_inhibCols(colWinnersMat, self.colConvolePatternIndex, col_num)
+        #print "self.colConvolePatternIndex = \n%s" % self.colConvolePatternIndex
+        #print "old colOverlapMat = \n%s" % colOverlapMat
+        colOverlapMat = self.check_inhibCols(colOverlapMat,
+                                             self.colConvolePatternIndex,
+                                             inhibCols)
 
-        print "inhibitedCols = \n%s" % inhibitedCols
+        activeCols = self.calculateActiveCol(colOverlapMat)
+        activeColumnVect = self.calculateActiveColumnVect(activeCols)
+        inhibCols, notInhibOrActNum = self.calculateInhibCols(activeColumnVect)
 
-        inhibitedColsVect = self.get_sumRowMat(inhibitedCols)
+        # Next recalculate the minOverlap value using the new minOverlapIndex.
+        # Rebroadcast this minOverlap index and calculate a new activeCols matrix
 
-        print "inhibitedColsVect = \n%s" % inhibitedColsVect
-
-        updatedInhibCols = self.check_vectValue(inhibitedColsVect, self.colInConvoleList)
-        print "updatedInhibCols = \n%s" % updatedInhibCols
-
-        inhibitedColsVect = self.get_sumRowMat(updatedInhibCols)
-        inhibOrActCols = self.get_gtZeroVect(inhibitedColsVect)
-
-        print "inhibOrActCols = \n%s" % inhibOrActCols
-        # Calculate a list of columns that where just inhibited.
-        # Just minus the inhibOrActCols vect with the activeColumnVect.
-        inhibCols = self.minus_vect(inhibOrActCols, activeColumnVect)
-        print "inhibCols = \n%s" % inhibCols
-        # Sum the updatedInhibCols vector and compare to the number of cols
-        # If equal then all columns have been inhibited or are active.
-        notInhibOrActNum = self.width * self.height - self.get_sumRowVec(inhibOrActCols)
-        print "notInhibOrActNum = %s" % notInhibOrActNum
-
-        # If notInhibOrActNum is larger then zero then do the following in a loop
-        # Calculate an updated colWinners matrix by looking at each position
-        # and seeing if that column represented in that position is now inhibited.
-        # If so set that position to 1.
         #while notInhibOrActNum > 0:
-        #newActiveCols =
-        newColWinners = self.get_newActiveColMat(colwinners,
-                                                 self.colInConvoleList,
-                                                 inhibCols,
-                                                 col_num)
-        print "newColWinners = \n%s" % newColWinners
+        # newActiveCols = self.check_inhibCols(activeCols,
+        #                                      self.colConvolePatternIndex,
+        #                                      inhibCols)
+
+        # newActiveCols needs to recalucalte the minLocalactivity
+        # by not including cols that are inhibited.
+
+
+        # newColWinners = self.get_newActiveColMat(colwinners,
+        #                                          self.colInConvoleList,
+        #                                          inhibCols,
+        #                                          self.col_num)
+        # print "newColWinners = \n%s" % newColWinners
 
         return activeColumnVect
 
@@ -471,7 +546,7 @@ class inhibitionCalculator():
         # Sort the grid of overlap values from largest to
         # smallest for each columns inhibit overlap vect.
         sortedColOverlapsVals = self.sort_vect(colOverlapVals, 1)
-        print "sortedColOverlapsVals = \n%s" % sortedColOverlapsVals
+        #print "sortedColOverlapsVals = \n%s" % sortedColOverlapsVals
         return sortedColOverlapsVals
 
 
@@ -491,12 +566,12 @@ if __name__ == '__main__':
                                            potWidth, potHeight,
                                            desiredLocalActivity, centerInhib)
 
-    activeColumns = inhibCalculator.calculateInhibCols(colOverlapGrid)
+    activeColumns = inhibCalculator.calculateWinningCols(colOverlapGrid)
 
     activeColumns = activeColumns.reshape((numRows, numCols))
     print "activeColumns = \n%s" % activeColumns
-
     print "original overlaps = \n%s" % colOverlapGrid
+
     #print "activeColumns = \n%s" % activeColumns
 
 
