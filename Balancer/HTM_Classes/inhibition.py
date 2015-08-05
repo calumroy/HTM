@@ -118,18 +118,20 @@ class inhibitionCalculator():
         # Create the theano function for calculating
         # a matrix of the columns which should stay active because they
         # won the inhibition convolution for all columns.
+        # if a column is inhibited then set that location to one.
         self.col_pat = T.matrix(dtype='int32')
         self.act_cols = T.matrix(dtype='float32')
         self.col_num2 = T.matrix(dtype='int32')
-        # TODO
-        # A Bug exists if the position at act_cols[0, 0] is not zero.
-        # ( This may occur if kernel not centered, centerInhib = 0)
-        self.set_winners = self.act_cols[T.switch(T.gt(self.col_pat-1,0),self.col_pat-1,0), T.switch(T.ge(self.col_pat-1,0),self.col_num2,0)]    # self.act_cols[self.col_pat-1, self.col_num]
-        #self.get_colwinners = T.switch(T.gt(self.col_pat, 0), self.set_winners, 1)
+        self.cur_inhib_cols4 = T.vector(dtype='int32')
+
+        self.set_winners = self.act_cols[self.col_pat-1, self.col_num2]
+        self.check_colNotInhib = T.switch(T.lt(self.cur_inhib_cols4[self.col_pat-1], 1), self.set_winners, 1)
+        self.check_colNotPad = T.switch(T.ge(self.col_pat-1, 0), self.check_colNotInhib, 0)
         self.get_activeColMat = function([self.act_cols,
                                           self.col_pat,
-                                          self.col_num2],
-                                         self.set_winners,
+                                          self.col_num2,
+                                          self.cur_inhib_cols4],
+                                         self.check_colNotPad,
                                          on_unused_input='warn',
                                          allow_input_downcast=True
                                          )
@@ -263,10 +265,10 @@ class inhibitionCalculator():
         self.set_patToZero = T.switch(T.eq(self.cur_inhib_cols3[self.col_pat4-1], 1), 0, self.col_pat4)
         self.check_lZeroCol2 = T.switch(T.ge(self.col_pat4-1, 0), self.set_patToZero, 0)
         self.check_inhibColsPat = function([self.col_pat4,
-                                         self.cur_inhib_cols3],
-                                        self.check_lZeroCol2,
-                                        allow_input_downcast=True
-                                        )
+                                            self.cur_inhib_cols3],
+                                           self.check_lZeroCol2,
+                                           allow_input_downcast=True
+                                           )
 
         #### END of Theano functions and variables definitions
         #################################################################
@@ -455,18 +457,22 @@ class inhibitionCalculator():
     def calculateActiveColumnVect(self, activeCols, inhibCols):
         # Calculate for each column a list of columns which that column can
         # be inhibited by. Set the winning columns in this list as one.
+        # If a column is inhibited already then all those positions in
+        # the colwinners relating to that col are set as one. This means
+        # the inhibited columns don't determine the active columns
         colwinners = self.get_activeColMat(activeCols,
                                            self.colInConvoleList,
-                                           self.col_num)
+                                           self.col_num,
+                                           inhibCols)
 
-        # Calculate for each row the number it should sum to if the col won all
-        # of it's convole inhib groups (excluding the columns that have been inhibited).
-        nonPadOrInhibSumVect = self.check_inhibColsPat(self.colInConvoleList,
-                                                       inhibCols)
+        # # Calculate for each row the number it should sum to if the col won all
+        # # of it's convole inhib groups (excluding the columns that have been inhibited).
+        # nonPadOrInhibSumVect = self.check_inhibColsPat(self.colInConvoleList,
+        #                                                inhibCols)
 
-        nonPadOrInhibSumVect = self.get_gtZeroMat(nonPadOrInhibSumVect)
-        nonPadOrInhibSumVect = self.get_sumRowMat(nonPadOrInhibSumVect)
-        print "nonPadOrInhibSumVect = \n%s" % nonPadOrInhibSumVect
+        # nonPadOrInhibSumVect = self.get_gtZeroMat(nonPadOrInhibSumVect)
+        # nonPadOrInhibSumVect = self.get_sumRowMat(nonPadOrInhibSumVect)
+        # print "nonPadOrInhibSumVect = \n%s" % nonPadOrInhibSumVect
 
         print "self.nonPaddingSumVect = \n%s" % self.nonPaddingSumVect
         print "self.colInConvoleList = \n%s" % self.colInConvoleList
@@ -474,8 +480,8 @@ class inhibitionCalculator():
 
         # Now calculate which columns won all their colwinners list.
         # This creates a vector telling us which columns have the highest
-        # overlap values and should be active. Make sure the nonPadOrInhibSumVect is not zero.
-        activeColumnVect = self.get_activeColVect(colwinners, nonPadOrInhibSumVect)
+        # overlap values and should be active. Make sure the self.nonPaddingSumVect is not zero.
+        activeColumnVect = self.get_activeColVect(colwinners, self.nonPaddingSumVect)
         print "activeColumnVect = \n%s" % activeColumnVect
 
         return activeColumnVect
@@ -588,8 +594,8 @@ class inhibitionCalculator():
             print "activeColumns = \n%s" % activeColumns
             print "original overlaps = \n%s" % overlapsGrid
 
-            if loopedTimes == 2:
-                break
+            # if loopedTimes == 2:
+            #     break
 
         return activeColumnVect
 
@@ -605,12 +611,12 @@ class inhibitionCalculator():
 
 if __name__ == '__main__':
 
-    potWidth = 2
-    potHeight = 2
+    potWidth = 3
+    potHeight = 3
     centerInhib = 1
-    numRows = 4
-    numCols = 5
-    desiredLocalActivity = 1
+    numRows = 7
+    numCols = 10
+    desiredLocalActivity = 2
 
      # Some made up inputs to test with
     colOverlapGrid = np.random.randint(10, size=(numRows, numCols))
