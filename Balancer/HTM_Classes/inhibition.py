@@ -118,18 +118,22 @@ class inhibitionCalculator():
         # Create the theano function for calculating
         # a matrix of the columns which should stay active because they
         # won the inhibition convolution for all columns.
-        # if a column is inhibited then set that location to one.
+        # if a column is inhibited then set that location to one only if
+        # that row does not represent that inhibited column.
         self.col_pat = T.matrix(dtype='int32')
         self.act_cols = T.matrix(dtype='float32')
         self.col_num2 = T.matrix(dtype='int32')
+        self.row_numMat4 = T.matrix(dtype='int32')
         self.cur_inhib_cols4 = T.vector(dtype='int32')
 
+        self.test_meInhib = T.switch(T.eq(self.cur_inhib_cols4[self.row_numMat4], 1), 0, 1)
         self.set_winners = self.act_cols[self.col_pat-1, self.col_num2]
-        self.check_colNotInhib = T.switch(T.lt(self.cur_inhib_cols4[self.col_pat-1], 1), self.set_winners, 1)
+        self.check_colNotInhib = T.switch(T.lt(self.cur_inhib_cols4[self.col_pat-1], 1), self.set_winners, self.test_meInhib)
         self.check_colNotPad = T.switch(T.ge(self.col_pat-1, 0), self.check_colNotInhib, 0)
         self.get_activeColMat = function([self.act_cols,
                                           self.col_pat,
                                           self.col_num2,
+                                          self.row_numMat4,
                                           self.cur_inhib_cols4],
                                          self.check_colNotPad,
                                          on_unused_input='warn',
@@ -463,6 +467,7 @@ class inhibitionCalculator():
         colwinners = self.get_activeColMat(activeCols,
                                            self.colInConvoleList,
                                            self.col_num,
+                                           self.row_numMat,
                                            inhibCols)
 
         # # Calculate for each row the number it should sum to if the col won all
@@ -476,6 +481,7 @@ class inhibitionCalculator():
 
         print "self.nonPaddingSumVect = \n%s" % self.nonPaddingSumVect
         print "self.colInConvoleList = \n%s" % self.colInConvoleList
+        print "inhibCols = \n%s" % inhibCols
         print "colwinners = \n%s" % colwinners
 
         # Now calculate which columns won all their colwinners list.
@@ -614,9 +620,9 @@ if __name__ == '__main__':
     potWidth = 3
     potHeight = 3
     centerInhib = 1
-    numRows = 7
-    numCols = 10
-    desiredLocalActivity = 2
+    numRows = 4
+    numCols = 5
+    desiredLocalActivity = 1
 
      # Some made up inputs to test with
     colOverlapGrid = np.random.randint(10, size=(numRows, numCols))
@@ -628,8 +634,8 @@ if __name__ == '__main__':
     activeColumns = inhibCalculator.calculateWinningCols(colOverlapGrid)
 
     activeColumns = activeColumns.reshape((numRows, numCols))
-    print "activeColumns = \n%s" % activeColumns
-    print "original overlaps = \n%s" % colOverlapGrid
+    #print "activeColumns = \n%s" % activeColumns
+    #print "original overlaps = \n%s" % colOverlapGrid
 
     #print "activeColumns = \n%s" % activeColumns
 
