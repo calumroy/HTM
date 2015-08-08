@@ -51,6 +51,28 @@ class inhibitionCalculator():
         # Create theano variables and functions
         ############################################
         # Create the theano function for calculating
+        # if the colInConvole matrix. This takes a vector
+        # storing an offset number and adds this to the input
+        # matrix if the element in the input matrix is greater then
+        # zero.
+        self.in_colPatMat = T.matrix(dtype='int32')
+        self.in_colAddVect = T.vector(dtype='int32')
+        self.in_colNegVect = T.vector(dtype='int32')
+        self.col_num3 = T.matrix(dtype='int32')
+        # self.row_numMat5 = T.matrix(dtype='int32')
+        self.check_gtZero2 = T.switch(T.gt(self.in_colPatMat, 0),
+                                     (self.in_colPatMat +
+                                      self.in_colAddVect[self.col_num3] -
+                                      self.in_colNegVect[self.col_num3]+1),
+                                      0)
+        self.add_toConvolePat = function([self.in_colPatMat,
+                                          self.in_colAddVect,
+                                          self.in_colNegVect,
+                                          self.col_num3],
+                                         self.check_gtZero2,
+                                         allow_input_downcast=True)
+
+        # Create the theano function for calculating
         # the addition of a small tie breaker value to each overlap value.
         self.o_grid = T.matrix(dtype='float32')
         self.tie_grid = T.matrix(dtype='float32')
@@ -276,32 +298,6 @@ class inhibitionCalculator():
 
         #### END of Theano functions and variables definitions
         #################################################################
-        # Now Also calcualte a convole grid so the columns position
-        # in the resulting col inhib overlap matrix can be tracked.
-        self.incrementingMat = np.array([[1+i+self.width*j for i in range(self.width)] for j in range(self.height)])
-        self.colConvolePatternIndex = self.getColInhibInputs(self.incrementingMat)
-        print "colConvole = \n%s" % self.colConvolePatternIndex
-        print "colConvole height, width = %s, %s " % (len(self.colConvolePatternIndex),len(self.colConvolePatternIndex[0]))
-
-        # Calculate a matrix storing the location of the numbers from
-        # colConvolePatternIndex.
-        unConvoleTestIn = np.array(
-            [[0,0,0,1],
-             [0,0,1,2],
-             [0,0,2,3],
-             [0,0,3,4],
-             [0,0,4,5],
-             [0,1,0,6],
-             [1,2,6,7]])
-        print "test unconvole = \n%s" % self.calculateConvolePattern(unConvoleTestIn)
-
-        self.colInConvoleList = self.calculateConvolePattern(self.colConvolePatternIndex)
-        print "colInConvoleList = \n%s" % self.colInConvoleList
-
-        self.nonPaddingSumVect = self.get_gtZeroMat(self.colInConvoleList)
-        self.nonPaddingSumVect = self.get_sumRowMat(self.nonPaddingSumVect)
-        print "nonPaddingSumVect = \n%s" % self.nonPaddingSumVect
-
         # The folowing variables are used for indicies when looking up values
         # in matricies from within a theano function.
         # Create a matrix that just holds the column number for each element
@@ -322,6 +318,24 @@ class inhibitionCalculator():
         # Create a vector of minOverlap indicies. This stores the position
         # for each col where the minOverlap resides, in the sorted Convole overlap mat
         self.minOverlapIndex = np.array([self.desiredLocalActivity for i in range(self.width*self.height)])
+
+        # Now Also calcualte a convole grid so the columns position
+        # in the resulting col inhib overlap matrix can be tracked.
+        self.incrementingMat = np.array([[1+i+self.width*j for i in range(self.width)] for j in range(self.height)])
+        self.colConvolePatternIndex = self.getColInhibInputs(self.incrementingMat)
+        print "colConvole = \n%s" % self.colConvolePatternIndex
+        print "colConvole height, width = %s, %s " % (len(self.colConvolePatternIndex),len(self.colConvolePatternIndex[0]))
+
+        # Calculate a matrix storing the location of the numbers from
+        # colConvolePatternIndex.
+        self.colInConvoleList = self.calculateConvolePattern(self.colConvolePatternIndex)
+        print "colInConvoleList = \n%s" % self.colInConvoleList
+
+        self.nonPaddingSumVect = self.get_gtZeroMat(self.colInConvoleList)
+        self.nonPaddingSumVect = self.get_sumRowMat(self.nonPaddingSumVect)
+        print "nonPaddingSumVect = \n%s" % self.nonPaddingSumVect
+
+
 
     def calculateConvolePattern(self, inputGrid):
         # TODO
@@ -345,30 +359,41 @@ class inhibitionCalculator():
          Note: height = numCols = self.width * self.height
         '''
 
+        print "inputGrid = \n%s" % inputGrid
         width = len(inputGrid[0])
         height = len(inputGrid)
 
+        rolledInputGrid = np.array([[0 for i in range(width)] for j in range(height)])
         outputGrid = np.array([[0 for i in range(width)] for j in range(height)])
+        firstNonZeroIndVect = np.array([0 for i in range(width)])
+        firstNonZeroVect = np.array([0 for i in range(width)])
 
         #print "width = %s height = %s" % (width, height)
-        curColNum = 0
-        curRowNum = 0
         for c in range(width):
             print "c = %s" % c
             # Search for the column numbers.
             # They are always in order down the column
-            curColNum = 1
-            curRowNum = 0
+            # Now roll each column in the inputGrid upwards by the
+            # this is a negative numpy roll.
             for r in range(height):
-                #print "r = %s" % r
-                if inputGrid[r, c] > curColNum:
-                    curRowNum = curRowNum + inputGrid[r, c] - curColNum
-                    curColNum = inputGrid[r, c]
+                firstNonZero = int(inputGrid[r, c])
+                if firstNonZero > 0.0:
+                    firstNonZeroIndVect[c] = r
+                    firstNonZeroVect[c] = firstNonZero
+                    rolledInputGrid[:, c] = np.roll(inputGrid[:, c], (-r+firstNonZero-1), axis=0)
+                    break
 
-                if inputGrid[r, c] == curColNum:
-                    curColNum += 1
-                    curRowNum += 1
-                    outputGrid[inputGrid[r, c]-1, c] = r+1
+        print "inputGrid = \n%s" % inputGrid
+
+        print "firstNonZeroIndVect = \n%s" % firstNonZeroIndVect
+        print "firstNonZeroVect = \n%s" % firstNonZeroVect
+
+        outputGrid = self.add_toConvolePat(rolledInputGrid,
+                                           firstNonZeroIndVect,
+                                           firstNonZeroVect,
+                                           self.col_num)
+
+        print "outputGrid = \n%s" % outputGrid
 
         return outputGrid
 
@@ -560,10 +585,10 @@ class inhibitionCalculator():
         overlapsGridTie = self.add_tieBreaker(overlapsGrid, tieBreaker)
         print "overlapsGridTie = \n%s" % overlapsGridTie
         # Calculate the overlaps associated with columns that can be inhibited.
-        colOverlapMat = self.getColInhibInputs(overlapsGridTie)
-        #print "colOverlapMat = \n%s" % colOverlapMat
+        colOverlapMatOrig = self.getColInhibInputs(overlapsGridTie)
+        #print "colOverlapMatOrig = \n%s" % colOverlapMatOrig
 
-        activeCols = self.calculateActiveCol(colOverlapMat)
+        activeCols = self.calculateActiveCol(colOverlapMatOrig)
         activeColumnVect = self.calculateActiveColumnVect(activeCols, self.inhibCols)
         self.inhibCols, notInhibOrActNum = self.calculateInhibCols(activeColumnVect)
 
@@ -577,19 +602,22 @@ class inhibitionCalculator():
 
         # If notInhibOrActNum is larger then zero then do the following in a loop:
         # Calculate an updated colWinners matrix by looking at each position in the
-        # colOverlapMat and see if that column represented in that position is
+        # colOverlapMatOrig and see if that column represented in that position is
         # now inhibited. If so set its overlap value to zero and recalculate the
         # sortedColOverlapMat. Then recalculate the minOverlapIndex for that column.
 
         #print "self.colConvolePatternIndex = \n%s" % self.colConvolePatternIndex
-        #print "old colOverlapMat = \n%s" % colOverlapMat
+        #print "old colOverlapMatOrig = \n%s" % colOverlapMatOrig
         loopedTimes = 0
         while notInhibOrActNum > 0:
             loopedTimes += 1
-            colOverlapMat = self.check_inhibCols(colOverlapMat,
+            print "colOverlapMatOrig = \n%s" % colOverlapMatOrig
+            print "self.colConvolePatternIndex = \n%s" % self.colConvolePatternIndex
+            print "self.inhibCols \n%s" % self.inhibCols
+            colOverlapMat = self.check_inhibCols(colOverlapMatOrig,
                                                  self.colConvolePatternIndex,
                                                  self.inhibCols)
-            #print "colOverlapMat = \n%s" % colOverlapMat
+            print "colOverlapMat = \n%s" % colOverlapMat
 
             activeCols = self.calculateActiveCol(colOverlapMat)
             activeColumnVect = self.calculateActiveColumnVect(activeCols, self.inhibCols)
@@ -599,9 +627,6 @@ class inhibitionCalculator():
             activeColumns = activeColumnVect.reshape((self.height, self.width))
             print "activeColumns = \n%s" % activeColumns
             print "original overlaps = \n%s" % overlapsGrid
-
-            # if loopedTimes == 2:
-            #     break
 
         return activeColumnVect
 
@@ -617,11 +642,11 @@ class inhibitionCalculator():
 
 if __name__ == '__main__':
 
-    potWidth = 3
-    potHeight = 3
+    potWidth = 4
+    potHeight = 4
     centerInhib = 1
-    numRows = 4
-    numCols = 5
+    numRows = 40
+    numCols = 50
     desiredLocalActivity = 1
 
      # Some made up inputs to test with
@@ -633,10 +658,7 @@ if __name__ == '__main__':
 
     activeColumns = inhibCalculator.calculateWinningCols(colOverlapGrid)
 
-    activeColumns = activeColumns.reshape((numRows, numCols))
-    #print "activeColumns = \n%s" % activeColumns
-    #print "original overlaps = \n%s" % colOverlapGrid
+    #activeColumns = activeColumns.reshape((numRows, numCols))
 
-    #print "activeColumns = \n%s" % activeColumns
 
 
