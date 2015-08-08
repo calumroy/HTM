@@ -642,11 +642,11 @@ class inhibitionCalculator():
 
 if __name__ == '__main__':
 
-    potWidth = 4
-    potHeight = 4
+    potWidth = 10
+    potHeight = 10
     centerInhib = 1
-    numRows = 40
-    numCols = 50
+    numRows = 80
+    numCols = 80
     desiredLocalActivity = 1
 
      # Some made up inputs to test with

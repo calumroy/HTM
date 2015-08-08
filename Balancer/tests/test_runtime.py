@@ -14,8 +14,8 @@ testParameters = {
                         {
                         'numLevels': 1,
                         'columnArrayWidth': 80,
-                        'columnArrayHeight': 20,
-                        'cellsPerColumn': 10,
+                        'columnArrayHeight': 80,
+                        'cellsPerColumn': 2,
 
                         'HTMRegions': [{
                             'numLayers': 1,

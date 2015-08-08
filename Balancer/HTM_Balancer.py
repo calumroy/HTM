@@ -1086,7 +1086,6 @@ class HTMLayer:
                 if c.overlapDutyCycle < c.minDutyCycle:
                     self.increasePermanence(c, 0.1*self.connectPermanence)
 
-
     def updateActiveState(self, timeStep):
         """
         First function called to update the sequence pooler.

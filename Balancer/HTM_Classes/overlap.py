@@ -182,7 +182,7 @@ class OverlapCalculator():
         # minOverlap value to zero.
         self.minOverlap = minOverlap
         newColOverlapVals = self.checkMinOverlap(colOverlapVals)
-        print newColOverlapVals
+        print "newColOverlapVals \n%s" % newColOverlapVals
         return newColOverlapVals
 
 
