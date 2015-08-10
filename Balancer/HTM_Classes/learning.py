@@ -24,7 +24,13 @@ This class requires as inputs:
 
 
 class LearningCalculator():
-    def __init__(self, spatialPermanenceInc, spatialPermanenceDec):
+    def __init__(self,
+                 numColumns,
+                 numPotSynapses,
+                 spatialPermanenceInc,
+                 spatialPermanenceDec):
+        self.numColumns = numColumns
+        self.numPotSynapses = numPotSynapses
         self.spatialPermanenceInc = spatialPermanenceInc
         self.spatialPermanenceDec = spatialPermanenceDec
 
@@ -35,16 +41,18 @@ class LearningCalculator():
         self.col_PotInputsMat = T.matrix(dtype='int32')
         self.col_SynPermMat = T.matrix(dtype='float32')
         self.col_ActiveColVect = T.vector(dtype='int32')
-        self.col_num2 = T.matrix(dtype='int32')
-        self.check_inputAct = T.switch(T.gt(self.colOMat, 0), 1, 0)
-        self.check_gtZero = T.switch(T.gt(self.col_ActiveColVect[self.col_num2-1], 0),
-                                     self.check_inputAct, 0)
+        self.row_num2 = T.matrix(dtype='int32')
+        self.check_inputAct = T.switch(T.gt(self.col_PotInputsMat, 0),
+                                       self.col_SynPermMat + self.spatialPermanenceInc,
+                                       self.col_SynPermMat - self.spatialPermanenceDec)
+        self.check_colIsActive = T.switch(T.gt(self.col_ActiveColVect[self.row_num2], 0),
+                                          self.check_inputAct, self.col_SynPermMat)
         #self.indexActCol = tensor.eq(self.check_gteq_minLocAct, 1).nonzero()
         self.get_updateSynPerm = function([self.col_SynPermMat,
                                            self.col_PotInputsMat,
                                            self.col_ActiveColVect,
-                                           self.col_num2],
-                                          self.check_gtZero,
+                                           self.row_num2],
+                                          self.check_colIsActive,
                                           on_unused_input='warn',
                                           allow_input_downcast=True
                                           )
@@ -52,31 +60,46 @@ class LearningCalculator():
         #### END of Theano functions and variables definitions
         #################################################################
         # Create a matrix that just holds the column number for each element
-        self.col_num = np.array([[i for i in range(self.potentialWidth*self.potentialHeight)]
-                                for j in range(self.width*self.height)])
+        self.row_num = np.array([[j for i in range(self.numPotSynapses)]
+                                for j in range(self.numColumns)])
 
     def updatePermanenceValues(self, colSynPerm, colPotInputs, activeCols):
-        pass
+        newPermanceMat = self.get_updateSynPerm(colSynPerm,
+                                                colPotInputs,
+                                                activeCols,
+                                                self.row_num
+                                                )
+        print "newPermanceMat = \n%s" % newPermanceMat
+
+        return newPermanceMat
 
 
 if __name__ == '__main__':
 
     numRows = 4
     numCols = 4
-    spatialPermanenceInc = 0.1
-    spatialPermanenceDec = 0.01
-    numPotSyn = 9
+    spatialPermanenceInc = 1.0
+    spatialPermanenceDec = 1.0
+    numPotSyn = 4
     numColumns = numRows * numCols
     # Create an array representing the permanences of colums synapses
     colSynPerm = np.random.rand(numColumns, numPotSyn)
     # Create an array representing the potential inputs to each column
-    colSynPerm = np.random.randint(2, size=(numRows, numCols))
+    colPotInputsMat = np.random.randint(2, size=(numColumns, numPotSyn))
     # Create an array representing the active columns
     activeCols = np.random.randint(2, size=(numColumns))
 
-    permanenceUpdater = LearningCalculator(spatialPermanenceInc,
+    print "colSynPerm = \n%s" % colSynPerm
+    print "colPotInputsMat = \n%s" % colPotInputsMat
+    print "activeCols = \n%s" % activeCols
+
+    permanenceUpdater = LearningCalculator(numColumns,
+                                           numPotSyn,
+                                           spatialPermanenceInc,
                                            spatialPermanenceDec)
 
-
+    colSynPerm = permanenceUpdater.updatePermanenceValues(colSynPerm,
+                                                          colPotInputsMat,
+                                                          activeCols)
 
 
