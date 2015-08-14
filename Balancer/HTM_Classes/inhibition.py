@@ -640,25 +640,25 @@ class inhibitionCalculator():
         return sortedColOverlapsVals
 
 
-if __name__ == '__main__':
+# if __name__ == '__main__':
 
-    potWidth = 10
-    potHeight = 10
-    centerInhib = 1
-    numRows = 80
-    numCols = 80
-    desiredLocalActivity = 1
+#     potWidth = 10
+#     potHeight = 10
+#     centerInhib = 1
+#     numRows = 80
+#     numCols = 80
+#     desiredLocalActivity = 1
 
-     # Some made up inputs to test with
-    colOverlapGrid = np.random.randint(10, size=(numRows, numCols))
+#     # Some made up inputs to test with
+#     colOverlapGrid = np.random.randint(10, size=(numRows, numCols))
 
-    inhibCalculator = inhibitionCalculator(numCols, numRows,
-                                           potWidth, potHeight,
-                                           desiredLocalActivity, centerInhib)
+#     inhibCalculator = inhibitionCalculator(numCols, numRows,
+#                                            potWidth, potHeight,
+#                                            desiredLocalActivity, centerInhib)
 
-    activeColumns = inhibCalculator.calculateWinningCols(colOverlapGrid)
+#     activeColumns = inhibCalculator.calculateWinningCols(colOverlapGrid)
 
-    #activeColumns = activeColumns.reshape((numRows, numCols))
+#     #activeColumns = activeColumns.reshape((numRows, numCols))
 
 
 

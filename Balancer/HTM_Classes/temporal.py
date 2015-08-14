@@ -130,29 +130,29 @@ class TemporalPoolCalculator():
         print "newTempPoolOverlapVals = \n%s" % newTempPoolOverlapVals
 
 
-if __name__ == '__main__':
+# if __name__ == '__main__':
 
-    potWidth = 2
-    potHeight = 2
-    centerPotSynapses = 1
-    minOverlap = 2
-    historyLen = 2
-    numCols = 16
-    timeStep = 4
+#     potWidth = 2
+#     potHeight = 2
+#     centerPotSynapses = 1
+#     minOverlap = 2
+#     historyLen = 2
+#     numCols = 16
+#     timeStep = 4
 
-    tempPooler = TemporalPoolCalculator(potWidth, potHeight, minOverlap)
+#     tempPooler = TemporalPoolCalculator(potWidth, potHeight, minOverlap)
 
-    # Some made up inputs to test with
-    colActNotBurst = np.random.randint(7, size=(numCols, historyLen))
-    colOverlapVals = np.random.randint(potWidth * potHeight, size=(numCols))
-    colInputPotSyn = np.random.randint(2, size=(numCols, potWidth * potHeight))
-    colStopTempAtTime = np.random.randint(2, size=(numCols))
-    # To get the above input array from a htm use something like the following
-    # allCols = self.htm.regionArray[0].layerArray[0].columns.flatten()
-    # colActNotBurst = np.array([allCols[j].activeStateArray for j in range(1600)])
-    # colStopTempAtTime = np.array([allCols[j].stopTempAtTime for j in range(1600)])
-    # Get colInputPotSyn from the overlap theano class.
+#     # Some made up inputs to test with
+#     colActNotBurst = np.random.randint(7, size=(numCols, historyLen))
+#     colOverlapVals = np.random.randint(potWidth * potHeight, size=(numCols))
+#     colInputPotSyn = np.random.randint(2, size=(numCols, potWidth * potHeight))
+#     colStopTempAtTime = np.random.randint(2, size=(numCols))
+#     # To get the above input array from a htm use something like the following
+#     # allCols = self.htm.regionArray[0].layerArray[0].columns.flatten()
+#     # colActNotBurst = np.array([allCols[j].activeStateArray for j in range(1600)])
+#     # colStopTempAtTime = np.array([allCols[j].stopTempAtTime for j in range(1600)])
+#     # Get colInputPotSyn from the overlap theano class.
 
-    tempPooler.calculateTemporalPool(colActNotBurst, timeStep, colOverlapVals,
-                                     colInputPotSyn, colStopTempAtTime)
+#     tempPooler.calculateTemporalPool(colActNotBurst, timeStep, colOverlapVals,
+#                                      colInputPotSyn, colStopTempAtTime)
 

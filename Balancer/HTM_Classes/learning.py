@@ -74,32 +74,32 @@ class LearningCalculator():
         return newPermanceMat
 
 
-if __name__ == '__main__':
+# if __name__ == '__main__':
 
-    numRows = 4
-    numCols = 4
-    spatialPermanenceInc = 1.0
-    spatialPermanenceDec = 1.0
-    numPotSyn = 4
-    numColumns = numRows * numCols
-    # Create an array representing the permanences of colums synapses
-    colSynPerm = np.random.rand(numColumns, numPotSyn)
-    # Create an array representing the potential inputs to each column
-    colPotInputsMat = np.random.randint(2, size=(numColumns, numPotSyn))
-    # Create an array representing the active columns
-    activeCols = np.random.randint(2, size=(numColumns))
+#     numRows = 4
+#     numCols = 4
+#     spatialPermanenceInc = 1.0
+#     spatialPermanenceDec = 1.0
+#     numPotSyn = 4
+#     numColumns = numRows * numCols
+#     # Create an array representing the permanences of colums synapses
+#     colSynPerm = np.random.rand(numColumns, numPotSyn)
+#     # Create an array representing the potential inputs to each column
+#     colPotInputsMat = np.random.randint(2, size=(numColumns, numPotSyn))
+#     # Create an array representing the active columns
+#     activeCols = np.random.randint(2, size=(numColumns))
 
-    print "colSynPerm = \n%s" % colSynPerm
-    print "colPotInputsMat = \n%s" % colPotInputsMat
-    print "activeCols = \n%s" % activeCols
+#     print "colSynPerm = \n%s" % colSynPerm
+#     print "colPotInputsMat = \n%s" % colPotInputsMat
+#     print "activeCols = \n%s" % activeCols
 
-    permanenceUpdater = LearningCalculator(numColumns,
-                                           numPotSyn,
-                                           spatialPermanenceInc,
-                                           spatialPermanenceDec)
+#     permanenceUpdater = LearningCalculator(numColumns,
+#                                            numPotSyn,
+#                                            spatialPermanenceInc,
+#                                            spatialPermanenceDec)
 
-    colSynPerm = permanenceUpdater.updatePermanenceValues(colSynPerm,
-                                                          colPotInputsMat,
-                                                          activeCols)
+#     colSynPerm = permanenceUpdater.updatePermanenceValues(colSynPerm,
+#                                                           colPotInputsMat,
+#                                                           activeCols)
 
 
