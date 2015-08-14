@@ -13,8 +13,8 @@ testParameters = {
                     'HTM':
                         {
                         'numLevels': 1,
-                        'columnArrayWidth': 80,
-                        'columnArrayHeight': 80,
+                        'columnArrayWidth': 26,
+                        'columnArrayHeight': 29,
                         'cellsPerColumn': 2,
 
                         'HTMRegions': [{
@@ -37,9 +37,9 @@ testParameters = {
                                 'Columns': [{
                                     'minOverlap': 3,
                                     'boost': 1,
-                                    'inhibitionRadius': 2,
-                                    'potentialWidth': 10,
-                                    'potentialHeight': 10,
+                                    'inhibitionRadius': 1,
+                                    'potentialWidth': 4,
+                                    'potentialHeight': 4,
                                     'spatialPermanenceInc': 0.1,
                                     'spatialPermanenceDec': 0.02,
                                     'permanenceInc': 0.1,
@@ -139,9 +139,9 @@ class test_RunTime:
 
         #from PyQt4.QtCore import pyqtRemoveInputHook; import ipdb; pyqtRemoveInputHook(); ipdb.set_trace()
 
-        # app = QtGui.QApplication(sys.argv)
-        # self.htmGui = GUI_HTM.HTMGui(self.htm, self.InputCreator)
-        # sys.exit(app.exec_())
+        app = QtGui.QApplication(sys.argv)
+        self.htmGui = GUI_HTM.HTMGui(self.htm, self.InputCreator)
+        sys.exit(app.exec_())
 
         #from PyQt4.QtCore import pyqtRemoveInputHook; import ipdb; pyqtRemoveInputHook(); ipdb.set_trace()
         assert 1 == 1

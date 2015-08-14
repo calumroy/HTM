@@ -12,6 +12,11 @@ import copy
 from utilities import sdrFunctions as SDRFunct
 import Thalamus
 
+from HTM_Classes import temporal
+from HTM_Classes import overlap
+from HTM_Classes import inhibition
+from HTM_Classes import learning
+
 ##Struct = {'field1': 'some val', 'field2': 'some val'}
 ##myStruct = { 'num': 1}
 
@@ -206,14 +211,64 @@ class HTMLayer:
         # It is larger then the input by a factor of the number of cells per column
         self.output = np.array([[0 for i in range(self.width * self.cellsPerColumn)] for j in range(self.height)])
         self.activeColumns = np.array([], dtype=object)
-
         # The starting permance of new synapses. This is used to create new synapses.
         self.synPermanence = params['synPermanence']
-
+        # Define the distance between successive columns overlap input pools.
+        # These are calculated in the updatePotentialSynapses function.
+        self.colInputRatioHeight = 0
+        self.colInputRatioWidth = 0
         # Create the array storing the columns
         self.columns = np.array([[]], dtype=object)
         # Setup the columns array.
         self.setupColumns(params['Columns'])
+
+        # Setup the theano classes used for calculating
+        # spatial, temporal and sequence pooling.
+        self.setupCalculators()
+
+    def setupCalculators(self):
+        # These parameters come from the column class.
+        # Just take the parameters form the first column.
+        potWidth = self.columns[0][0].potentialWidth
+        potHeight = self.columns[0][0].potentialHeight
+        minOverlap = self.columns[0][0].minOverlap
+        spatialPermanenceInc = self.columns[0][0].spatialPermanenceInc
+        spatialPermanenceDec = self.columns[0][0].spatialPermanenceDec
+        inputHeight = len(self.Input)
+        inputWidth = len(self.Input[0])
+
+        desiredLocalActivity = self.desiredLocalActivity
+        connectedPerm = self.connectPermanence
+        numRows = self.height
+        numCols = self.width
+
+        centerPotSynapses = self.centerPotSynapses
+        centerInhib = 1
+
+        self.numPotSyn = potWidth * potHeight
+        self.numColumns = self.height * self.width
+
+        self.tempPoolCalc = temporal.TemporalPoolCalculator(potWidth, potHeight, minOverlap)
+
+        # Create an instance of the overlap calculation class
+        self.overlapCalc = overlap.OverlapCalculator(potWidth,
+                                                     potHeight,
+                                                     self.colInputRatioWidth,
+                                                     self.colInputRatioHeight,
+                                                     inputWidth,
+                                                     inputHeight,
+                                                     centerPotSynapses,
+                                                     connectedPerm,
+                                                     minOverlap)
+
+        self.inhibCalc = inhibition.inhibitionCalculator(numCols, numRows,
+                                                         potWidth, potHeight,
+                                                         desiredLocalActivity, centerInhib)
+
+        self.permanenceCalc = learning.LearningCalculator(self.numColumns,
+                                                          self.numPotSyn,
+                                                          spatialPermanenceInc,
+                                                          spatialPermanenceDec)
 
     def setupColumns(self, columnParams):
         # Get just the parameters for the columns
@@ -235,6 +290,15 @@ class HTMLayer:
         for i in range(len(self.columns)):
             for c in self.columns[i]:
                 self.updatePotentialSynapses(c)
+
+    def getPermanence(self, column, PotSynpaseIndex):
+        # Try to return the permance of the potential synapse.
+        Perm = 0
+        try:
+            Perm = column.potentialSynapses[PotSynpaseIndex].permanence
+        except IndexError:
+            pass
+        return Perm
 
     def columnActiveNotBursting(self, col, timeStep):
         # Calculate which cell in a given column at the given time was active but not bursting.
@@ -358,12 +422,15 @@ class HTMLayer:
         columnHeight = len(self.columns)
         columnWidth = len(self.columns[0])
         # Calculate the ratio between columns and the input space.
-        colInputRatioHeight = float(inputHeight) / float(columnHeight)
-        colInputRatioWidth = float(inputWidth) / float(columnWidth)
+        self.colInputRatioHeight = int(float(inputHeight) / float(columnHeight))
+        self.colInputRatioWidth = int(float(inputWidth) / float(columnWidth))
+
+        #from PyQt4.QtCore import pyqtRemoveInputHook; import ipdb; pyqtRemoveInputHook(); ipdb.set_trace()
+
         # Cast the y position to an int so it matches up with a row number.
-        inputCenter_y = int(c.pos_y*colInputRatioHeight)
+        inputCenter_y = int(c.pos_y*self.colInputRatioHeight)
         # Cast the x position to an int so it matches up with a column number.
-        inputCenter_x = int(c.pos_x*colInputRatioWidth)
+        inputCenter_x = int(c.pos_x*self.colInputRatioWidth)
 
         # Define a range of pos values around the column depending on parameters.
         # This forms a rectangle of input squares that are covered by the pot synapses.
@@ -986,6 +1053,25 @@ class HTMLayer:
         number of columns. Columns temporally pool using their potential synapses,
         where normal colum activation only counts connected synapses.
         """
+
+        allCols = self.columns.flatten()
+        print "HTM columns num cols = %s, num rows = %s" % (self.width, self.height)
+        print "len(allCols) = %s" % len(allCols)
+        print "self.numColumns = %s" % self.numColumns
+        print "self.numPotSyn = %s" % self.numPotSyn
+        print "len(allCols[0].potentialSynapses) = %s" % len(allCols[0].potentialSynapses)
+        colPotSynPerm = np.array([[self.getPermanence(c, i)
+                                  for i in range(self.numPotSyn)]
+                                  for c in allCols])
+
+        print "len(self.input) = %s len(self.input[0]) = %s " % (len(self.Input), len(self.Input[0]))
+        print "len(colPotSynPerm) = %s len(colPotSynPerm[0]) = %s" % (len(colPotSynPerm), len(colPotSynPerm[0]))
+        # #from PyQt4.QtCore import pyqtRemoveInputHook; import ipdb; pyqtRemoveInputHook(); ipdb.set_trace()
+
+        colOverlaps, colPotInputs = self.overlapCalc.calculateOverlap(colPotSynPerm, self.Input)
+        print "len(colOverlaps) = %s" % len(colOverlaps)
+        print "colOverlaps = \n%s" % colOverlaps
+
         for i in range(len(self.columns)):
             for c in self.columns[i]:
                 c.overlap = 0.0
