@@ -42,7 +42,7 @@ This is the sum of 1's for each columns input.
 
 class OverlapCalculator():
     def __init__(self, potentialWidth, potentialHeight,
-                 stepX, stepY,
+                 columnsWidth, columnsHeight,
                  inputWidth, inputHeight,
                  centerPotSynapses, connectedPerm,
                  minOverlap):
@@ -55,21 +55,19 @@ class OverlapCalculator():
         self.potentialHeight = potentialHeight
         self.connectedPermParam = connectedPerm
         self.minOverlap = minOverlap
-        # StepX and Step Y describe how far each
-        # columns potential synapses differ from the adjacent
-        # columns in the X and Y directions.
-        self.stepX = stepX
-        self.stepY = stepY
         self.inputWidth = inputWidth
         self.inputHeight = inputHeight
         # Calculate how many columns are expected from these
         # parameters.
-        numColumnsWidth = int(math.ceil(float(self.inputWidth)/float(self.stepX)))
-        numColumnsHeight = int(math.ceil(float(self.inputHeight)/float(self.stepY)))
-        self.numColumns = numColumnsWidth * numColumnsHeight
-
-        # Check that these input parameters are ok
-        self.assertInputs()
+        self.columnsWidth = columnsWidth
+        self.columnsHeight = columnsHeight
+        self.numColumns = columnsWidth * columnsHeight
+        # StepX and Step Y describe how far each
+        # columns potential synapses differ from the adjacent
+        # columns in the X and Y directions. These parameters can't
+        # change as theano uses them to setup functions.
+        self.stepX, self.stepY = self.getStepSizes(inputWidth, inputHeight,
+                                                   self.columnsWidth, self.columnsHeight)
 
         # Create theano variables and functions
         ############################################
@@ -85,7 +83,7 @@ class OverlapCalculator():
         self.pool_inp = T.tensor4('pool_input', dtype='float32')
         self.pool_convole = images2neibs(self.pool_inp, self.neib_shape, self.neib_step, mode='valid')
         self.pool_inputs = function([self.pool_inp],
-                                    [self.pool_convole],
+                                    self.pool_convole,
                                     on_unused_input='warn',
                                     allow_input_downcast=True)
 
@@ -119,12 +117,26 @@ class OverlapCalculator():
                                         self.ch_over,
                                         allow_input_downcast=True)
 
-    def assertInputs(self):
-        # Make sure the input parameters are valid values.
-        assert self.stepX > 0
-        assert self.stepY > 0
-        assert self.stepX < self.inputWidth
-        assert self.stepY < self.inputHeight
+        # Create the theano function for calculating
+        # the x and y indicies from a input element index.
+        # The input matrix contains a number representing a potential
+        # synapse and the position that the synpase connects to in the input
+        # grid. Convert this into a col, row index and output it into 2 matricies,
+        # one for the row number the second for the columns number.
+        # This gives the position info for all the potential synapse for every column.
+        self.inputGridWidth = T.scalar(dtype='int32')
+        #self.inputGridHeight = T.scalar(dtype='int32')
+        self.inputInd = T.matrix(dtype='int32')
+        self.potSyn_XYInd = (self.inputInd / self.inputGridWidth,
+                             self.inputInd % self.inputGridWidth)
+        self.check_notpadding = T.switch(T.gt(self.inputInd, 0), self.potSyn_XYInd, -1)
+        self.convert_indicesToXY = function([self.inputGridWidth,
+                                            #self.inputGridHeight,
+                                            self.inputInd],
+                                            self.potSyn_XYInd,
+                                            allow_input_downcast=True)
+
+        ########################### END THEANO ###############################
 
     def checkNewInputParams(self, newColSynPerm, newInput):
         # Check that the new input has the same dimensions as the
@@ -136,7 +148,7 @@ class OverlapCalculator():
         # the number of expected columns.
         assert self.numColumns == len(newColSynPerm)
 
-    def addPaddingToInput(self, inputGrid):
+    def addPaddingToInput(self, inputGrid, useZeroPadVal=True):
         topPos_y = 0
         bottomPos_y = 0
         leftPos_x = 0
@@ -181,6 +193,12 @@ class OverlapCalculator():
         if rightPos_x < 0:
             rightPos_x = 0
 
+        # Padding value
+        if useZeroPadVal is False:
+            padValue = -1
+        else:
+            padValue = 0
+
         # Add the padding around the edges of the inputGrid
         inputGrid = np.lib.pad(inputGrid,
                               ((0, 0),
@@ -188,11 +206,60 @@ class OverlapCalculator():
                                (topPos_y, bottomPos_y),
                                (leftPos_x, rightPos_x)),
                                'constant',
-                               constant_values=(0))
+                               constant_values=(padValue))
 
         print "inputGrid = \n%s" % inputGrid
 
         return inputGrid
+
+    def getPotentialSynapsePos(self, inputWidth, inputHeight):
+        # Return 2 matricies of x and y positions repectively
+        # that each column potential synpases connects to in the input.
+        # First create a matrix with the same dimensions as
+        # the inputGrid but where each position holds an index.
+        # The index is just a number representing that element in the inputGrid.
+        indexInputGrid = np.array([[i + j*inputWidth for i in range(inputWidth)] for j in range(inputHeight)])
+        print "indexInputGrid = \n%s" % indexInputGrid
+        # Take the input and put it into a 4D tensor.
+        # This is because the theano function images2neibs
+        # works with 4D tensors only.
+        indexInputGrid = np.array([[indexInputGrid]])
+
+        # Work out how far each columns pool of inputs should step
+        # so the entire input is covered equally in the convole.
+        self.stepX, self.stepY = self.getStepSizes(inputWidth, inputHeight,
+                                                   self.columnsWidth, self.columnsHeight)
+        print "self.stepX = %s, self.stepY = %s" % (self.stepX, self.stepY)
+        # work out how much padding is needed on the borders
+        # using the defined potential width and potential height.
+        indexInputGrid = self.addPaddingToInput(indexInputGrid, False)
+
+        print "indexInputGrid.shape = %s,%s,%s,%s" % indexInputGrid.shape
+        print "self.potentialWidth = %s" % self.potentialWidth
+        print "self.potentialHeight = %s" % self.potentialHeight
+        print "self.stepX = %s, self.stepY = %s" % (self.stepX, self.stepY)
+        print "inputWidth = %s, inputHeight = %s" % (inputWidth, inputHeight)
+        # Calculate the inputs to each column.
+        inputPotSynIndex = self.pool_inputs(indexInputGrid)
+        print "inputPotSynIndex = \n%s" % inputPotSynIndex
+
+        # Now turn the inputPotSynIndex into two matricies where the first
+        # holds the x and the second holds the y indicies for the element
+        # in the inpuGrid that a potential synapse connects to.
+        potSynXYIndex = self.convert_indicesToXY(inputWidth,
+                                                 inputPotSynIndex)
+        print "potSynXYIndex = \n%s" % potSynXYIndex
+
+        return potSynXYIndex
+
+    def getStepSizes(self, inputWidth, inputHeight, colWidth, colHeight):
+        # Work out how large to make the step sizes so all of the
+        # inputGrid can be covered as best as possible by the columns
+        # potential synapses.
+
+        stepX = int(math.ceil(float(inputWidth)/float(colWidth)))
+        stepY = int(math.ceil(float(inputHeight)/float(colHeight)))
+        return stepX, stepY
 
     def getColInputs(self, inputGrid):
         # Take the input and put it into a 4D tensor.
@@ -215,8 +282,8 @@ class OverlapCalculator():
         inputConPotSyn = self.pool_inputs(inputGrid)
         # The returned array is within a list so just use pos 0.
         #print "inputConPotSyn = \n%s" % inputConPotSyn[0]
-        print "inputConPotSyn.shape = %s,%s" % inputConPotSyn[0].shape
-        return inputConPotSyn[0]
+        print "inputConPotSyn.shape = %s,%s" % inputConPotSyn.shape
+        return inputConPotSyn
 
     def calculateOverlap(self, colSynPerm, inputGrid):
         # Check that the new inputs are the same dimensions as the old ones
@@ -244,22 +311,17 @@ class OverlapCalculator():
 
 if __name__ == '__main__':
 
-    potWidth = 4
+    potWidth = 1
     potHeight = 1
     centerPotSynapses = 1
-    numInputRows = 8
-    numInputCols = 10
+    numInputRows = 4
+    numInputCols = 4
     numColumnRows = 8
     numColumnCols = 4
     connectedPerm = 0.3
     minOverlap = 3
     numPotSyn = potWidth * potHeight
     numColumns = numColumnRows * numColumnCols
-
-    # Calculate what the stepX and stepY values should be so
-    # that the entire input is covered by the potential Synapses.
-    stepX = 4
-    stepY = 1
 
     # Create an array representing the permanences of colums synapses
     colSynPerm = np.random.rand(numColumns, numPotSyn)
@@ -273,8 +335,8 @@ if __name__ == '__main__':
     # Create an instance of the overlap calculation class
     overlapCalc = OverlapCalculator(potWidth,
                                     potHeight,
-                                    stepX,
-                                    stepY,
+                                    numColumnCols,
+                                    numColumnRows,
                                     numInputCols,
                                     numInputRows,
                                     centerPotSynapses,
@@ -284,15 +346,17 @@ if __name__ == '__main__':
     print "newInputMat = \n%s" % newInputMat
     #potSyn = np.random.rand(1, 1, 4, 4)
 
-    # Return both the overlap values and the inputs from
-    # the potential synapses to all columns.
-    colOverlaps, colPotInputs = overlapCalc.calculateOverlap(colSynPerm, newInputMat)
-    print "len(colOverlaps) = %s" % len(colOverlaps)
-    print "colOverlaps = \n%s" % colOverlaps
+    overlapCalc.getPotentialSynapsePos(numInputCols, numInputRows)
 
-    # limit the overlap values so they are larger then minOverlap
-    colInputs = overlapCalc.removeSmallOverlaps(colOverlaps)
+    # # Return both the overlap values and the inputs from
+    # # the potential synapses to all columns.
+    # colOverlaps, colPotInputs = overlapCalc.calculateOverlap(colSynPerm, newInputMat)
+    # print "len(colOverlaps) = %s" % len(colOverlaps)
+    # print "colOverlaps = \n%s" % colOverlaps
 
-    print "colPotInputs = \n%s" % colPotInputs
+    # # limit the overlap values so they are larger then minOverlap
+    # colInputs = overlapCalc.removeSmallOverlaps(colOverlaps)
+
+    # print "colPotInputs = \n%s" % colPotInputs
 
 
