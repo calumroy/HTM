@@ -41,7 +41,7 @@ def do_cprofile(func):
 
 
 class Synapse:
-    def __init__(self, input, pos_x, pos_y, cellIndex, permanence):
+    def __init__(self, pos_x, pos_y, cellIndex, permanence):
             # Cell is -1 if the synapse connects the HTM layers input.
             # Otherwise it is a horizontal connection to the cell.
             # The start is at a column or cells position the end is at
@@ -213,10 +213,6 @@ class HTMLayer:
         self.activeColumns = np.array([], dtype=object)
         # The starting permance of new synapses. This is used to create new synapses.
         self.synPermanence = params['synPermanence']
-        # Define the distance between successive columns overlap input pools.
-        # These are calculated in the updatePotentialSynapses function.
-        self.colInputRatioHeight = 0
-        self.colInputRatioWidth = 0
         # Create the array storing the columns
         self.columns = np.array([[]], dtype=object)
         # Setup the columns array.
@@ -225,6 +221,10 @@ class HTMLayer:
         # Setup the theano classes used for calculating
         # spatial, temporal and sequence pooling.
         self.setupCalculators()
+
+        # Initialise the columns potential synapses.
+        # Work out the potential feedforward connections each column could make to the input.
+        self.setupPotentialSynapses(len(self.Input[0]), len(self.Input))
 
     def setupCalculators(self):
         # These parameters come from the column class.
@@ -253,8 +253,8 @@ class HTMLayer:
         # Create an instance of the overlap calculation class
         self.overlapCalc = overlap.OverlapCalculator(potWidth,
                                                      potHeight,
-                                                     self.colInputRatioWidth,
-                                                     self.colInputRatioHeight,
+                                                     self.width,
+                                                     self.height,
                                                      inputWidth,
                                                      inputHeight,
                                                      centerPotSynapses,
@@ -284,12 +284,6 @@ class HTMLayer:
                                          )
                                 for i in range(self.width)] for
                                 j in range(self.height)], dtype=object)
-
-        # Initialise the columns potential synapses.
-        # Work out the potential feedforward connections each column could make to the input.
-        for i in range(len(self.columns)):
-            for c in self.columns[i]:
-                self.updatePotentialSynapses(c)
 
     def getPermanence(self, column, PotSynpaseIndex):
         # Try to return the permance of the potential synapse.
@@ -382,17 +376,6 @@ class HTMLayer:
                 connSyn.append(c.potentialSynapses[i])
         c.connectedSynapses = np.append(c.connectedSynapses, connSyn)
 
-    def changeColsPotRadius(self, newPotentialWidth, newPotentialHeight):
-        # Change the potential radius of all the columns
-        # This means the potential synapse list for all the
-        # columns needs to be updated as well.
-        for k in range(len(self.columns)):
-            for c in self.columns[k]:
-                c.potentialWidth = newPotentialWidth
-                c.potentialHeight = newPotentialHeight
-                # Update the potential synapses since the potential radius has changed
-                self.updatePotentialSynapses(c)
-
     def changeColsInhibRadius(self, newInhibRadius):
         # Change the inhibition radius of all the columns
         for k in range(len(self.columns)):
@@ -411,52 +394,31 @@ class HTMLayer:
             for c in self.columns[k]:
                 c.spatialPermanenceDec = newPermanenceDec
 
-    def updatePotentialSynapses(self, c):
-        # Update the locations of the potential synapses for column c.
-        # If the input is larger than the number of columns then
-        # the columns are evenly spaced out over the input.
-        # First initialize the list to null
-        c.potentialSynapses = np.array([])
-        inputHeight = len(self.Input)
-        inputWidth = len(self.Input[0])
-        columnHeight = len(self.columns)
-        columnWidth = len(self.columns[0])
-        # Calculate the ratio between columns and the input space.
-        self.colInputRatioHeight = int(float(inputHeight) / float(columnHeight))
-        self.colInputRatioWidth = int(float(inputWidth) / float(columnWidth))
+    def setupPotentialSynapses(self, inputWidth, inputHeight):
+        # setup the locations of the potential synapses for every column.
+        # Don't use this function to change the potential synapse list it
+        # won't work as the theano class uses the intial parameters to
+        # setup theano functions which workout the potential list.
+        # Call the theano overlap class with the parameters
+        # to obtain a list of x and y positions in the input that each
+        # column can connect a potential synapse to.
+        columnPotSynPositions = self.overlapCalc.getPotentialSynapsePos(inputWidth, inputHeight)
 
-        #from PyQt4.QtCore import pyqtRemoveInputHook; import ipdb; pyqtRemoveInputHook(); ipdb.set_trace()
-
-        # Cast the y position to an int so it matches up with a row number.
-        inputCenter_y = int(c.pos_y*self.colInputRatioHeight)
-        # Cast the x position to an int so it matches up with a column number.
-        inputCenter_x = int(c.pos_x*self.colInputRatioWidth)
-
-        # Define a range of pos values around the column depending on parameters.
-        # This forms a rectangle of input squares that are covered by the pot synapses.
-        if self.centerPotSynapses == 0:
-            # This setting is used for the command space.
-            topPos_y = inputCenter_y
-            bottomPos_y = inputCenter_y+c.potentialHeight
-            leftPos_x = inputCenter_x
-            rightPos_x = inputCenter_x+c.potentialWidth
-        else:
-            # This setting is used for normal input space.
-            topPos_y = inputCenter_y - c.potentialHeight/2
-            bottomPos_y = inputCenter_y + c.potentialHeight/2 + 1
-            leftPos_x = inputCenter_x - c.potentialWidth/2
-            rightPos_x = inputCenter_x + c.potentialWidth/2 + 1
-
-        for y in range(int(topPos_y),
-                       int(bottomPos_y)):
-            if y >= 0 and y < inputHeight:
-                for x in range(int(leftPos_x),
-                               int(rightPos_x)):
-                    if x >= 0 and x < inputWidth:
-                        # Create a Synapse pointing to the HTM layers input
-                        #so the synapse cellIndex is -1
-                        c.potentialSynapses = np.append(c.potentialSynapses,
-                                                        [Synapse(self.Input, x, y, -1, self.synPermanence)])
+        # If the columns potential Width or height has changed then its
+        # length of potential synapses will have changed. If not just change
+        # each synpases parameters.
+        cInd = 0
+        for k in range(len(self.columns)):
+            for c in self.columns[k]:
+                numPotSynapse = c.potentialHeight * c.potentialWidth
+                assert numPotSynapse == len(columnPotSynPositions[0][0])
+                c.potentialSynapses = np.array([])
+                for i in range(numPotSynapse):
+                    y = columnPotSynPositions[0][cInd][i]
+                    x = columnPotSynPositions[1][cInd][i]
+                    c.potentialSynapses = np.append(c.potentialSynapses,
+                                                    [Synapse(x, y, -1, self.synPermanence)])
+                cInd += 1
 
     def neighbours(self, c):
         # returns a list of the columns that are within the inhibitionRadius of c
@@ -690,7 +652,7 @@ class HTMLayer:
                     if self.learnState(m, j, timeStep) is True:
                         #print "time = %s synapse ends at
                         # active cell x,y,i = %s,%s,%s"%(timeStep,m.pos_x,m.pos_y,j)
-                        synapseList.append(Synapse(0, m.pos_x, m.pos_y, j, self.synPermanence))
+                        synapseList.append(Synapse(m.pos_x, m.pos_y, j, self.synPermanence))
         # Take a random sample from the list synapseList
         # Check that there is at least one segment
         # and the segment index isnot -1 meaning
@@ -1066,9 +1028,11 @@ class HTMLayer:
 
         print "len(self.input) = %s len(self.input[0]) = %s " % (len(self.Input), len(self.Input[0]))
         print "len(colPotSynPerm) = %s len(colPotSynPerm[0]) = %s" % (len(colPotSynPerm), len(colPotSynPerm[0]))
+        print "colPotSynPerm = \n%s" % colPotSynPerm
         # #from PyQt4.QtCore import pyqtRemoveInputHook; import ipdb; pyqtRemoveInputHook(); ipdb.set_trace()
 
         colOverlaps, colPotInputs = self.overlapCalc.calculateOverlap(colPotSynPerm, self.Input)
+        print "self.Input = %s" % self.Input
         print "len(colOverlaps) = %s" % len(colOverlaps)
         print "colOverlaps = \n%s" % colOverlaps
 
