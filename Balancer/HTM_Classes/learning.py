@@ -69,7 +69,7 @@ class LearningCalculator():
                                                 activeCols,
                                                 self.row_num
                                                 )
-        print "newPermanceMat = \n%s" % newPermanceMat
+        #print "newPermanceMat = \n%s" % newPermanceMat
 
         return newPermanceMat
 

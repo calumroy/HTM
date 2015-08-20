@@ -36,12 +36,12 @@ class TemporalPoolCalculator():
 
         # Create the theano function for calculating
         # if the column was active but not bursting one timestep ago.
-        # Outputs a matrix where a one represents col active not burst at timestep.
-        self.colActNotBurst = T.matrix(dtype='float32')
-        self.timeStepMat = T.matrix(dtype='float32')
+        # Outputs a vector where a one represents a col active not burst at timestep.
+        self.colActNotBurst = T.vector(dtype='float32')
+        self.timeStepMat = T.vector(dtype='float32')
         self.moreRecent = T.switch(T.eq(self.colActNotBurst, self.timeStepMat),
                                    1.0, 0.0)
-        self.m = self.moreRecent.sum(axis=1)
+        self.m = self.moreRecent
         self.doTempPool = function([self.colActNotBurst, self.timeStepMat],
                                    self.m,
                                    mode=Mode(linker='vm'),
@@ -97,64 +97,62 @@ class TemporalPoolCalculator():
                               colInputPotSyn, colStopTempAtTime):
         # First check if the column should perform temp pooling.
         # This is done for all columns that where active but not bursting.
-        # Need to create a timestep matrix with same dimensions as colActNotBurst.
-        print "colActNotBurst = \n%s" % colActNotBurst
+        # Need to create a timestep matrix with same dimension as colActNotBurst.
+        # print "colActNotBurst = \n%s" % colActNotBurst
         numCols = len(colActNotBurst)
-        historyLen = len(colActNotBurst[0])
-        timeStepMat = np.array([[timeStep for i in range(historyLen)] for j in range(numCols)])
+        timeStepMat = np.array([timeStep for j in range(numCols)])
         timeStepVect = np.array([timeStep for j in range(numCols)])
-        print "timeStepMat = \n%s" % timeStepMat
-        doTempPoolMat = self.doTempPool(colActNotBurst, timeStepMat)
-        print "doTempPoolMat = \n%s" % doTempPoolMat
-        # In the doTempPoolMat each pos represents a col. If it has non zero
+        # print "timeStepMat = \n%s" % timeStepMat
+        doTempPoolVect = self.doTempPool(colActNotBurst, timeStepMat)
+        # print "doTempPoolVect = \n%s" % doTempPoolVect
+        # In the doTempPoolVect each pos represents a col. If it has non zero
         # value then that col should do temp pooling.
         # Update the columns stopTempAtTime variable.
         # If the overlap is less then minOverlap (zero since the
         # overlap values have already filtered smaller values to zero).
-        print "colOverlapVals = \n%s" % colOverlapVals
-        print "colStopTempAtTime = \n%s" % colStopTempAtTime
-        print "timeStepVect = \n%s" % timeStepVect
+        # print "colOverlapVals = \n%s" % colOverlapVals
+        # print "colStopTempAtTime = \n%s" % colStopTempAtTime
+        # print "timeStepVect = \n%s" % timeStepVect
         updatedTempStopTime = self.setStopTempPoolTimeZero(colOverlapVals,
                                                            colStopTempAtTime,
                                                            timeStepVect,
-                                                           doTempPoolMat
+                                                           doTempPoolVect
                                                            )
-        print "updatedTempStopTime = \n%s" % updatedTempStopTime
-        print "doTempPoolMat = \n%s" % doTempPoolMat
-        print "colInputPotSyn = \n%s" % colInputPotSyn
-        print "colOverlapVals = \n%s" % colOverlapVals
-        newTempPoolOverlapVals = self.calcPotOverlap(doTempPoolMat,
+        # print "updatedTempStopTime = \n%s" % updatedTempStopTime
+        # print "doTempPoolVect = \n%s" % doTempPoolVect
+        # print "colInputPotSyn = \n%s" % colInputPotSyn
+        # print "colOverlapVals = \n%s" % colOverlapVals
+        newTempPoolOverlapVals = self.calcPotOverlap(doTempPoolVect,
                                                      colInputPotSyn,
                                                      colOverlapVals
                                                      )
-        print "newTempPoolOverlapVals = \n%s" % newTempPoolOverlapVals
+        # print "newTempPoolOverlapVals = \n%s" % newTempPoolOverlapVals
 
         return newTempPoolOverlapVals, updatedTempStopTime
 
 
-# if __name__ == '__main__':
+if __name__ == '__main__':
 
-#     potWidth = 2
-#     potHeight = 2
-#     centerPotSynapses = 1
-#     minOverlap = 2
-#     historyLen = 2
-#     numCols = 16
-#     timeStep = 4
+    potWidth = 2
+    potHeight = 2
+    centerPotSynapses = 1
+    minOverlap = 2
+    numCols = 16
+    timeStep = 4
 
-#     tempPooler = TemporalPoolCalculator(potWidth, potHeight, minOverlap)
+    tempPooler = TemporalPoolCalculator(potWidth, potHeight, minOverlap)
 
-#     # Some made up inputs to test with
-#     colActNotBurst = np.random.randint(7, size=(numCols, historyLen))
-#     colOverlapVals = np.random.randint(potWidth * potHeight, size=(numCols))
-#     colInputPotSyn = np.random.randint(2, size=(numCols, potWidth * potHeight))
-#     colStopTempAtTime = np.random.randint(2, size=(numCols))
-#     # To get the above input array from a htm use something like the following
-#     # allCols = self.htm.regionArray[0].layerArray[0].columns.flatten()
-#     # colActNotBurst = np.array([allCols[j].activeStateArray for j in range(1600)])
-#     # colStopTempAtTime = np.array([allCols[j].stopTempAtTime for j in range(1600)])
-#     # Get colInputPotSyn from the overlap theano class.
+    # Some made up inputs to test with
+    colActNotBurst = np.random.randint(7, size=numCols)
+    colOverlapVals = np.random.randint(potWidth * potHeight, size=(numCols))
+    colInputPotSyn = np.random.randint(2, size=(numCols, potWidth * potHeight))
+    colStopTempAtTime = np.random.randint(2, size=(numCols))
+    # To get the above input array from a htm use something like the following
+    # allCols = self.htm.regionArray[0].layerArray[0].columns.flatten()
+    # colActNotBurst = np.array([allCols[j].activeStateArray for j in range(1600)])
+    # colStopTempAtTime = np.array([allCols[j].stopTempAtTime for j in range(1600)])
+    # Get colInputPotSyn from the overlap theano class.
 
-#     newTempPoolOverlapVals, updatedTempStopTime = tempPooler.calculateTemporalPool(colActNotBurst, timeStep, colOverlapVals,
-#                                                               colInputPotSyn, colStopTempAtTime)
+    newTempPoolOverlapVals, updatedTempStopTime = tempPooler.calculateTemporalPool(colActNotBurst, timeStep, colOverlapVals,
+                                                                                   colInputPotSyn, colStopTempAtTime)
 
