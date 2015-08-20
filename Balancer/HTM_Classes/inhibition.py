@@ -9,6 +9,7 @@ from theano.tensor.sort import argsort, sort
 from theano import Mode
 import math
 
+import cProfile
 
 '''
 A class to calculate the inhibition of columns for a HTM layer.
@@ -578,8 +579,8 @@ class inhibitionCalculator():
         # value based on that row and col number. This helps when deciding
         # how to break ties in the inhibition stage. Note this is not a random value!
         # Make sure the tiebreaker contains values less then 1.
-        normValue = 1.0/float(numCols)
-        tieBreaker = np.array([[(i+j*width)*normValue for i in range(width)] for j in range(height)])
+        normValue = 1.0/float(numCols+1)
+        tieBreaker = np.array([[(1+i+j*width)*normValue for i in range(width)] for j in range(height)])
         print "tieBreaker = \n%s" % tieBreaker
         # Add the tieBreaker value to the overlap values.
         overlapsGridTie = self.add_tieBreaker(overlapsGrid, tieBreaker)
@@ -640,25 +641,26 @@ class inhibitionCalculator():
         return sortedColOverlapsVals
 
 
-# if __name__ == '__main__':
+if __name__ == '__main__':
 
-#     potWidth = 10
-#     potHeight = 10
-#     centerInhib = 1
-#     numRows = 80
-#     numCols = 80
-#     desiredLocalActivity = 1
+    potWidth = 3
+    potHeight = 3
+    centerInhib = 1
+    numRows = 4
+    numCols = 4
+    desiredLocalActivity = 2
 
-#     # Some made up inputs to test with
-#     colOverlapGrid = np.random.randint(10, size=(numRows, numCols))
+    # Some made up inputs to test with
+    colOverlapGrid = np.random.randint(1, size=(numRows, numCols))
 
-#     inhibCalculator = inhibitionCalculator(numCols, numRows,
-#                                            potWidth, potHeight,
-#                                            desiredLocalActivity, centerInhib)
+    inhibCalculator = inhibitionCalculator(numCols, numRows,
+                                           potWidth, potHeight,
+                                           desiredLocalActivity, centerInhib)
 
-#     activeColumns = inhibCalculator.calculateWinningCols(colOverlapGrid)
+    cProfile.runctx('activeColumns = inhibCalculator.calculateWinningCols(colOverlapGrid)', globals(), locals())
+    #activeColumns = inhibCalculator.calculateWinningCols(colOverlapGrid)
 
-#     #activeColumns = activeColumns.reshape((numRows, numCols))
+    #activeColumns = activeColumns.reshape((numRows, numCols))
 
 
 
