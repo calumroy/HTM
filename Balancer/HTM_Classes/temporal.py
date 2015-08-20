@@ -129,6 +129,8 @@ class TemporalPoolCalculator():
                                                      )
         print "newTempPoolOverlapVals = \n%s" % newTempPoolOverlapVals
 
+        return newTempPoolOverlapVals, updatedTempStopTime
+
 
 # if __name__ == '__main__':
 
@@ -153,6 +155,6 @@ class TemporalPoolCalculator():
 #     # colStopTempAtTime = np.array([allCols[j].stopTempAtTime for j in range(1600)])
 #     # Get colInputPotSyn from the overlap theano class.
 
-#     tempPooler.calculateTemporalPool(colActNotBurst, timeStep, colOverlapVals,
-#                                      colInputPotSyn, colStopTempAtTime)
+#     newTempPoolOverlapVals, updatedTempStopTime = tempPooler.calculateTemporalPool(colActNotBurst, timeStep, colOverlapVals,
+#                                                               colInputPotSyn, colStopTempAtTime)
 
