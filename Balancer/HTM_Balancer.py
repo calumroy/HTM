@@ -377,14 +377,17 @@ class HTMLayer:
                     if c.activeStateArray[i][0] == self.timeStep:
                         self.output[y][x*self.cellsPerColumn+i] = 1
 
-    def updateConnectedSynapses(self, c):
-        # Update the connectedSynapses array.
-        c.connectedSynapses = np.array([], dtype=object)
+    def getConnectedSynapses(self, column):
+        # Create a list of the columns connected Synapses.
+        column.connectedSynapses = np.array([], dtype=object)
         connSyn = []
-        for i in range(len(c.potentialSynapses)):
-            if c.potentialSynapses[i].permanence > self.connectPermanence:
-                connSyn.append(c.potentialSynapses[i])
-        c.connectedSynapses = np.append(c.connectedSynapses, connSyn)
+        columnInd = column.pos_x * column.pos_y
+        for i in range(len(self.colPotSynPerm[columnInd])):
+            if self.colPotSynPerm[columnInd][i] > self.connectPermanence:
+                connSyn.append(column.potentialSynapses[i])
+        column.connectedSynapses = np.append(column.connectedSynapses, connSyn)
+
+        return column.connectedSynapses
 
     def changeColsInhibRadius(self, newInhibRadius):
         # Change the inhibition radius of all the columns
@@ -988,15 +991,15 @@ class HTMLayer:
         where normal colum activation only counts connected synapses.
         """
 
-        print "len(self.input) = %s len(self.input[0]) = %s " % (len(self.Input), len(self.Input[0]))
-        print "len(colPotSynPerm) = %s len(colPotSynPerm[0]) = %s" % (len(self.colPotSynPerm), len(self.colPotSynPerm[0]))
-        print "self.colPotSynPerm = \n%s" % self.colPotSynPerm
+        # print "len(self.input) = %s len(self.input[0]) = %s " % (len(self.Input), len(self.Input[0]))
+        # print "len(colPotSynPerm) = %s len(colPotSynPerm[0]) = %s" % (len(self.colPotSynPerm), len(self.colPotSynPerm[0]))
+        # print "self.colPotSynPerm = \n%s" % self.colPotSynPerm
         #from PyQt4.QtCore import pyqtRemoveInputHook; import ipdb; pyqtRemoveInputHook(); ipdb.set_trace()
 
         self.colOverlaps, self.colPotInputs = self.overlapCalc.calculateOverlap(self.colPotSynPerm, self.Input)
-        print "self.Input = %s" % self.Input
-        print "len(self.colOverlaps) = %s" % len(self.colOverlaps)
-        print "self.colOverlaps = \n%s" % self.colOverlaps
+        # print "self.Input = %s" % self.Input
+        # print "len(self.colOverlaps) = %s" % len(self.colOverlaps)
+        # print "self.colOverlaps = \n%s" % self.colOverlaps
 
         # for i in range(len(self.columns)):
         #     for c in self.columns[i]:
@@ -1149,9 +1152,9 @@ class HTMLayer:
         Update the column synapses permanence.
         '''
 
-        self.colSynPerm = self.permanenceCalc.updatePermanenceValues(self.colPotSynPerm,
-                                                                     self.colPotInputs,
-                                                                     self.colActive)
+        self.colPotSynPerm = self.permanenceCalc.updatePermanenceValues(self.colPotSynPerm,
+                                                                        self.colPotInputs,
+                                                                        self.colActive)
 
 
         # for c in self.activeColumns:

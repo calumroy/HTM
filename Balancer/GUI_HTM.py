@@ -249,7 +249,10 @@ class HTMInput(QtGui.QGraphicsView):
             inputConnected = False
             #brush = QtGui.QBrush(transpBlue)   # Have to create a brush with a color
             # Check each synapse and draw the connected columns
-            for syn in self.htm.regionArray[self.level].layerArray[self.layer].columns[pos_y][pos_x].connectedSynapses:
+            # Get the list of the selected columns connected synapses.
+            currentLayer = self.htm.regionArray[self.level].layerArray[self.layer]
+            selectedColumn = currentLayer.columns[pos_y][pos_x]
+            for syn in currentLayer.getConnectedSynapses(selectedColumn):
                 if syn.pos_x == col.pos_x and syn.pos_y == col.pos_y:
                     print "     syn x, y= %s,%s Permanence = %s" % (col.pos_x, col.pos_y, syn.permanence)
                     inputConnected = True
@@ -517,7 +520,9 @@ class HTMGridViewer(QtGui.QGraphicsView):
             column_pos_y = self.columnItems[i].pos_y
             brush = QtGui.QBrush(transpBlue)   # Have to create a brush with a color
             # Check each synapse and draw the connected columns
-            for syn in self.htm.regionArray[self.level].layerArray[self.layer].columns[pos_y][pos_x].connectedSynapses:
+            currentLayer = self.htm.regionArray[self.level].layerArray[self.layer]
+            selectedColumn = currentLayer.columns[pos_y][pos_x]
+            for syn in currentLayer.getConnectedSynapses(selectedColumn):
                 if syn.pos_x == column_pos_x and syn.pos_y == column_pos_y:
                     #print "     syn x, y= %s,%s Permanence = %s" % (column_pos_x, column_pos_y, syn.permanence)
                     brush.setColor(darkGreen)
