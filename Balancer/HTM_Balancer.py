@@ -12,10 +12,10 @@ import copy
 from utilities import sdrFunctions as SDRFunct
 import Thalamus
 
-from HTM_Classes import temporal
-from HTM_Classes import overlap
-from HTM_Classes import inhibition
-from HTM_Classes import learning
+from HTM_Classes import theano_temporal as temporal
+from HTM_Classes import theano_overlap as overlap
+from HTM_Classes import theano_inhibition as inhibition
+from HTM_Classes import theano_learning as learning
 
 
 ##Struct = {'field1': 'some val', 'field2': 'some val'}
@@ -1089,7 +1089,7 @@ class HTMLayer:
         colOverlapsGrid = self.colOverlaps.reshape((self.height, self.width))
 
         self.colActive = self.inhibCalc.calculateWinningCols(colOverlapsGrid)
-        print "self.colActive = \n%s" % self.colActive
+        #print "self.colActive = \n%s" % self.colActive
 
         # Update the activeColumn list using the colActive vector.
         self.activeColumns = np.array([], dtype=object)

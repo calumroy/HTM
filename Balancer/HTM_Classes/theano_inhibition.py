@@ -534,7 +534,7 @@ class inhibitionCalculator():
         # plus the tiebreaker is less then one then do not allow it to be active.
         activeColumnVect = self.disable_zeroOverlap(colOverlapVect,
                                                     activeColumnVect)
-        print "activeColumnVect = \n%s" % activeColumnVect
+        #print "activeColumnVect = \n%s" % activeColumnVect
 
         return activeColumnVect
 
@@ -578,7 +578,7 @@ class inhibitionCalculator():
         inhibCols = self.inhibit_zeroOverlap(colOverlapVect,
                                              inhibCols)
 
-        print "inhibCols = \n%s" % inhibCols
+        #print "inhibCols = \n%s" % inhibCols
 
         #print "inhibOrActCols = \n%s" % inhibOrActCols
         # Calculate a list of columns that where just inhibited.
@@ -618,15 +618,15 @@ class inhibitionCalculator():
 
         # Create a vector of the overlap values for each column
         colOverlapVect = overlapsGridTie.flatten()
-        print "colOverlapVect = \n%s" % colOverlapVect
+        #print "colOverlapVect = \n%s" % colOverlapVect
 
         activeCols = self.calculateActiveCol(colOverlapMatOrig)
         activeColumnVect = self.calculateActiveColumnVect(activeCols, self.inhibCols, colOverlapVect)
         self.inhibCols, notInhibOrActNum = self.calculateInhibCols(activeColumnVect, colOverlapVect)
-        print "self.inhibCols \n%s" % self.inhibCols
+        #print "self.inhibCols \n%s" % self.inhibCols
 
         activeColumns = activeColumnVect.reshape((self.height, self.width))
-        print "activeColumns = \n%s" % activeColumns
+        #print "activeColumns = \n%s" % activeColumns
         #print "original overlaps = \n%s" % overlapsGrid
 
         # activeColumnVect = activeColumnVect.reshape((self.height, self.width))
@@ -644,22 +644,22 @@ class inhibitionCalculator():
         loopedTimes = 0
         while notInhibOrActNum > 0:
             loopedTimes += 1
-            print "colOverlapMatOrig = \n%s" % colOverlapMatOrig
+            #print "colOverlapMatOrig = \n%s" % colOverlapMatOrig
             #print "self.colConvolePatternIndex = \n%s" % self.colConvolePatternIndex
-            print "self.inhibCols \n%s" % self.inhibCols
+            #print "self.inhibCols \n%s" % self.inhibCols
             colOverlapMat = self.check_inhibCols(colOverlapMatOrig,
                                                  self.colConvolePatternIndex,
                                                  self.inhibCols)
-            print "colOverlapMat = \n%s" % colOverlapMat
+            #print "colOverlapMat = \n%s" % colOverlapMat
 
             activeCols = self.calculateActiveCol(colOverlapMat)
             activeColumnVect = self.calculateActiveColumnVect(activeCols, self.inhibCols, colOverlapVect)
             self.inhibCols, notInhibOrActNum = self.calculateInhibCols(activeColumnVect, colOverlapVect)
 
-            print "Looped %s number of times" % loopedTimes
+            #print "Looped %s number of times" % loopedTimes
             activeColumns = activeColumnVect.reshape((self.height, self.width))
-            print "activeColumns = \n%s" % activeColumns
-            print "original overlaps = \n%s" % overlapsGrid
+            #print "activeColumns = \n%s" % activeColumns
+            #print "original overlaps = \n%s" % overlapsGrid
 
         return activeColumnVect
 

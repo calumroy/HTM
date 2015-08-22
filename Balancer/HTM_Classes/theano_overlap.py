@@ -208,7 +208,7 @@ class OverlapCalculator():
                                'constant',
                                constant_values=(padValue))
 
-        print "inputGrid = \n%s" % inputGrid
+        #print "inputGrid = \n%s" % inputGrid
 
         return inputGrid
 
@@ -274,15 +274,15 @@ class OverlapCalculator():
         # using the defined potential width and potential height.
         inputGrid = self.addPaddingToInput(inputGrid)
 
-        print "inputGrid.shape = %s,%s,%s,%s" % inputGrid.shape
-        print "self.potentialWidth = %s" % self.potentialWidth
-        print "self.potentialHeight = %s" % self.potentialHeight
-        print "self.stepX = %s, self.stepY = %s" % (self.stepX, self.stepY)
+        # print "inputGrid.shape = %s,%s,%s,%s" % inputGrid.shape
+        # print "self.potentialWidth = %s" % self.potentialWidth
+        # print "self.potentialHeight = %s" % self.potentialHeight
+        # print "self.stepX = %s, self.stepY = %s" % (self.stepX, self.stepY)
         # Calculate the inputs to each column.
         inputConPotSyn = self.pool_inputs(inputGrid)
         # The returned array is within a list so just use pos 0.
         #print "inputConPotSyn = \n%s" % inputConPotSyn[0]
-        print "inputConPotSyn.shape = %s,%s" % inputConPotSyn.shape
+        #print "inputConPotSyn.shape = %s,%s" % inputConPotSyn.shape
         return inputConPotSyn
 
     def calculateOverlap(self, colSynPerm, inputGrid):
@@ -292,12 +292,11 @@ class OverlapCalculator():
         # Calcualte the inputs to each column
         colInputPotSyn = self.getColInputs(inputGrid)
         # Call the theano functions to calculate the overlap value.
-        print "len(colSynPerm) = %s len(colSynPerm[0]) = %s " % (len(colSynPerm), len(colSynPerm[0]))
-        print "len(colInputPotSyn) = %s len(colInputPotSyn[0]) = %s " % (len(colInputPotSyn), len(colInputPotSyn[0]))
+        # print "len(colSynPerm) = %s len(colSynPerm[0]) = %s " % (len(colSynPerm), len(colSynPerm[0]))
+        # print "len(colInputPotSyn) = %s len(colInputPotSyn[0]) = %s " % (len(colInputPotSyn), len(colInputPotSyn[0]))
         connectedSynInputs = self.getConnectedSynInput(colSynPerm, colInputPotSyn)
         #print "connectedSynInputs = \n%s" % connectedSynInputs
         colOverlapVals = self.calcOverlap(connectedSynInputs)
-        print colOverlapVals
         return colOverlapVals, colInputPotSyn
 
     def removeSmallOverlaps(self, colOverlapVals):
