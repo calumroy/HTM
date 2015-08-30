@@ -67,7 +67,8 @@ class OverlapCalculator():
         # columns in the X and Y directions. These parameters can't
         # change as theano uses them to setup functions.
         self.stepX, self.stepY = self.getStepSizes(inputWidth, inputHeight,
-                                                   self.columnsWidth, self.columnsHeight)
+                                                   self.columnsWidth, self.columnsHeight,
+                                                   self.potentialWidth, self.potentialHeight)
 
         # Create theano variables and functions
         ############################################
@@ -149,10 +150,23 @@ class OverlapCalculator():
         assert self.numColumns == len(newColSynPerm)
 
     def addPaddingToInput(self, inputGrid, useZeroPadVal=True):
+        # Add padding elements to the input Grid so that the
+        # convole function images2neibs can convole over the input.
         topPos_y = 0
         bottomPos_y = 0
         leftPos_x = 0
         rightPos_x = 0
+
+        diffWidth = self.columnsWidth - self.inputWidth
+        diffHeight = self.columnsHeight - self.inputHeight
+
+        if diffWidth < 0:
+            diffWidth = 0
+        if diffHeight < 0:
+            diffHeight = 0
+
+        leftOverWidth = self.inputWidth - (1 + (self.columnsWidth - 1) * self.stepX)
+        leftOverHeight = self.inputHeight - (1 + (self.columnsHeight - 1) * self.stepY)
 
         if self.centerPotSynapses == 0:
             # The potential synapses are not centered over the input
@@ -165,23 +179,32 @@ class OverlapCalculator():
         else:
             # The potential synapses are centered over the input
             # This means all sides of the input may need padding
-            topPos_y = self.potentialHeight/2
-            if ((self.inputHeight-1) % self.stepY == 0):
-                bottomPos_y = int(math.ceil(self.potentialHeight/2.0))-1
-            else:
-                botLeftOver = (self.inputHeight-1) % self.stepY
-                halfPotHeight = int(math.ceil(self.potentialHeight/2.0))-1
-                if (halfPotHeight - botLeftOver) > 0:
-                    bottomPos_y = halfPotHeight - botLeftOver
 
-            leftPos_x = self.potentialWidth/2
-            if ((self.inputWidth-1) % self.stepX == 0):
-                rightPos_x = int(math.ceil(self.potentialWidth/2.0))-1
-            else:
-                rightLeftOver = (self.inputWidth-1) % self.stepX
-                halfPotWidth = int(math.ceil(self.potentialWidth/2.0))-1
-                if (halfPotWidth - rightLeftOver) > 0:
-                    rightPos_x = halfPotWidth - rightLeftOver
+            topPos_y = math.ceil(float(diffHeight/2)) + math.ceil(float(self.potentialHeight-1)/2) - math.floor(float(leftOverHeight/2))
+            bottomPos_y = math.floor(float(diffHeight/2)) + math.floor(float(self.potentialHeight-1)/2) - math.ceil(float(leftOverHeight/2))
+
+            # topPos_y = int(math.ceil(self.potentialHeight/2.0))-1
+            # if ((self.inputHeight) % self.stepY == 0):
+            #     bottomPos_y = int(math.ceil(self.potentialHeight/2.0))-1
+            # else:
+            #     botLeftOver = (self.inputHeight) % self.stepY
+            #     halfPotHeight = int(math.ceil(self.potentialHeight/2.0))-1
+            #     if (halfPotHeight - botLeftOver) > 0:
+            #         bottomPos_y = halfPotHeight - botLeftOver
+            #     elif (halfPotHeight - botLeftOver) == 0:
+            #         bottomPos_y = halfPotHeight
+            #import ipdb; ipdb.set_trace()
+            leftPos_x = math.ceil(float(diffWidth/2)) + math.ceil(float(self.potentialWidth-1)/2) - math.floor(float(leftOverWidth/2))
+            rightPos_x = math.floor(float(diffWidth/2)) + math.floor(float(self.potentialWidth-1)/2) - math.ceil(float(leftOverWidth/2))
+
+            # leftPos_x = int(math.ceil(self.potentialWidth/2.0))-1
+            # if ((self.inputWidth) % self.stepX == 0):
+            #     rightPos_x = int(math.ceil(self.potentialWidth/2.0))-1
+            # else:
+            #     rightLeftOver = (self.inputWidth) % self.stepX
+            #     halfPotWidth = int(math.ceil(self.potentialWidth/2.0))-1
+            #     if (halfPotWidth - rightLeftOver) > 0:
+            #         rightPos_x = halfPotWidth - rightLeftOver
 
         # Make sure all are larger then zero still
         if topPos_y < 0:
@@ -228,13 +251,15 @@ class OverlapCalculator():
         # Work out how far each columns pool of inputs should step
         # so the entire input is covered equally in the convole.
         self.stepX, self.stepY = self.getStepSizes(inputWidth, inputHeight,
-                                                   self.columnsWidth, self.columnsHeight)
+                                                   self.columnsWidth, self.columnsHeight,
+                                                   self.potentialWidth, self.potentialHeight)
         print "self.stepX = %s, self.stepY = %s" % (self.stepX, self.stepY)
         # work out how much padding is needed on the borders
         # using the defined potential width and potential height.
         indexInputGrid = self.addPaddingToInput(indexInputGrid, False)
 
-        print "indexInputGrid.shape = %s,%s,%s,%s" % indexInputGrid.shape
+        print "padded InputGrid = \n%s" % indexInputGrid
+        print "padded InputGrid.shape = %s,%s,%s,%s" % indexInputGrid.shape
         print "self.potentialWidth = %s" % self.potentialWidth
         print "self.potentialHeight = %s" % self.potentialHeight
         print "self.stepX = %s, self.stepY = %s" % (self.stepX, self.stepY)
@@ -252,13 +277,24 @@ class OverlapCalculator():
 
         return potSynXYIndex
 
-    def getStepSizes(self, inputWidth, inputHeight, colWidth, colHeight):
+    def getStepSizes(self, inputWidth, inputHeight, colWidth, colHeight, potWidth, potHeight):
         # Work out how large to make the step sizes so all of the
         # inputGrid can be covered as best as possible by the columns
         # potential synapses.
 
-        stepX = int(math.ceil(float(inputWidth)/float(colWidth)))
-        stepY = int(math.ceil(float(inputHeight)/float(colHeight)))
+        stepX = int(round(float(inputWidth)/float(colWidth)))
+        stepY = int(round(float(inputHeight)/float(colHeight)))
+
+        #import ipdb; ipdb.set_trace()
+        # The step sizes may need to be increased if the potential sizes are too small.
+        if potWidth + (colWidth-1)*stepX < inputWidth:
+            uncoveredX = (inputWidth - (potWidth + (colWidth - 1) * stepX))
+            stepX = stepX + int(math.ceil(float(uncoveredX) / float(colWidth)))
+
+        if potHeight + (colHeight-1)*stepY < self.inputHeight:
+            uncoveredY = (inputHeight - (potHeight + (colHeight - 1) * stepY))
+            stepY = stepY + int(math.ceil(float(uncoveredY) / float(colHeight)))
+
         return stepX, stepY
 
     def getColInputs(self, inputGrid):
@@ -310,13 +346,13 @@ class OverlapCalculator():
 
 if __name__ == '__main__':
 
-    potWidth = 1
-    potHeight = 1
+    potWidth = 4
+    potHeight = 4
     centerPotSynapses = 1
-    numInputRows = 4
-    numInputCols = 4
-    numColumnRows = 8
-    numColumnCols = 4
+    numInputRows = 20
+    numInputCols = 15
+    numColumnRows = 15
+    numColumnCols = 5
     connectedPerm = 0.3
     minOverlap = 3
     numPotSyn = potWidth * potHeight
