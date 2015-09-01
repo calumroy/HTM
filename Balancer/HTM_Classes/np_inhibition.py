@@ -34,14 +34,18 @@ class inhibitionCalculator():
         self.desiredLocalActivity = desiredLocalActivity
 
     def kthScore(self, overlapsVect, cols, kth):
+        print "overlapsVect = \n%s" % overlapsVect
+        print "cols = \n%s" % cols
+        print "kth = %s" % kth
         if len(cols) > 0 and kth > 0 and kth < (len(cols)-1):
             #Add the overlap values to a single list
             orderedScore = np.array([0 for i in range(len(cols))])
             for i in range(len(orderedScore)):
-                orderedScore[i] = overlapsVect[i]
+                orderedScore[i] = overlapsVect[cols[i]]
             #print cols[0].overlap
             orderedScore = np.sort(orderedScore)
-            #print orderedScore
+            print "orderedScore = \n%s" % orderedScore
+            print "orderedScore[-kth] = %s" % orderedScore[-kth]
             return orderedScore[-kth]       # Minus since list starts at lowest
         return 0
 
@@ -79,31 +83,37 @@ class inhibitionCalculator():
         activeColumns = []
         assert self.width == len(overlapsGrid[0])
         assert self.height == len(overlapsGrid)
-        allColumns = overlapsGrid.flatten().tolist()
-        columnActive = np.zeros_like(allColumns)
-        print "columnActive = \n%s" % columnActive
-        print "overlapsGrid = \n%s" % overlapsGrid
-        print "allColumns = \n%s" % allColumns
+        allColsOverlaps = overlapsGrid.flatten().tolist()
+        columnActive = np.zeros_like(allColsOverlaps)
+        # print "columnActive = \n%s" % columnActive
+        # print "overlapsGrid = \n%s" % overlapsGrid
+        # print "allColsOverlaps = \n%s" % allColsOverlaps
         # Get all the columns in a 1D array then sort them based on their overlap value.
         # Return an array of the indicies containing the min overlap values to the max.
-        sortedAllColsInd = np.argsort(allColumns)
-        #sortedAllColsInd = np.flipud(allColumns)
-        print "sorted allColumns indicies = \n%s" % sortedAllColsInd
+        sortedAllColsInd = np.argsort(allColsOverlaps)
+        #sortedAllColsInd = np.flipud(allColsOverlaps)
+        # print "sorted allColsOverlaps indicies = \n%s" % sortedAllColsInd
 
         # Now start from the columns with the highest overlap and inhibit
         # columns with smaller overlaps.
         for i in reversed(sortedAllColsInd):
             # Make sure the overlap value is larger then zero.
-            overlap = allColumns[i]
+            overlap = allColsOverlaps[i]
             if overlap > 0:
                 # Get the columns position
                 pos_x = i % self.width
                 pos_y = math.floor(i/self.height)
 
+                print "COLUMN INDEX = %s" % i
+                print "overlap = %s" % overlap
                 # Get the neighbours of the column return the
                 # indicies of the neighbouring columns
                 neighbourCols = self.neighbours(overlapsGrid, pos_x, pos_y)
-                minLocalActivity = self.kthScore(allColumns, neighbourCols, self.desiredLocalActivity)
+                minLocalActivity = self.kthScore(allColsOverlaps, neighbourCols, self.desiredLocalActivity)
+
+                # print "neighbourCols = \n%s" % neighbourCols
+                print "minLocalActivity = %s" % minLocalActivity
+
                 #import ipdb; ipdb.set_trace()
                 if overlap > minLocalActivity:
                      # Activate the column and add the current time to the times array.
@@ -115,7 +125,7 @@ class inhibitionCalculator():
                     # These columns will be set active.
                     numActiveNeighbours = 0
                     for d in neighbourCols:
-                        if (allColumns[d] > minLocalActivity or columnActive[d] == 1):
+                        if (allColsOverlaps[d] > minLocalActivity or columnActive[d] == 1):
                             numActiveNeighbours += 1
                     # if less then the desired local activity have been set
                     # or will be set as active then activate this column as well.
@@ -124,10 +134,12 @@ class inhibitionCalculator():
                         columnActive[i] = 1
                     else:
                         # Set the overlap score for the losing columns to zero
-                        allColumns[i] = 0
+                        allColsOverlaps[i] = 0
                 else:
                     # Set the overlap score for the losing columns to zero
-                    allColumns[i] = 0
+                    allColsOverlaps[i] = 0
+                print "allColsOverlaps reshaped = \n%s" % np.array(allColsOverlaps).reshape((self.height, self.width))
+                print "columnActive reshaped = \n%s" % np.array(columnActive).reshape((self.height, self.width))
 
         print "ACTIVE COLUMN INDICIES = \n%s" % activeColumns
         print "columnActive = \n%s" % columnActive
@@ -194,6 +206,7 @@ if __name__ == '__main__':
                                [8, 6, 1, 6],
                                [7, 7, 9, 4],
                                [2, 3, 1, 5]])
+    print "colOverlapGrid = \n%s" % colOverlapGrid
 
     inhibCalculator = inhibitionCalculator(numCols, numRows,
                                            potWidth, potHeight,

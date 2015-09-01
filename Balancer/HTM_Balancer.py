@@ -258,7 +258,7 @@ class HTMLayer:
 
         # Initialise the columns potential synapses.
         # Work out the potential feedforward connections each column could make to the input.
-        self.setupPotentialSynapses(len(self.Input[0]), len(self.Input))
+        self.setupPotentialSynapses(self.inputWidth, self.inputHeight)
 
     def setupCalculators(self):
         # Setup the theano calculator classes used to calculate

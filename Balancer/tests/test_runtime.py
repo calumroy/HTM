@@ -13,8 +13,8 @@ testParameters = {
                     'HTM':
                         {
                         'numLevels': 1,
-                        'columnArrayWidth': 26,
-                        'columnArrayHeight': 29,
+                        'columnArrayWidth': 8,
+                        'columnArrayHeight': 12,
                         'cellsPerColumn': 2,
 
                         'HTMRegions': [{
@@ -38,8 +38,8 @@ testParameters = {
                                     'minOverlap': 3,
                                     'boost': 1,
                                     'inhibitionRadius': 1,
-                                    'potentialWidth': 4,
-                                    'potentialHeight': 4,
+                                    'potentialWidth': 3,
+                                    'potentialHeight': 3,
                                     'spatialPermanenceInc': 0.1,
                                     'spatialPermanenceDec': 0.02,
                                     'permanenceInc': 0.1,

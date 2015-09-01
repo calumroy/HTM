@@ -675,15 +675,20 @@ class inhibitionCalculator():
 
 if __name__ == '__main__':
 
-    potWidth = 3
-    potHeight = 3
+    potWidth = 2
+    potHeight = 2
     centerInhib = 1
     numRows = 4
     numCols = 4
     desiredLocalActivity = 2
 
     # Some made up inputs to test with
-    colOverlapGrid = np.random.randint(1, size=(numRows, numCols))
+    #colOverlapGrid = np.random.randint(1, size=(numRows, numCols))
+    colOverlapGrid = np.array([[8, 4, 5, 8],
+                               [8, 6, 1, 6],
+                               [7, 7, 9, 4],
+                               [2, 3, 1, 5]])
+    print "colOverlapGrid = \n%s" % colOverlapGrid
 
     inhibCalculator = inhibitionCalculator(numCols, numRows,
                                            potWidth, potHeight,
