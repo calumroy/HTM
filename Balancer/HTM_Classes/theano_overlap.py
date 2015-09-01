@@ -180,8 +180,8 @@ class OverlapCalculator():
             # The potential synapses are centered over the input
             # This means all sides of the input may need padding
 
-            topPos_y = math.ceil(float(diffHeight/2)) + math.ceil(float(self.potentialHeight-1)/2) - math.floor(float(leftOverHeight/2))
-            bottomPos_y = math.floor(float(diffHeight/2)) + math.floor(float(self.potentialHeight-1)/2) - math.ceil(float(leftOverHeight/2))
+            topPos_y = math.ceil(float(diffHeight/2)) + math.ceil(float(self.potentialHeight-1)/2) - math.ceil(float(leftOverHeight)/2)
+            bottomPos_y = math.floor(float(diffHeight/2)) + math.floor(float(self.potentialHeight-1)/2) - math.floor(float(leftOverHeight)/2)
 
             # topPos_y = int(math.ceil(self.potentialHeight/2.0))-1
             # if ((self.inputHeight) % self.stepY == 0):
@@ -194,8 +194,8 @@ class OverlapCalculator():
             #     elif (halfPotHeight - botLeftOver) == 0:
             #         bottomPos_y = halfPotHeight
             #import ipdb; ipdb.set_trace()
-            leftPos_x = math.ceil(float(diffWidth/2)) + math.ceil(float(self.potentialWidth-1)/2) - math.floor(float(leftOverWidth/2))
-            rightPos_x = math.floor(float(diffWidth/2)) + math.floor(float(self.potentialWidth-1)/2) - math.ceil(float(leftOverWidth/2))
+            leftPos_x = math.ceil(float(diffWidth/2)) + math.ceil(float(self.potentialWidth-1)/2) - math.ceil(float(leftOverWidth)/2)
+            rightPos_x = math.floor(float(diffWidth/2)) + math.floor(float(self.potentialWidth-1)/2) - math.floor(float(leftOverWidth)/2)
 
             # leftPos_x = int(math.ceil(self.potentialWidth/2.0))-1
             # if ((self.inputWidth) % self.stepX == 0):
@@ -266,14 +266,14 @@ class OverlapCalculator():
         print "inputWidth = %s, inputHeight = %s" % (inputWidth, inputHeight)
         # Calculate the inputs to each column.
         inputPotSynIndex = self.pool_inputs(indexInputGrid)
-        print "inputPotSynIndex = \n%s" % inputPotSynIndex
+        # print "inputPotSynIndex = \n%s" % inputPotSynIndex
 
         # Now turn the inputPotSynIndex into two matricies where the first
         # holds the x and the second holds the y indicies for the element
         # in the inpuGrid that a potential synapse connects to.
         potSynXYIndex = self.convert_indicesToXY(inputWidth,
                                                  inputPotSynIndex)
-        print "potSynXYIndex = \n%s" % potSynXYIndex
+        # print "potSynXYIndex = \n%s" % potSynXYIndex
 
         return potSynXYIndex
 
@@ -288,12 +288,14 @@ class OverlapCalculator():
         #import ipdb; ipdb.set_trace()
         # The step sizes may need to be increased if the potential sizes are too small.
         if potWidth + (colWidth-1)*stepX < inputWidth:
+            # Calculate how many of the input elements cannot be covered with the current stepX value.
             uncoveredX = (inputWidth - (potWidth + (colWidth - 1) * stepX))
-            stepX = stepX + int(math.ceil(float(uncoveredX) / float(colWidth)))
+            # Use this to update the stepX value so all input elements are covered.
+            stepX = stepX + int(math.ceil(float(uncoveredX) / float(colWidth-1)))
 
         if potHeight + (colHeight-1)*stepY < self.inputHeight:
             uncoveredY = (inputHeight - (potHeight + (colHeight - 1) * stepY))
-            stepY = stepY + int(math.ceil(float(uncoveredY) / float(colHeight)))
+            stepY = stepY + int(math.ceil(float(uncoveredY) / float(colHeight-1)))
 
         return stepX, stepY
 
@@ -328,10 +330,10 @@ class OverlapCalculator():
         # Calcualte the inputs to each column
         colInputPotSyn = self.getColInputs(inputGrid)
         # Call the theano functions to calculate the overlap value.
-        # print "len(colSynPerm) = %s len(colSynPerm[0]) = %s " % (len(colSynPerm), len(colSynPerm[0]))
-        # print "len(colInputPotSyn) = %s len(colInputPotSyn[0]) = %s " % (len(colInputPotSyn), len(colInputPotSyn[0]))
+        print "len(colSynPerm) = %s len(colSynPerm[0]) = %s " % (len(colSynPerm), len(colSynPerm[0]))
+        print "len(colInputPotSyn) = %s len(colInputPotSyn[0]) = %s " % (len(colInputPotSyn), len(colInputPotSyn[0]))
         connectedSynInputs = self.getConnectedSynInput(colSynPerm, colInputPotSyn)
-        #print "connectedSynInputs = \n%s" % connectedSynInputs
+        print "connectedSynInputs = \n%s" % connectedSynInputs
         colOverlapVals = self.calcOverlap(connectedSynInputs)
         return colOverlapVals, colInputPotSyn
 
@@ -349,9 +351,9 @@ if __name__ == '__main__':
     potWidth = 4
     potHeight = 4
     centerPotSynapses = 1
-    numInputRows = 20
-    numInputCols = 15
-    numColumnRows = 15
+    numInputRows = 4
+    numInputCols = 32
+    numColumnRows = 7
     numColumnCols = 5
     connectedPerm = 0.3
     minOverlap = 3
