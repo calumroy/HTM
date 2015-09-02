@@ -56,12 +56,12 @@ class test_RunTime:
 
                 # Return both the overlap values and the inputs from
                 # the potential synapses to all columns.
-                # colOverlaps, colPotInputs = overlapCalc.calculateOverlap(colSynPerm, newInputMat)
+                colOverlaps, colPotInputs = overlapCalc.calculateOverlap(colSynPerm, newInputMat)
 
-                # # limit the overlap values so they are larger then minOverlap
-                # colInputs = overlapCalc.removeSmallOverlaps(colOverlaps)
+                # limit the overlap values so they are larger then minOverlap
+                colOverlaps = overlapCalc.removeSmallOverlaps(colOverlaps)
 
-                # assert len(colInputs) == numColumns
-                # assert len(colInputs[0]) == numPotSyn
+                assert len(colOverlaps) == numColumns
+
 
 

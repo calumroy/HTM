@@ -157,14 +157,8 @@ class OverlapCalculator():
         leftPos_x = 0
         rightPos_x = 0
 
-        diffWidth = self.columnsWidth - self.inputWidth
-        diffHeight = self.columnsHeight - self.inputHeight
-
-        if diffWidth < 0:
-            diffWidth = 0
-        if diffHeight < 0:
-            diffHeight = 0
-
+        # This calcualtes how much of the input grid is not covered by
+        # the htm grid in each dimension using the step sizes.
         leftOverWidth = self.inputWidth - (1 + (self.columnsWidth - 1) * self.stepX)
         leftOverHeight = self.inputHeight - (1 + (self.columnsHeight - 1) * self.stepY)
 
@@ -179,32 +173,11 @@ class OverlapCalculator():
         else:
             # The potential synapses are centered over the input
             # This means all sides of the input may need padding
+            topPos_y = math.ceil(float(self.potentialHeight-1)/2) - math.ceil(float(leftOverHeight)/2)
+            bottomPos_y = math.floor(float(self.potentialHeight-1)/2) - math.floor(float(leftOverHeight)/2)
 
-            topPos_y = math.ceil(float(diffHeight/2)) + math.ceil(float(self.potentialHeight-1)/2) - math.ceil(float(leftOverHeight)/2)
-            bottomPos_y = math.floor(float(diffHeight/2)) + math.floor(float(self.potentialHeight-1)/2) - math.floor(float(leftOverHeight)/2)
-
-            # topPos_y = int(math.ceil(self.potentialHeight/2.0))-1
-            # if ((self.inputHeight) % self.stepY == 0):
-            #     bottomPos_y = int(math.ceil(self.potentialHeight/2.0))-1
-            # else:
-            #     botLeftOver = (self.inputHeight) % self.stepY
-            #     halfPotHeight = int(math.ceil(self.potentialHeight/2.0))-1
-            #     if (halfPotHeight - botLeftOver) > 0:
-            #         bottomPos_y = halfPotHeight - botLeftOver
-            #     elif (halfPotHeight - botLeftOver) == 0:
-            #         bottomPos_y = halfPotHeight
-            #import ipdb; ipdb.set_trace()
-            leftPos_x = math.ceil(float(diffWidth/2)) + math.ceil(float(self.potentialWidth-1)/2) - math.ceil(float(leftOverWidth)/2)
-            rightPos_x = math.floor(float(diffWidth/2)) + math.floor(float(self.potentialWidth-1)/2) - math.floor(float(leftOverWidth)/2)
-
-            # leftPos_x = int(math.ceil(self.potentialWidth/2.0))-1
-            # if ((self.inputWidth) % self.stepX == 0):
-            #     rightPos_x = int(math.ceil(self.potentialWidth/2.0))-1
-            # else:
-            #     rightLeftOver = (self.inputWidth) % self.stepX
-            #     halfPotWidth = int(math.ceil(self.potentialWidth/2.0))-1
-            #     if (halfPotWidth - rightLeftOver) > 0:
-            #         rightPos_x = halfPotWidth - rightLeftOver
+            leftPos_x = math.ceil(float(self.potentialWidth-1)/2) - math.ceil(float(leftOverWidth)/2)
+            rightPos_x = math.floor(float(self.potentialWidth-1)/2) - math.floor(float(leftOverWidth)/2)
 
         # Make sure all are larger then zero still
         if topPos_y < 0:
@@ -242,7 +215,7 @@ class OverlapCalculator():
         # the inputGrid but where each position holds an index.
         # The index is just a number representing that element in the inputGrid.
         indexInputGrid = np.array([[i + j*inputWidth for i in range(inputWidth)] for j in range(inputHeight)])
-        print "indexInputGrid = \n%s" % indexInputGrid
+        # print "indexInputGrid = \n%s" % indexInputGrid
         # Take the input and put it into a 4D tensor.
         # This is because the theano function images2neibs
         # works with 4D tensors only.
@@ -253,17 +226,17 @@ class OverlapCalculator():
         self.stepX, self.stepY = self.getStepSizes(inputWidth, inputHeight,
                                                    self.columnsWidth, self.columnsHeight,
                                                    self.potentialWidth, self.potentialHeight)
-        print "self.stepX = %s, self.stepY = %s" % (self.stepX, self.stepY)
+        # print "self.stepX = %s, self.stepY = %s" % (self.stepX, self.stepY)
         # work out how much padding is needed on the borders
         # using the defined potential width and potential height.
         indexInputGrid = self.addPaddingToInput(indexInputGrid, False)
 
-        print "padded InputGrid = \n%s" % indexInputGrid
-        print "padded InputGrid.shape = %s,%s,%s,%s" % indexInputGrid.shape
-        print "self.potentialWidth = %s" % self.potentialWidth
-        print "self.potentialHeight = %s" % self.potentialHeight
-        print "self.stepX = %s, self.stepY = %s" % (self.stepX, self.stepY)
-        print "inputWidth = %s, inputHeight = %s" % (inputWidth, inputHeight)
+        # print "padded InputGrid = \n%s" % indexInputGrid
+        # print "padded InputGrid.shape = %s,%s,%s,%s" % indexInputGrid.shape
+        # print "self.potentialWidth = %s" % self.potentialWidth
+        # print "self.potentialHeight = %s" % self.potentialHeight
+        # print "self.stepX = %s, self.stepY = %s" % (self.stepX, self.stepY)
+        # print "inputWidth = %s, inputHeight = %s" % (inputWidth, inputHeight)
         # Calculate the inputs to each column.
         inputPotSynIndex = self.pool_inputs(indexInputGrid)
         # print "inputPotSynIndex = \n%s" % inputPotSynIndex
@@ -319,8 +292,8 @@ class OverlapCalculator():
         # Calculate the inputs to each column.
         inputConPotSyn = self.pool_inputs(inputGrid)
         # The returned array is within a list so just use pos 0.
-        #print "inputConPotSyn = \n%s" % inputConPotSyn[0]
-        #print "inputConPotSyn.shape = %s,%s" % inputConPotSyn.shape
+        #print "inputConPotSyn = \n%s" % inputConPotSyn
+        # print "inputConPotSyn.shape = %s,%s" % inputConPotSyn.shape
         return inputConPotSyn
 
     def calculateOverlap(self, colSynPerm, inputGrid):
@@ -330,19 +303,20 @@ class OverlapCalculator():
         # Calcualte the inputs to each column
         colInputPotSyn = self.getColInputs(inputGrid)
         # Call the theano functions to calculate the overlap value.
-        print "len(colSynPerm) = %s len(colSynPerm[0]) = %s " % (len(colSynPerm), len(colSynPerm[0]))
-        print "len(colInputPotSyn) = %s len(colInputPotSyn[0]) = %s " % (len(colInputPotSyn), len(colInputPotSyn[0]))
+        # print "colSynPerm = \n%s" % colSynPerm
+        # print "colInputPotSyn = \n%s" % colInputPotSyn
+        # print "len(colSynPerm) = %s len(colSynPerm[0]) = %s " % (len(colSynPerm), len(colSynPerm[0]))
+        # print "len(colInputPotSyn) = %s len(colInputPotSyn[0]) = %s " % (len(colInputPotSyn), len(colInputPotSyn[0]))
         connectedSynInputs = self.getConnectedSynInput(colSynPerm, colInputPotSyn)
-        print "connectedSynInputs = \n%s" % connectedSynInputs
+        # print "connectedSynInputs = \n%s" % connectedSynInputs
         colOverlapVals = self.calcOverlap(connectedSynInputs)
         return colOverlapVals, colInputPotSyn
 
     def removeSmallOverlaps(self, colOverlapVals):
         # Set any overlap values that are smaller then the
         # minOverlap value to zero.
-        self.minOverlap = minOverlap
         newColOverlapVals = self.checkMinOverlap(colOverlapVals)
-        #print "newColOverlapVals \n%s" % newColOverlapVals
+        # print "newColOverlapVals \n%s" % newColOverlapVals
         return newColOverlapVals
 
 
@@ -383,17 +357,17 @@ if __name__ == '__main__':
     print "newInputMat = \n%s" % newInputMat
     #potSyn = np.random.rand(1, 1, 4, 4)
 
-    overlapCalc.getPotentialSynapsePos(numInputCols, numInputRows)
+    #overlapCalc.getPotentialSynapsePos(numInputCols, numInputRows)
 
-    # # Return both the overlap values and the inputs from
-    # # the potential synapses to all columns.
-    # colOverlaps, colPotInputs = overlapCalc.calculateOverlap(colSynPerm, newInputMat)
-    # print "len(colOverlaps) = %s" % len(colOverlaps)
-    # print "colOverlaps = \n%s" % colOverlaps
+    # Return both the overlap values and the inputs from
+    # the potential synapses to all columns.
+    colOverlaps, colPotInputs = overlapCalc.calculateOverlap(colSynPerm, newInputMat)
+    print "len(colOverlaps) = %s" % len(colOverlaps)
+    print "colOverlaps = \n%s" % colOverlaps
 
-    # # limit the overlap values so they are larger then minOverlap
-    # colInputs = overlapCalc.removeSmallOverlaps(colOverlaps)
+    # limit the overlap values so they are larger then minOverlap
+    colOverlaps = overlapCalc.removeSmallOverlaps(colOverlaps)
 
-    # print "colPotInputs = \n%s" % colPotInputs
+    print "colOverlaps = \n%s" % colOverlaps
 
 
