@@ -104,7 +104,7 @@ class TemporalPoolCalculator():
         timeStepVect = np.array([timeStep for j in range(numCols)])
         # print "timeStepMat = \n%s" % timeStepMat
         doTempPoolVect = self.doTempPool(colActNotBurst, timeStepMat)
-        # print "doTempPoolVect = \n%s" % doTempPoolVect
+        print "doTempPoolVect = \n%s" % doTempPoolVect
         # In the doTempPoolVect each pos represents a col. If it has non zero
         # value then that col should do temp pooling.
         # Update the columns stopTempAtTime variable.
