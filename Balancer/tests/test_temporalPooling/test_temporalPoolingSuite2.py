@@ -102,7 +102,7 @@ testParameters = {
                                     'spatialPermanenceInc': 0.1,
                                     'spatialPermanenceDec': 0.02,
                                     'permanenceInc': 0.1,
-                                    'permanenceDec': 0.02,
+                                    'permanenceDec': 0.005,
                                     'minDutyCycle': 0.01,
                                     'boostStep': 0,
                                     'historyLength': 2
@@ -180,10 +180,42 @@ class test_temporalPoolingSuite2:
             tempPoolPercent = self.temporalPooling.temporalPoolingPercent(htmOutput)
             print "Temporal pooling percent = %s" % tempPoolPercent
 
-        app = QtGui.QApplication(sys.argv)
-        self.htmGui = GUI_HTM.HTMGui(self.htm, self.InputCreator)
-        sys.exit(app.exec_())
+        # app = QtGui.QApplication(sys.argv)
+        # self.htmGui = GUI_HTM.HTMGui(self.htm, self.InputCreator)
+        # sys.exit(app.exec_())
 
         # More then this percentage of temporal pooling should have occurred
         assert tempPoolPercent >= 0.75
+
+    def test_case4(self):
+        '''
+        This test is designed to make sure that temporal pooling
+        increase up the heirarchy of layers.
+        '''
+        self.nSteps(400)
+
+        # Measure the temporal pooling for each layer. This requires
+        # a temporal pooling measuring class per layer.
+        self.temporalPoolingMeasures = [mtp.measureTemporalPooling() for i in range(self.numLayers)]
+
+        tempPoolPercent = [0 for i in range(self.numLayers)]
+        # Run through all the inputs twice and find the average temporal pooling percent
+        # for each of the layers
+
+        for i in range(2*self.InputCreator.numInputs):
+            self.step()
+            for layer in range(self.numLayers):
+                gridOutput = self.htm.regionArray[0].layerOutput(layer)
+                tempPoolPercent[layer] = self.temporalPoolingMeasures[layer].temporalPoolingPercent(gridOutput)
+                #print "Layer %s Temporal pooling percent = %s" % (layer, tempPoolPercent[layer])
+
+        # app = QtGui.QApplication(sys.argv)
+        # self.htmGui = GUI_HTM.HTMGui(self.htm, self.InputCreator)
+        # sys.exit(app.exec_())
+
+        # Less then this percentage of temporal pooling should have occurred
+        for i in range(len(tempPoolPercent)):
+            print "layer %s temp pooling = %s" % (i, tempPoolPercent[i])
+            if (i > 0):
+                assert tempPoolPercent[i] > tempPoolPercent[i-1]
 
