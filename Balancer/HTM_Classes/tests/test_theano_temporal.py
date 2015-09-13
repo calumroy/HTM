@@ -7,7 +7,7 @@ import json
 from copy import deepcopy
 from HTM_Classes import theano_temporal
 
-class test_temporal:
+class test_theanoTemporal:
     def setUp(self):
         '''
         The theano temporal class is tested with a range of

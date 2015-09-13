@@ -7,7 +7,7 @@ import json
 from copy import deepcopy
 from HTM_Classes import theano_overlap
 
-class test_RunTime:
+class test_theanoOverlap:
     def setUp(self):
         '''
         The theano overlap class is tested with a range of
@@ -63,5 +63,63 @@ class test_RunTime:
 
                 assert len(colOverlaps) == numColumns
 
+    def test_minOverlap(self):
+        '''
+        Test the theano overlap calculator with a case where their is no
+        columns with an overlap value larger then the min overlap value.
+        '''
+        potWidth = 2
+        potHeight = 2
+        centerPotSynapses = 1
+        numColumnRows = 4
+        numColumnCols = 4
+        connectedPerm = 0.3
+        minOverlap = 3
+
+        colSynPerm = np.array([[0, 0, 0, 0],
+                               [0, 0, 0, 0],
+                               [0, 0, 0, 0],
+                               [0, 0, 0, 0],
+                               [0, 0, 0, 0],
+                               [0, 0, 0, 0],
+                               [0, 0, 0, 0],
+                               [0, 0, 0, 0],
+                               [1, 1, 1, 1],
+                               [1, 1, 1, 1],
+                               [1, 1, 1, 1],
+                               [1, 1, 1, 1],
+                               [0, 0, 0, 0],
+                               [0, 0, 0, 0],
+                               [0, 0, 0, 0],
+                               [0, 0, 0, 0]])
+
+        newInputMat = np.array([[1, 1, 1, 1],
+                                [0, 0, 0, 0],
+                                [1, 1, 1, 1],
+                                [0, 0, 0, 0]])
+
+        numInputCols = 4
+        numInputRows = 4
+
+        # Create an instance of the overlap calculation class
+        overlapCalc = theano_overlap.OverlapCalculator(potWidth,
+                                                       potHeight,
+                                                       numColumnCols,
+                                                       numColumnRows,
+                                                       numInputCols,
+                                                       numInputRows,
+                                                       centerPotSynapses,
+                                                       connectedPerm,
+                                                       minOverlap)
+
+        # Return both the overlap values and the inputs from
+        # the potential synapses to all columns.
+        colOverlaps, colPotInputs = overlapCalc.calculateOverlap(colSynPerm, newInputMat)
+
+        # limit the overlap values so they are larger then minOverlap
+        colOverlaps = overlapCalc.removeSmallOverlaps(colOverlaps)
+
+        #import ipdb; ipdb.set_trace()
+        assert np.sum(colOverlaps) == 0
 
 

@@ -14,7 +14,7 @@ testParameters = {
                         {
                         'numLevels': 1,
                         'columnArrayWidth': 8,
-                        'columnArrayHeight': 12,
+                        'columnArrayHeight': 20,
                         'cellsPerColumn': 2,
 
                         'HTMRegions': [{
@@ -24,6 +24,8 @@ testParameters = {
 
                             'HTMLayers': [{
                                 'desiredLocalActivity': 2,
+                                'inhibitionWidth': 3,
+                                'inhibitionHeight': 3,
                                 'centerPotSynapses': 1,
                                 'connectPermanence': 0.3,
                                 'minThreshold': 5,
@@ -35,7 +37,7 @@ testParameters = {
                                 'synPermanence': 0.4,
 
                                 'Columns': [{
-                                    'minOverlap': 3,
+                                    'minOverlap': 2,
                                     'boost': 1,
                                     'inhibitionRadius': 1,
                                     'potentialWidth': 3,

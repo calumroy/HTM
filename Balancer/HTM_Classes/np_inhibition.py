@@ -8,13 +8,58 @@ This class uses normal numpy matrix operations.
 
 Inputs:
 It uses the overlap values for each column, expressed in matrix form.
-It must be in a matrix so convolution can be used to determine
-column neighbours.
 
 
 Outputs:
 It outputs a binary vector where each position indicates if a column
 is active or not.
+
+THIS IS A REINIMPLEMENTATION OF THE OLD INHIBITON CODE BELOW
+
+    #print "length active columns before deleting = %s" % len(self.activeColumns)
+    self.activeColumns = np.array([], dtype=object)
+    #print "actve cols before %s" %self.activeColumns
+    allColumns = self.columns.flatten().tolist()
+    # Get all the columns in a 1D array then sort them based on their overlap value.
+    #allColumns = allColumns[np.lexsort(allColumns.overlap, axis=None)]
+    allColumns.sort(key=lambda x: x.overlap, reverse=True)
+    # Now start from the columns with the highest overlap and inhibit
+    # columns with smaller overlaps.
+    for c in allColumns:
+        if c.overlap > 0:
+            # Get the neighbours of the column
+            neighbourCols = self.neighbours(c)
+            minLocalActivity = self.kthScore(neighbourCols, self.desiredLocalActivity)
+            #print "current column = (%s, %s) overlap = %d min = %d" % (c.pos_x, c.pos_y,
+            #                                                            c.overlap, minLocalActivity)
+            if c.overlap > minLocalActivity:
+                self.activeColumns = np.append(self.activeColumns, c)
+                self.columnActiveAdd(c, timeStep)
+                # print "ACTIVE COLUMN x,y = %s, %s overlap = %d min = %d" % (c.pos_x, c.pos_y,
+                #                                                             c.overlap, minLocalActivity)
+            elif c.overlap == minLocalActivity:
+                # Check the neighbours and see how many have an overlap
+                # larger then the minLocalctivity or are already active.
+                # These columns will be set active.
+                numActiveNeighbours = 0
+                for d in neighbourCols:
+                    if (d.overlap > minLocalActivity or self.columnActiveState(d, self.timeStep) is True):
+                        numActiveNeighbours += 1
+                # if less then the desired local activity have been set
+                # or will be set as active then activate this column as well.
+                if numActiveNeighbours < self.desiredLocalActivity:
+                    #print "Activated column x,y = %s, %s numActiveNeighbours = %s" % (c.pos_x, c.pos_y, numActiveNeighbours)
+                    self.activeColumns = np.append(self.activeColumns, c)
+                    self.columnActiveAdd(c, timeStep)
+                else:
+                    # Set the overlap score for the losing columns to zero
+                    c.overlap = 0
+            else:
+                # Set the overlap score for the losing columns to zero
+                c.overlap = 0
+        self.updateActiveDutyCycle(c)
+        # Update the active duty cycle variable of every column
+
 '''
 
 
