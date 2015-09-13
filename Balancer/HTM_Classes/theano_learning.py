@@ -57,6 +57,20 @@ class LearningCalculator():
                                           allow_input_downcast=True
                                           )
 
+        # Create the theano function for calculating
+        # a limit on the synapses permanence values. They need
+        # to be kept within [0.0 to 1.0].
+        self.col_SynPermMat2 = T.matrix(dtype='float32')
+        self.check_greaterThanOne = T.switch(T.gt(self.col_SynPermMat2, 1.0),
+                                             1.0, self.col_SynPermMat2)
+        self.check_lessThanZero = T.switch(T.lt(self.col_SynPermMat2, 0),
+                                           0.0, self.check_greaterThanOne)
+        self.limit_SynPerm = function([self.col_SynPermMat2],
+                                      self.check_lessThanZero,
+                                      on_unused_input='warn',
+                                      allow_input_downcast=True
+                                      )
+
         #### END of Theano functions and variables definitions
         #################################################################
         # Create a matrix that just holds the column number for each element
@@ -70,8 +84,10 @@ class LearningCalculator():
                                                 self.row_num
                                                 )
         #print "newPermanceMat = \n%s" % newPermanceMat
+        # limit the permanence values between 0.0 and 1.0
+        limitedPermanceMat = self.limit_SynPerm(newPermanceMat)
 
-        return newPermanceMat
+        return limitedPermanceMat
 
 
 # if __name__ == '__main__':
