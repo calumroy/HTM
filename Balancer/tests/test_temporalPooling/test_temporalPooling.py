@@ -22,7 +22,9 @@ testParameters = {
                             'enableCommandFeedback': 0,
 
                             'HTMLayers': [{
-                                'desiredLocalActivity': 1,
+                                'desiredLocalActivity': 2,
+                                'inhibitionWidth': 3,
+                                'inhibitionHeight': 3,
                                 'centerPotSynapses': 1,
                                 'connectPermanence': 0.3,
                                 'minThreshold': 5,
@@ -49,7 +51,9 @@ testParameters = {
                                 }]
                             },
                             {
-                                'desiredLocalActivity': 2,
+                                'desiredLocalActivity': 4,
+                                'inhibitionWidth': 3,
+                                'inhibitionHeight': 3,
                                 'centerPotSynapses': 1,
                                 'connectPermanence': 0.3,
                                 'minThreshold': 5,
@@ -76,7 +80,9 @@ testParameters = {
                                 }]
                             },
                             {
-                                'desiredLocalActivity': 2,
+                                'desiredLocalActivity': 6,
+                                'inhibitionWidth': 9,
+                                'inhibitionHeight': 9,
                                 'centerPotSynapses': 1,
                                 'connectPermanence': 0.3,
                                 'minThreshold': 5,
@@ -250,9 +256,9 @@ class test_temporalPooling:
                 tempPoolPercent[layer] = self.temporalPoolingMeasures[layer].temporalPoolingPercent(gridOutput)
                 #print "Layer %s Temporal pooling percent = %s" % (layer, tempPoolPercent[layer])
 
-        # app = QtGui.QApplication(sys.argv)
-        # self.htmGui = GUI_HTM.HTMGui(self.htm, self.InputCreator)
-        # sys.exit(app.exec_())
+        app = QtGui.QApplication(sys.argv)
+        self.htmGui = GUI_HTM.HTMGui(self.htm, self.InputCreator)
+        sys.exit(app.exec_())
 
         # Less then this percentage of temporal pooling should have occurred
         for i in range(len(tempPoolPercent)):

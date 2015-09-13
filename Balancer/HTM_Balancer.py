@@ -187,6 +187,10 @@ class HTMLayer:
         # are observed in the inhibition radius.
         # How many cells within the inhibition radius are active
         self.desiredLocalActivity = params['desiredLocalActivity']
+        # The inhibition distance width and height. How far away a column can inhibit another
+        # column.
+        self.inhibitionHeight = params['inhibitionHeight']
+        self.inhibitionWidth = params['inhibitionWidth']
         # If true then all the potential synapses for a column are centered
         # around the columns position else they are to the right of the columns pos.
         self.centerPotSynapses = params['centerPotSynapses']
@@ -239,8 +243,13 @@ class HTMLayer:
         # Setup a matrix where each row represents a columns input values from its potential synapses.
         self.colPotInputs = np.empty([self.numColumns, self.numPotSyn])
         # Setup a matrix where each element represents the timestep when a column
-        # was active but not bursting last.
-        self.colActNotBurst = np.zeros(self.numColumns)
+        # was active but not bursting last. Each position in the first dimension
+        # represents a column. The matrix may stores the last two times the column
+        # was active but not bursting. The latest timeStep is stored in the first position.
+        # eg. self.colActNotBurst[41][0] sotres the latest time that column 42 was active
+        # but not bursting. self.colActNotBurst[41][1] stores the second last time that column
+        # 42 was active but not bursting.
+        self.colActNotBurst = np.zeros((self.numColumns, 2))
         # Setup a vector where each element represents a timeStep when a column
         # should stop temporal pooling.
         self.colStopTempAtTime = np.zeros(self.numColumns)
@@ -279,8 +288,8 @@ class HTMLayer:
                                                      self.minOverlap)
 
         self.inhibCalc = inhibition.inhibitionCalculator(self.width, self.height,
-                                                         self.potentialWidth,
-                                                         self.potentialHeight,
+                                                         self.inhibitionWidth,
+                                                         self.inhibitionHeight,
                                                          self.desiredLocalActivity,
                                                          self.centerPotSynapses)
 
@@ -381,13 +390,26 @@ class HTMLayer:
         # Create a list of the columns connected Synapses.
         column.connectedSynapses = np.array([], dtype=object)
         connSyn = []
-        columnInd = column.pos_x * column.pos_y
+        columnInd = column.pos_y * self.width + column.pos_x
         for i in range(len(self.colPotSynPerm[columnInd])):
             if self.colPotSynPerm[columnInd][i] > self.connectPermanence:
+                # Update the synapses permanence from the colPotSynPerm matrix
+                # This matrix hold all the synapse permanence values and is
+                # updated by the learning calculator.
+                column.potentialSynapses[i].permanence = self.colPotSynPerm[columnInd][i]
+                # Add this synapse to the list pf connected synapses.
                 connSyn.append(column.potentialSynapses[i])
         column.connectedSynapses = np.append(column.connectedSynapses, connSyn)
 
         return column.connectedSynapses
+
+    def getColumnsOverlap(self, column):
+        # Return the columns overlap value. This is stored in the
+        # self.colOverlaps matrix.
+        # columnIndex is the index number of the column if the
+        # columns 2D array was flattened.
+        columnIndex = column.pos_y * self.width + column.pos_x
+        return self.colOverlaps[columnIndex]
 
     def changeColsInhibRadius(self, newInhibRadius):
         # Change the inhibition radius of all the columns
@@ -563,6 +585,21 @@ class HTMLayer:
             c.cells[i].segments[segIndex].synapses.remove(d)
         #print "     deleted %s number of synapses"%(len(deleteActiveSynapses))
 
+    def updateColActNotBurst(self, columnIndex, timeStep):
+        # update the vector holding the timestep when the columns
+        # where active but not bursting last.
+        # The input column c should be updated with the input timestep
+        # unless it already has that timestep value. If this is the case
+        # then no update should occur
+        if self.colActNotBurst[columnIndex][0] != timeStep:
+            # move the vector back so the old time is kept.
+            self.colActNotBurst[columnIndex][1] = self.colActNotBurst[columnIndex][0]
+            self.colActNotBurst[columnIndex][0] = timeStep
+        else:
+            # A cell in the column was already sctive so this column is bursting.
+            # revert the latest timeback to the previous value.
+            self.colActNotBurst[columnIndex][0] = self.colActNotBurst[columnIndex][1]
+
     def columnActiveAdd(self, c, timeStep):
         # We add the new time to the start of the array
         # then delete the time at the end of the array.
@@ -577,6 +614,9 @@ class HTMLayer:
         # the array then delete the time at the end of the array.
         # All the times should be in order from
         # most recent to oldest.
+        # The colActNotBurst matrix is updated as well.
+        columnIndex = c.pos_y * self.width + c.pos_x
+        self.updateColActNotBurst(columnIndex, timeStep)
         newArray = np.insert(c.activeStateArray[i], 0, timeStep)
         newArray = np.delete(newArray, len(newArray)-1)
         c.activeStateArray[i] = newArray
@@ -997,6 +1037,9 @@ class HTMLayer:
         #from PyQt4.QtCore import pyqtRemoveInputHook; import ipdb; pyqtRemoveInputHook(); ipdb.set_trace()
 
         self.colOverlaps, self.colPotInputs = self.overlapCalc.calculateOverlap(self.colPotSynPerm, self.Input)
+        # limit the overlap values so they are larger then minOverlap
+        self.colOverlaps = self.overlapCalc.removeSmallOverlaps(self.colOverlaps)
+
         # print "self.Input = %s" % self.Input
         # print "len(self.colOverlaps) = %s" % len(self.colOverlaps)
         # print "self.colOverlaps = \n%s" % self.colOverlaps
@@ -1031,51 +1074,14 @@ class HTMLayer:
         # overlap a column could have. This guarantees the column will
         # win later when inhibition occurs.
 
-        # TODO
-        # this is slow and should be done differently.
-        # Need to update the colActNotBurst array.
-        allColumns = self.columns.flatten().tolist()
-        indx = 0
-        for c in allColumns:
-            if self.columnActiveNotBursting(c, self.timeStep-1) is not None:
-                self.colActNotBurst[indx] = self.timeStep-1
+        # We need just the latest column active but not bursting times.
+        latestColActNotBurst = self.colActNotBurst[:, 0]
 
-        self.colOverlaps, self.colStopTempAtTime = self.tempPoolCalc.calculateTemporalPool(self.colActNotBurst,
-                                                                                           self.timeStep-1,
+        self.colOverlaps, self.colStopTempAtTime = self.tempPoolCalc.calculateTemporalPool(latestColActNotBurst,
+                                                                                           self.timeStep,
                                                                                            self.colOverlaps,
                                                                                            self.colPotInputs,
                                                                                            self.colStopTempAtTime)
-
-        # for s in c.connectedSynapses:
-        # # Check if the input that this synapses is connected to is active.
-        # inputActive = self.Input[s.pos_y][s.pos_x]
-        # c.overlap = c.overlap + inputActive
-
-        # if c.overlap >= c.minOverlap:
-        #     # The col has a good overlap value and should allow temp pooling
-        #     # to continue on the next time step. Set the time flag to not the
-        #     # current time to allow this (we'll use zero).
-        #     c.stopTempAtTime = 0
-
-        # # If the time flag for temporal pooling was not set to now
-        # # then we should perform temporal pooling.
-        # if c.stopTempAtTime != (self.timeStep):
-        #     if c.overlap < c.minOverlap:
-        #         # The current col has a poor overlap and should stop temporal
-        #         # pooling on the next timestep.
-        #         c.stopTempAtTime = self.timeStep+1
-        #     # Recalculate the overlap using the potential synapses not just the connected.
-        #     c.overlap = 0
-        #     for s in c.potentialSynapses:
-        #         # Check if the input that this synapses is connected to is active.
-        #         inputActive = self.Input[s.pos_y][s.pos_x]
-        #         c.overlap = c.overlap + inputActive
-        #     # If more potential synapses then the min overlap
-        #     # are active then set the overlap to the maximum value possible.
-        #     if c.overlap >= c.minOverlap:
-        #         maxOverlap = (c.potentialWidth)*(c.potentialHeight)
-        #         c.overlap = c.overlap + maxOverlap
-        #         c.lastTempPoolingTime = self.timeStep
 
     def inhibition(self, timeStep):
         '''
@@ -1100,50 +1106,6 @@ class HTMLayer:
                 self.activeColumns = np.append(self.activeColumns, c)
                 self.columnActiveAdd(c, timeStep)
             indx += 1
-
-        # #print "length active columns before deleting = %s" % len(self.activeColumns)
-        # self.activeColumns = np.array([], dtype=object)
-        # #print "actve cols before %s" %self.activeColumns
-        # allColumns = self.columns.flatten().tolist()
-        # # Get all the columns in a 1D array then sort them based on their overlap value.
-        # #allColumns = allColumns[np.lexsort(allColumns.overlap, axis=None)]
-        # allColumns.sort(key=lambda x: x.overlap, reverse=True)
-        # # Now start from the columns with the highest overlap and inhibit
-        # # columns with smaller overlaps.
-        # for c in allColumns:
-        #     if c.overlap > 0:
-        #         # Get the neighbours of the column
-        #         neighbourCols = self.neighbours(c)
-        #         minLocalActivity = self.kthScore(neighbourCols, self.desiredLocalActivity)
-        #         #print "current column = (%s, %s) overlap = %d min = %d" % (c.pos_x, c.pos_y,
-        #         #                                                            c.overlap, minLocalActivity)
-        #         if c.overlap > minLocalActivity:
-        #             self.activeColumns = np.append(self.activeColumns, c)
-        #             self.columnActiveAdd(c, timeStep)
-        #             # print "ACTIVE COLUMN x,y = %s, %s overlap = %d min = %d" % (c.pos_x, c.pos_y,
-        #             #                                                             c.overlap, minLocalActivity)
-        #         elif c.overlap == minLocalActivity:
-        #             # Check the neighbours and see how many have an overlap
-        #             # larger then the minLocalctivity or are already active.
-        #             # These columns will be set active.
-        #             numActiveNeighbours = 0
-        #             for d in neighbourCols:
-        #                 if (d.overlap > minLocalActivity or self.columnActiveState(d, self.timeStep) is True):
-        #                     numActiveNeighbours += 1
-        #             # if less then the desired local activity have been set
-        #             # or will be set as active then activate this column as well.
-        #             if numActiveNeighbours < self.desiredLocalActivity:
-        #                 #print "Activated column x,y = %s, %s numActiveNeighbours = %s" % (c.pos_x, c.pos_y, numActiveNeighbours)
-        #                 self.activeColumns = np.append(self.activeColumns, c)
-        #                 self.columnActiveAdd(c, timeStep)
-        #             else:
-        #                 # Set the overlap score for the losing columns to zero
-        #                 c.overlap = 0
-        #         else:
-        #             # Set the overlap score for the losing columns to zero
-        #             c.overlap = 0
-        #     self.updateActiveDutyCycle(c)
-        #     # Update the active duty cycle variable of every column
 
     def learning(self):
         '''

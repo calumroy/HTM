@@ -234,8 +234,10 @@ class HTMInput(QtGui.QGraphicsView):
 
     def drawColumnInputs(self, pos_x, pos_y):
         #print "Selected pos_x = %s pos_y = %s" % (pos_x, pos_y)
-        column = self.htm.regionArray[self.level].layerArray[self.layer].columns[pos_y][pos_x]
-        print "     overlap = %s minOverlap = %s" % (column.overlap, column.minOverlap)
+        currentLayer = self.htm.regionArray[self.level].layerArray[self.layer]
+        column = currentLayer.columns[pos_y][pos_x]
+        columnsOverlap = currentLayer.getColumnsOverlap(column)
+        print "     overlap = %s minOverlap = %s" % (columnsOverlap, column.minOverlap)
         red = QtGui.QColor(0xFF, 0, 0, 0xFF)
         transpBlue = QtGui.QColor(0, 0, 0xFF, 0x30)
         green = QtGui.QColor(0, 0xFF, 0, 0xFF)
@@ -250,7 +252,7 @@ class HTMInput(QtGui.QGraphicsView):
             #brush = QtGui.QBrush(transpBlue)   # Have to create a brush with a color
             # Check each synapse and draw the connected columns
             # Get the list of the selected columns connected synapses.
-            currentLayer = self.htm.regionArray[self.level].layerArray[self.layer]
+
             selectedColumn = currentLayer.columns[pos_y][pos_x]
             for syn in currentLayer.getConnectedSynapses(selectedColumn):
                 if syn.pos_x == col.pos_x and syn.pos_y == col.pos_y:
