@@ -457,13 +457,16 @@ class HTMLayer:
 
     def neighbours(self, c):
         # returns a list of the columns that are within the inhibitionRadius of c
+        # Request from the inhibition calculator the neighbours of a particular
+        # column. Return all the column that are neighbours
+        columnIndex = c.pos_y * self.width + c.pos_x
+        colIndicieList = self.inhibCalc.getColInhibitionList(columnIndex)
+        print "colIndicieList = %s" % colIndicieList
         closeColumns = []
-        # Add one to the c.pos_y+c.inhibitionRadius because for example range(0,2)=(0,1)
-        for i in range(int(c.pos_y-c.inhibitionRadius), int(c.pos_y+c.inhibitionRadius)+1):
-            if i >= 0 and i < (len(self.columns)):
-                for j in range(int(c.pos_x-c.inhibitionRadius), int(c.pos_x+c.inhibitionRadius)+1):
-                    if j >= 0 and j < (len(self.columns[0])):
-                        closeColumns.append(self.columns[i][j])
+        allColumns = self.columns.flatten().tolist()
+        for i in colIndicieList:
+            # Convert the colIndicieList values from floats to ints.
+            closeColumns.append(allColumns[int(i)])
         return np.array(closeColumns)
 
     def areNeighbours(self, c, d):
