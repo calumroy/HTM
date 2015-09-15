@@ -648,6 +648,11 @@ class inhibitionCalculator():
 
         height, width = overlapsGrid.shape
         numCols = width * height
+
+        # Reset the inhibited columns vector. All columns start
+        # as uninhibited. This sets every element as zero.
+        self.inhibCols[:] = 0
+
         #print " width, height, numCols = %s, %s, %s" % (width, height, numCols)
         #print "overlapsGrid = \n%s" % overlapsGrid
 
@@ -669,7 +674,9 @@ class inhibitionCalculator():
         #print "colOverlapVect = \n%s" % colOverlapVect
 
         activeCols = self.calculateActiveCol(colOverlapMatOrig)
+        #print "before updating self.inhibCols \n%s" % self.inhibCols
         activeColumnVect = self.calculateActiveColumnVect(activeCols, self.inhibCols, colOverlapVect)
+        #print "activeColumnVect = \n%s" % activeColumnVect
         self.inhibCols, notInhibOrActNum = self.calculateInhibCols(activeColumnVect, colOverlapVect)
         #print "self.inhibCols \n%s" % self.inhibCols
 
@@ -719,6 +726,17 @@ class inhibitionCalculator():
         sortedColOverlapsVals = self.sort_vect(colOverlapVals, 1)
         #print "sortedColOverlapsVals = \n%s" % sortedColOverlapsVals
         return sortedColOverlapsVals
+
+    def getColInhibitionList(self, columnInd):
+        # Return the input columns list of inhibition neighbours.
+        # This is the list of columns that that column can inhibit.
+        # The colConvolePatternIndex indicie list returned starts
+        # at 1 for the first column. It also may included 0 which
+        # represents padding. Need to minus one and remove all padding values.
+        colIndList = self.colConvolePatternIndex[columnInd]
+        colIndList = colIndList - 1
+        colIndList = colIndList[colIndList >= 0]
+        return colIndList
 
 
 if __name__ == '__main__':
