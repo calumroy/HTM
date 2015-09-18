@@ -24,7 +24,7 @@ testParameters = {
 
                             'HTMLayers': [{
                                 'desiredLocalActivity': 2,
-                                'inhibitionWidth': 3,
+                                'inhibitionWidth': 2,
                                 'inhibitionHeight': 3,
                                 'centerPotSynapses': 1,
                                 'connectPermanence': 0.3,

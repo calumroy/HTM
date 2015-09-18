@@ -20,6 +20,28 @@ This class requires as inputs:
     * A list of the active columns.
     * How much to increment or decrement synapse values.
 
+THIS THEANO LEARNING CLASS IS A REIMPLEMENTATION OF THE ORIGINAL CODE:
+    for c in self.activeColumns:
+        for s in c.potentialSynapses:
+            # Check if the input that this
+            #synapses is connected to is active.
+            inputActive = self.Input[s.pos_y][s.pos_x]
+            if inputActive == 1:
+            #Only handles binary input sources
+                s.permanence += c.spatialPermanenceInc
+                s.permanence = min(1.0, s.permanence)
+            else:
+                s.permanence -= c.spatialPermanenceDec
+                s.permanence = max(0.0, s.permanence)
+
+    for i in range(len(self.columns)):
+        for c in self.columns[i]:
+            c.minDutyCycle = 0.01*self.maxDutyCycle(self.neighbours(c))
+            c.updateBoost()
+
+            if c.overlapDutyCycle < c.minDutyCycle:
+                self.increasePermanence(c, 0.1*self.connectPermanence)
+
 '''
 
 
@@ -38,6 +60,9 @@ class LearningCalculator():
         ############################################
         # Create the theano function for calculating
         # the new permanence values for each columns spatial synpases.
+        # A column is first checked if it is active. If so then for each
+        # potential synpase inc or dec the perm value depending on if the
+        # synpase was connected to an active input.
         self.col_PotInputsMat = T.matrix(dtype='int32')
         self.col_SynPermMat = T.matrix(dtype='float32')
         self.col_ActiveColVect = T.vector(dtype='int32')

@@ -243,7 +243,7 @@ if __name__ == '__main__':
     centerInhib = 1
     numRows = 4
     numCols = 4
-    desiredLocalActivity = 2
+    desiredLocalActivity = 1
 
     # Some made up inputs to test with
     #colOverlapGrid = np.random.randint(10, size=(numRows, numCols))
