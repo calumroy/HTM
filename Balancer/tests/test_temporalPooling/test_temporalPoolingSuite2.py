@@ -97,8 +97,8 @@ testParameters = {
                                     'minOverlap': 2,
                                     'boost': 1,
                                     'inhibitionRadius': 1,
-                                    'potentialWidth': 20,
-                                    'potentialHeight': 8,
+                                    'potentialWidth': 30,
+                                    'potentialHeight': 10,
                                     'spatialPermanenceInc': 0.1,
                                     'spatialPermanenceDec': 0.02,
                                     'permanenceInc': 0.1,
@@ -209,9 +209,9 @@ class test_temporalPoolingSuite2:
                 tempPoolPercent[layer] = self.temporalPoolingMeasures[layer].temporalPoolingPercent(gridOutput)
                 #print "Layer %s Temporal pooling percent = %s" % (layer, tempPoolPercent[layer])
 
-        # app = QtGui.QApplication(sys.argv)
-        # self.htmGui = GUI_HTM.HTMGui(self.htm, self.InputCreator)
-        # sys.exit(app.exec_())
+        app = QtGui.QApplication(sys.argv)
+        self.htmGui = GUI_HTM.HTMGui(self.htm, self.InputCreator)
+        sys.exit(app.exec_())
 
         # Less then this percentage of temporal pooling should have occurred
         for i in range(len(tempPoolPercent)):
