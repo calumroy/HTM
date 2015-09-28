@@ -1,5 +1,5 @@
-from mock import MagicMock
-from mock import patch
+# from mock import MagicMock
+# from mock import patch
 from HTM_Balancer import HTM
 import numpy as np
 import GUI_HTM
