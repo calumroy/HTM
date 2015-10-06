@@ -167,9 +167,10 @@ class OverlapCalculator():
             # This means only the right side and bottom of the input
             # need padding.
             topPos_y = 0
-            bottomPos_y = self.potentialHeight-1
+            bottomPos_y = math.floor(self.potentialHeight-1) - math.floor(leftOverHeight)
             leftPos_x = 0
-            rightPos_x = self.potentialWidth-1
+            rightPos_x = math.floor(self.potentialWidth-1) - math.floor(leftOverWidth)
+
         else:
             # The potential synapses are centered over the input
             # This means all sides of the input may need padding
@@ -285,6 +286,7 @@ class OverlapCalculator():
         # using the defined potential width and potential height.
         inputGrid = self.addPaddingToInput(inputGrid)
 
+        # print "padded InputGrid = \n%s" % inputGrid
         # print "inputGrid.shape = %s,%s,%s,%s" % inputGrid.shape
         # print "self.potentialWidth = %s" % self.potentialWidth
         # print "self.potentialHeight = %s" % self.potentialHeight

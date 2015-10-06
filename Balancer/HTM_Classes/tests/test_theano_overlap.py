@@ -133,11 +133,13 @@ class test_theanoOverlap:
         potWidth = 2
         potHeight = 2
         centerPotSynapses = 0
-        numColumnRows = 4
+        numColumnRows = 5
         numColumnCols = 4
         connectedPerm = 0.3
         minOverlap = 3
 
+         # The below colsynPerm needs to have potWidth * potHeight number of columns
+         # and needs to have numColumnCols * numColumnRows number of rows.
         colSynPerm = np.array([[0, 0, 0, 0],
                                [0, 0, 0, 0],
                                [0, 0, 0, 0],
@@ -153,8 +155,14 @@ class test_theanoOverlap:
                                [0, 0, 0, 0],
                                [0, 0, 0, 0],
                                [0, 0, 0, 0],
+                               [0, 0, 0, 0],
+                               [0, 0, 0, 0],
+                               [0, 0, 0, 0],
+                               [0, 0, 0, 0],
                                [0, 0, 0, 0]])
 
+        # Needs to have numColumnCols number of columns and
+        # numColumnRows number of rows for it to be valid.
         newInputMat = np.array([[1, 1, 1, 1],
                                 [0, 0, 0, 0],
                                 [1, 1, 1, 1],
