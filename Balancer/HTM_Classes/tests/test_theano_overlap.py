@@ -194,7 +194,7 @@ class test_theanoOverlap:
 
     def test_uncenteredInputSizes(self):
         potWidth = 4
-        potHeight = 4
+        potHeight = 5
         centerPotSynapses = 0
         numColumnRows = 7
         numColumnCols = 5

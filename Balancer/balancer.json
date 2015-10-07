@@ -117,8 +117,8 @@
             },
             {
                 "desiredLocalActivity": 1,
-                "inhibitionWidth": 0,
-                "inhibitionHeight": 0,
+                "inhibitionWidth": 1,
+                "inhibitionHeight": 1,
                 "centerPotSynapses": 0,
                 "connectPermanence": 0.3,
                 "minThreshold": 5,

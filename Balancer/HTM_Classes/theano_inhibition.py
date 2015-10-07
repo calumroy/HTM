@@ -390,6 +390,8 @@ class inhibitionCalculator():
         # Now Also calcualte a convole grid so the columns position
         # in the resulting col inhib overlap matrix can be tracked.
         self.incrementingMat = np.array([[1+i+self.width*j for i in range(self.width)] for j in range(self.height)])
+        #print "self.incrementingMat = \n%s" % self.incrementingMat
+        #print "potential height, width = %s, %s " %(self.potentialHeight, self.potentialWidth)
         self.colConvolePatternIndex = self.getColInhibInputs(self.incrementingMat)
         #print "colConvole = \n%s" % self.colConvolePatternIndex
         #print "colConvole height, width = %s, %s " % (len(self.colConvolePatternIndex),len(self.colConvolePatternIndex[0]))
@@ -515,6 +517,7 @@ class inhibitionCalculator():
         # using the defined potential inhib width and potential inhib height.
         inputGrid = self.addPaddingToInput(inputGrid)
 
+        #print "padded inputGrid = \n%s" % inputGrid
         # Calculate the input overlaps for each column.
         inputInhibCols = self.pool_inputs(inputGrid)
         # The returned array is within a list so just use pos 0.

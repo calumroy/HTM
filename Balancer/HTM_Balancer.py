@@ -1415,6 +1415,7 @@ class HTMRegion:
             highestLayer = self.numLayers - 1
             if i == highestLayer and self.enableCommandFeedback == 1:
                 lowerOutput = SDRFunct.joinInputArrays(self.commandInput, lowerOutput)
+
             self.layerArray = np.append(self.layerArray,
                                         HTMLayer(lowerOutput,
                                                  self.width,
