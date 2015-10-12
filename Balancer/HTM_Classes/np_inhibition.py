@@ -79,9 +79,9 @@ class inhibitionCalculator():
         self.desiredLocalActivity = desiredLocalActivity
 
     def kthScore(self, overlapsVect, cols, kth):
-        print "overlapsVect = \n%s" % overlapsVect
-        print "cols = \n%s" % cols
-        print "kth = %s" % kth
+        # print "overlapsVect = \n%s" % overlapsVect
+        # print "cols = \n%s" % cols
+        # print "kth = %s" % kth
         if len(cols) > 0 and kth > 0 and kth < (len(cols)-1):
             #Add the overlap values to a single list
             orderedScore = np.array([0 for i in range(len(cols))])
@@ -89,8 +89,8 @@ class inhibitionCalculator():
                 orderedScore[i] = overlapsVect[cols[i]]
             #print cols[0].overlap
             orderedScore = np.sort(orderedScore)
-            print "orderedScore = \n%s" % orderedScore
-            print "orderedScore[-kth] = %s" % orderedScore[-kth]
+            # print "orderedScore = \n%s" % orderedScore
+            # print "orderedScore[-kth] = %s" % orderedScore[-kth]
             return orderedScore[-kth]       # Minus since list starts at lowest
         return 0
 
@@ -149,15 +149,15 @@ class inhibitionCalculator():
                 pos_x = i % self.width
                 pos_y = math.floor(i/self.height)
 
-                print "COLUMN INDEX = %s" % i
-                print "overlap = %s" % overlap
+                #print "COLUMN INDEX = %s" % i
+                #print "overlap = %s" % overlap
                 # Get the neighbours of the column return the
                 # indicies of the neighbouring columns
                 neighbourCols = self.neighbours(overlapsGrid, pos_x, pos_y)
                 minLocalActivity = self.kthScore(allColsOverlaps, neighbourCols, self.desiredLocalActivity)
 
                 # print "neighbourCols = \n%s" % neighbourCols
-                print "minLocalActivity = %s" % minLocalActivity
+                #print "minLocalActivity = %s" % minLocalActivity
 
                 #import ipdb; ipdb.set_trace()
                 if overlap > minLocalActivity:
@@ -183,58 +183,13 @@ class inhibitionCalculator():
                 else:
                     # Set the overlap score for the losing columns to zero
                     allColsOverlaps[i] = 0
-                print "allColsOverlaps reshaped = \n%s" % np.array(allColsOverlaps).reshape((self.height, self.width))
-                print "columnActive reshaped = \n%s" % np.array(columnActive).reshape((self.height, self.width))
+                #print "allColsOverlaps reshaped = \n%s" % np.array(allColsOverlaps).reshape((self.height, self.width))
+                #print "columnActive reshaped = \n%s" % np.array(columnActive).reshape((self.height, self.width))
 
         print "ACTIVE COLUMN INDICIES = \n%s" % activeColumns
         print "columnActive = \n%s" % columnActive
 
         return columnActive
-
-        # #print "length active columns before deleting = %s" % len(self.activeColumns)
-        # self.activeColumns = np.array([], dtype=object)
-        # #print "actve cols before %s" %self.activeColumns
-        # allColumns = self.columns.flatten().tolist()
-        # # Get all the columns in a 1D array then sort them based on their overlap value.
-        # #allColumns = allColumns[np.lexsort(allColumns.overlap, axis=None)]
-        # allColumns.sort(key=lambda x: x.overlap, reverse=True)
-        # # Now start from the columns with the highest overlap and inhibit
-        # # columns with smaller overlaps.
-        # for c in allColumns:
-        #     if c.overlap > 0:
-        #         # Get the neighbours of the column
-        #         neighbourCols = self.neighbours(c)
-        #         minLocalActivity = self.kthScore(neighbourCols, self.desiredLocalActivity)
-        #         #print "current column = (%s, %s) overlap = %d min = %d" % (c.pos_x, c.pos_y,
-        #         #                                                            c.overlap, minLocalActivity)
-        #         if c.overlap > minLocalActivity:
-        #             self.activeColumns = np.append(self.activeColumns, c)
-        #             self.columnActiveAdd(c, timeStep)
-        #             # print "ACTIVE COLUMN x,y = %s, %s overlap = %d min = %d" % (c.pos_x, c.pos_y,
-        #             #                                                             c.overlap, minLocalActivity)
-        #         elif c.overlap == minLocalActivity:
-        #             # Check the neighbours and see how many have an overlap
-        #             # larger then the minLocalctivity or are already active.
-        #             # These columns will be set active.
-        #             numActiveNeighbours = 0
-        #             for d in neighbourCols:
-        #                 if (d.overlap > minLocalActivity or self.columnActiveState(d, self.timeStep) is True):
-        #                     numActiveNeighbours += 1
-        #             # if less then the desired local activity have been set
-        #             # or will be set as active then activate this column as well.
-        #             if numActiveNeighbours < self.desiredLocalActivity:
-        #                 #print "Activated column x,y = %s, %s numActiveNeighbours = %s" % (c.pos_x, c.pos_y, numActiveNeighbours)
-        #                 self.activeColumns = np.append(self.activeColumns, c)
-        #                 self.columnActiveAdd(c, timeStep)
-        #             else:
-        #                 # Set the overlap score for the losing columns to zero
-        #                 c.overlap = 0
-        #         else:
-        #             # Set the overlap score for the losing columns to zero
-        #             c.overlap = 0
-        #     self.updateActiveDutyCycle(c)
-        #     # Update the active duty cycle variable of every column
-
 
 if __name__ == '__main__':
 
@@ -243,7 +198,7 @@ if __name__ == '__main__':
     centerInhib = 1
     numRows = 4
     numCols = 4
-    desiredLocalActivity = 1
+    desiredLocalActivity = 2
 
     # Some made up inputs to test with
     #colOverlapGrid = np.random.randint(10, size=(numRows, numCols))

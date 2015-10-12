@@ -5,12 +5,12 @@ from PyQt4 import QtGui
 import sys
 import json
 from copy import deepcopy
-from HTM_Classes import theano_inhibition
+from HTM_Classes import np_inhibition
 
-class test_theanoInhibition:
+class test_npInhibition:
     def setUp(self):
         '''
-        The theano inhibition class is tested with a range of
+        The numpy inhibition class is tested with a range of
          * potential synpase sizes
          * HTM column sizes
 
@@ -48,14 +48,14 @@ class test_theanoInhibition:
                                    [0, 0, 3, 3, 0, 0, 0, 0],
                                    [0, 0, 3, 3, 0, 0, 0, 0]])
 
-        inhibCalculator = theano_inhibition.inhibitionCalculator(numCols, numRows,
-                                                                 inhibitionWidth, inhibitionHeight,
-                                                                 desiredLocalActivity, centerInhib)
+        inhibCalculator = np_inhibition.inhibitionCalculator(numCols, numRows,
+                                                             inhibitionWidth, inhibitionHeight,
+                                                             desiredLocalActivity, centerInhib)
 
         activeColumns = inhibCalculator.calculateWinningCols(colOverlapGrid)
 
         activeColumns = activeColumns.reshape((numRows, numCols))
-        #print "activeColumns = \n%s" % activeColumns
+        print "activeColumns = \n%s" % activeColumns
 
         result = np.array([[0, 0, 0, 1, 0, 0, 0, 0],
                           [0, 0, 0, 1, 0, 0, 0, 0],
@@ -83,7 +83,7 @@ class test_theanoInhibition:
 
     def test_case2(self):
         '''
-        Test the theano temporal calculator with a particular temoral case.
+        Test the np temporal calculator with a particular temoral case.
         '''
         inhibitionWidth = 3
         inhibitionHeight = 3
@@ -97,9 +97,9 @@ class test_theanoInhibition:
                                    [7, 7, 9, 4],
                                    [2, 3, 1, 5]])
 
-        inhibCalculator = theano_inhibition.inhibitionCalculator(numCols, numRows,
-                                                                 inhibitionWidth, inhibitionHeight,
-                                                                 desiredLocalActivity, centerInhib)
+        inhibCalculator = np_inhibition.inhibitionCalculator(numCols, numRows,
+                                                             inhibitionWidth, inhibitionHeight,
+                                                             desiredLocalActivity, centerInhib)
 
         activeColumns = inhibCalculator.calculateWinningCols(colOverlapGrid)
 
