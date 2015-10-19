@@ -186,8 +186,8 @@ class inhibitionCalculator():
                 #print "allColsOverlaps reshaped = \n%s" % np.array(allColsOverlaps).reshape((self.height, self.width))
                 #print "columnActive reshaped = \n%s" % np.array(columnActive).reshape((self.height, self.width))
 
-        print "ACTIVE COLUMN INDICIES = \n%s" % activeColumns
-        print "columnActive = \n%s" % columnActive
+        # print "ACTIVE COLUMN INDICIES = \n%s" % activeColumns
+        # print "columnActive = \n%s" % columnActive
 
         return columnActive
 
@@ -197,15 +197,15 @@ if __name__ == '__main__':
     potHeight = 3
     centerInhib = 1
     numRows = 4
-    numCols = 4
+    numCols = 5
     desiredLocalActivity = 2
 
     # Some made up inputs to test with
     #colOverlapGrid = np.random.randint(10, size=(numRows, numCols))
-    colOverlapGrid = np.array([[8, 4, 5, 8],
-                               [8, 6, 1, 6],
-                               [7, 7, 9, 4],
-                               [2, 3, 1, 5]])
+    colOverlapGrid = np.array([[8, 4, 5, 8, 1],
+                               [8, 6, 1, 6, 1],
+                               [7, 7, 9, 4, 9],
+                               [2, 3, 1, 5, 9]])
     print "colOverlapGrid = \n%s" % colOverlapGrid
 
     inhibCalculator = inhibitionCalculator(numCols, numRows,
