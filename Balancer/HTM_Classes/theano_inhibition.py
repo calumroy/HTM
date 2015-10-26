@@ -474,13 +474,13 @@ class inhibitionCalculator():
         #print "self.incrementingMat = \n%s" % self.incrementingMat
         #print "potential height, width = %s, %s " %(self.potentialHeight, self.potentialWidth)
         self.colConvolePatternIndex = self.getColInhibInputs(self.incrementingMat)
-        #print "colConvole = \n%s" % self.colConvolePatternIndex
+        print "colConvole = \n%s" % self.colConvolePatternIndex
         #print "colConvole height, width = %s, %s " % (len(self.colConvolePatternIndex),len(self.colConvolePatternIndex[0]))
 
         # Calculate a matrix storing the location of the numbers from
         # colConvolePatternIndex.
         self.colInConvoleList = self.calculateConvolePattern(self.colConvolePatternIndex)
-        #print "colInConvoleList = \n%s" % self.colInConvoleList
+        print "colInConvoleList = \n%s" % self.colInConvoleList
 
         # Store a vector where each element stores for a column how many times
         # that column appears in other columns convole lists.
@@ -864,7 +864,7 @@ class inhibitionCalculator():
 
 if __name__ == '__main__':
 
-    potWidth = 2
+    potWidth = 3
     potHeight = 3
     centerInhib = 1
     numRows = 4
