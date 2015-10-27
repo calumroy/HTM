@@ -167,18 +167,18 @@ class OverlapCalculator():
             # This means only the right side and bottom of the input
             # need padding.
             topPos_y = 0
-            bottomPos_y = math.floor(self.potentialHeight-1) - math.floor(leftOverHeight)
+            bottomPos_y = int(math.floor(self.potentialHeight-1) - math.floor(leftOverHeight))
             leftPos_x = 0
-            rightPos_x = math.floor(self.potentialWidth-1) - math.floor(leftOverWidth)
+            rightPos_x = int(math.floor(self.potentialWidth-1) - math.floor(leftOverWidth))
 
         else:
             # The potential synapses are centered over the input
             # This means all sides of the input may need padding
-            topPos_y = math.ceil(float(self.potentialHeight-1)/2) - math.ceil(float(leftOverHeight)/2)
-            bottomPos_y = math.floor(float(self.potentialHeight-1)/2) - math.floor(float(leftOverHeight)/2)
+            topPos_y = int(math.ceil(float(self.potentialHeight-1)/2) - math.ceil(float(leftOverHeight)/2))
+            bottomPos_y = int(math.floor(float(self.potentialHeight-1)/2) - math.floor(float(leftOverHeight)/2))
 
-            leftPos_x = math.ceil(float(self.potentialWidth-1)/2) - math.ceil(float(leftOverWidth)/2)
-            rightPos_x = math.floor(float(self.potentialWidth-1)/2) - math.floor(float(leftOverWidth)/2)
+            leftPos_x = int(math.ceil(float(self.potentialWidth-1)/2) - math.ceil(float(leftOverWidth)/2))
+            rightPos_x = int(math.floor(float(self.potentialWidth-1)/2) - math.floor(float(leftOverWidth)/2))
 
         # Make sure all are larger then zero still
         if topPos_y < 0:
