@@ -837,7 +837,7 @@ class inhibitionCalculator():
             # print "activeColumns = \n%s" % activeColumns
             # print "original overlaps = \n%s" % overlapsGrid
 
-        print "Looped %s number of times" % loopedTimes
+        #print "Looped %s number of times" % loopedTimes
 
         return activeColumnVect
 

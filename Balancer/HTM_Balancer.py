@@ -248,8 +248,10 @@ class HTMLayer:
         # was active but not bursting. The latest timeStep is stored in the first position.
         # eg. self.colActNotBurst[41][0] sotres the latest time that column 42 was active
         # but not bursting. self.colActNotBurst[41][1] stores the second last time that column
-        # 42 was active but not bursting.
-        self.colActNotBurst = np.zeros((self.numColumns, 2))
+        # 42 was active but not bursting. The third place is a temporary position used to update
+        # the other two positions.
+        self.colActNotBurst = np.zeros((self.numColumns, 3))
+        self.tempTimeCheck = 0
         # Setup a vector where each element represents a timeStep when a column
         # should stop temporal pooling.
         self.colStopTempAtTime = np.zeros(self.numColumns)
@@ -593,14 +595,20 @@ class HTMLayer:
         # where active but not bursting last.
         # The input column c should be updated with the input timestep
         # unless it already has that timestep value. If this is the case
-        # then no update should occur
-        if self.colActNotBurst[columnIndex][0] != timeStep:
+        # then no update should occur. Check the last position for the current time
+        # and also check the temporary storing position which also may hold this time
+        # if the column already tried to check this time.
+        if (self.colActNotBurst[columnIndex][0] != timeStep and
+            self.colActNotBurst[columnIndex][2] != timeStep):
             # move the vector back so the old time is kept.
             self.colActNotBurst[columnIndex][1] = self.colActNotBurst[columnIndex][0]
             self.colActNotBurst[columnIndex][0] = timeStep
         else:
-            # A cell in the column was already sctive so this column is bursting.
+            # A cell in the column was already active so this column is bursting.
             # revert the latest timeback to the previous value.
+            # Also store the current time in the temp position so the column knows this time
+            # was already checked.
+            self.colActNotBurst[columnIndex][2] = timeStep
             self.colActNotBurst[columnIndex][0] = self.colActNotBurst[columnIndex][1]
 
     def columnActiveAdd(self, c, timeStep):

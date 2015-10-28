@@ -269,7 +269,7 @@ class test_SpatialPooling:
         # self.htmGui = GUI_HTM.HTMGui(self.htm, self.InputCreator)
         # sys.exit(app.exec_())
 
-        #from PyQt4.QtCore import pyqtRemoveInputHook; import ipdb; pyqtRemoveInputHook(); ipdb.set_trace()
+        # from PyQt4.QtCore import pyqtRemoveInputHook; import ipdb; pyqtRemoveInputHook(); ipdb.set_trace()
         # Not exactly 50% since on the edges of the two patterns new columns may activate.
-        assert similarPerIn1 >= 0.48 and similarPerIn1 <= 0.52
-        assert similarPerIn2 >= 0.48 and similarPerIn2 <= 0.52
+        assert similarPerIn1 >= 0.44 and similarPerIn1 <= 0.56
+        assert similarPerIn2 >= 0.44 and similarPerIn2 <= 0.56
