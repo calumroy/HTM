@@ -177,6 +177,16 @@ class inhibitionCalculator():
                         closeColumns.append(int(i * self.width + j))
         return np.array(closeColumns)
 
+    def getColInhibitionList(self, columnInd):
+        # Return the input columns list of inhibition neighbours.
+        # This is the list of columns that that column can inhibit.
+        # The self.neighbourColsLists indice list returned starts
+        # at 1 for the first column. It also may included 0 which
+        # represents padding. Need to minus one and remove all padding values.
+        colIndList = self.neighbourColsLists[columnInd]
+        colIndList = colIndList[colIndList >= 0]
+        return colIndList
+
     def calculateWinningCols(self, overlapsGrid):
 
         activeColumns = []

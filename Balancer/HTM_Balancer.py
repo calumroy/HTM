@@ -14,7 +14,8 @@ import Thalamus
 
 from HTM_Classes import theano_temporal as temporal
 from HTM_Classes import theano_overlap as overlap
-from HTM_Classes import theano_inhibition as inhibition
+#from HTM_Classes import theano_inhibition as inhibition
+from HTM_Classes import np_inhibition as inhibition
 from HTM_Classes import theano_learning as learning
 
 
