@@ -224,6 +224,8 @@ class HTMInput(QtGui.QGraphicsView):
         self.scaleScene(0.8)
         self.drawGrid(self.size)
         self.show()
+        # Fit the scene into the view
+        self.fitInView(self.sceneRect(), QtCore.Qt.KeepAspectRatio)
 
     def connectSlots(self, HTMGridVeiwer):
         # Create and connect slots between the HTMGridVeiwer and this HTMInput Veiwer
@@ -305,6 +307,10 @@ class HTMInput(QtGui.QGraphicsView):
                     #columnItem.setFlag(QtGui.QGraphicsItem.ItemIsMovable)
                     self.columnItems.append(columnItem)
                     self.scene.addItem(columnItem)
+        # Set the scene rectangle. This is an invisible rectangle that
+        # defines where all the colums lie in the QGraphics scene.
+        # It is used to scale the scene so everything fits in the view.
+        self.scene.setSceneRect(0, 0, self.cols*size, self.rows*size)
 
     def updateGrid(self):
         for i in range(len(self.columnItems)):
@@ -350,7 +356,10 @@ class HTMInput(QtGui.QGraphicsView):
         super(HTMInput, self).mouseReleaseEvent(event)
 
     def mouseDoubleClickEvent(self, event):
-        pass
+        # Autoscale the scene to fit in the view
+        # Get the position of the top most column item and
+        # the bottom most left item.
+        self.fitInView(self.sceneRect(), QtCore.Qt.KeepAspectRatio)
 
     def keyPressEvent(self, event):
         if event.key() == QtCore.Qt.Key_Control and not self._mousePressed:
@@ -415,6 +424,9 @@ class HTMGridViewer(QtGui.QGraphicsView):
         self.drawInfo()
         self.show()
 
+        # Fit the scene into the view
+        self.fitInView(self.sceneRect(), QtCore.Qt.KeepAspectRatio)
+
     def selectedSegmentIndex(self, index):
         #print"Selected item pos_x,pos_y,cell,segment%s,%s,%s,%s"%(self.selectedItem.pos_x,self.selectedItem.pos_y,self.selectedItem.cell,index)
         self.drawSingleCell(self.selectedItem.pos_x, self.selectedItem.pos_y, self.selectedItem.cell, index)
@@ -476,6 +488,10 @@ class HTMGridViewer(QtGui.QGraphicsView):
                     self.drawCells(self.numCells, x, y, size)
         # Update the info
         self.updateInfo()
+        # Set the scene rectangle. This is an invisible rectangle that
+        # defines where all the colums lie in the QGraphics scene.
+        # It is used to scale the scene so everything fits in the view.
+        self.scene.setSceneRect(0, 0, cols*size, rows*size)
 
 
     def drawCells(self, numCells, pos_x, pos_y, size):
@@ -744,7 +760,8 @@ class HTMGridViewer(QtGui.QGraphicsView):
         super(HTMGridViewer, self).mouseReleaseEvent(event)
 
     def mouseDoubleClickEvent(self, event):
-        pass
+        # Fit the scene into the view
+        self.fitInView(self.sceneRect(), QtCore.Qt.KeepAspectRatio)
 
     def keyPressEvent(self, event):
         if event.key() == QtCore.Qt.Key_Control and not self.dragView:
