@@ -23,9 +23,16 @@ testParameters = {
 
                             'HTMLayers': [{
                                 'desiredLocalActivity': 2,
+                                'minOverlap': 3,
                                 'inhibitionWidth': 4,
                                 'inhibitionHeight': 3,
                                 'centerPotSynapses': 1,
+                                'potentialWidth': 4,
+                                'potentialHeight': 4,
+                                'spatialPermanenceInc': 0.1,
+                                'spatialPermanenceDec': 0.02,
+                                'permanenceInc': 0.1,
+                                'permanenceDec': 0.02,
                                 'connectPermanence': 0.3,
                                 'minThreshold': 5,
                                 'minScoreThreshold': 5,
@@ -36,24 +43,24 @@ testParameters = {
                                 'synPermanence': 0.4,
 
                                 'Columns': [{
-                                    'minOverlap': 3,
                                     'boost': 1,
-                                    'potentialWidth': 4,
-                                    'potentialHeight': 4,
-                                    'spatialPermanenceInc': 0.1,
-                                    'spatialPermanenceDec': 0.02,
-                                    'permanenceInc': 0.1,
-                                    'permanenceDec': 0.02,
                                     'minDutyCycle': 0.01,
                                     'boostStep': 0,
                                     'historyLength': 2
                                 }]
                             },
                             {
-                                'desiredLocalActivity': 1,
+                                'desiredLocalActivity': 2,
+                                'minOverlap': 3,
                                 'inhibitionWidth': 8,
                                 'inhibitionHeight': 3,
                                 'centerPotSynapses': 1,
+                                'potentialWidth': 8,
+                                'potentialHeight': 8,
+                                'spatialPermanenceInc': 0.1,
+                                'spatialPermanenceDec': 0.02,
+                                'permanenceInc': 0.1,
+                                'permanenceDec': 0.02,
                                 'connectPermanence': 0.3,
                                 'minThreshold': 5,
                                 'minScoreThreshold': 5,
@@ -64,25 +71,25 @@ testParameters = {
                                 'synPermanence': 0.4,
 
                                 'Columns': [{
-                                    'minOverlap': 3,
                                     'boost': 1,
-                                    'potentialWidth': 8,
-                                    'potentialHeight': 8,
-                                    'spatialPermanenceInc': 0.1,
-                                    'spatialPermanenceDec': 0.02,
-                                    'permanenceInc': 0.1,
-                                    'permanenceDec': 0.02,
                                     'minDutyCycle': 0.01,
                                     'boostStep': 0,
                                     'historyLength': 2
                                 }]
                             },
                             {
-                                'desiredLocalActivity': 1,
+                                'desiredLocalActivity': 2,
+                                'minOverlap': 2,
                                 'inhibitionWidth': 20,
                                 'inhibitionHeight': 3,
                                 'centerPotSynapses': 1,
                                 'connectPermanence': 0.3,
+                                'potentialWidth': 30,
+                                'potentialHeight': 10,
+                                'spatialPermanenceInc': 0.2,
+                                'spatialPermanenceDec': 0.005,
+                                'permanenceInc': 0.1,
+                                'permanenceDec': 0.005,
                                 'minThreshold': 5,
                                 'minScoreThreshold': 5,
                                 'newSynapseCount': 10,
@@ -92,14 +99,7 @@ testParameters = {
                                 'synPermanence': 0.4,
 
                                 'Columns': [{
-                                    'minOverlap': 2,
                                     'boost': 1,
-                                    'potentialWidth': 30,
-                                    'potentialHeight': 10,
-                                    'spatialPermanenceInc': 0.2,
-                                    'spatialPermanenceDec': 0.005,
-                                    'permanenceInc': 0.1,
-                                    'permanenceDec': 0.005,
                                     'minDutyCycle': 0.01,
                                     'boostStep': 0,
                                     'historyLength': 2
@@ -227,33 +227,45 @@ class test_temporalPoolingSuite2:
         '''
         self.nSteps(400)
 
-        # Change the input pattern to pattern 1 (this is a pattern of right to left)
-        self.InputCreator.changePattern(1)
-
-        self.nSteps(400)
-
         # Measure the temporal pooling for each layer. This requires
         # a temporal pooling measuring class per layer.
         self.temporalPoolingMeasures = [mtp.measureTemporalPooling() for i in range(self.numLayers)]
-
         tempPoolPercent = [0 for i in range(self.numLayers)]
         # Run through all the inputs twice and find the average temporal pooling percent
         # for each of the layers
-
         for i in range(2*self.InputCreator.numInputs):
             self.step()
             for layer in range(self.numLayers):
                 gridOutput = self.htm.regionArray[0].layerOutput(layer)
                 tempPoolPercent[layer] = self.temporalPoolingMeasures[layer].temporalPoolingPercent(gridOutput)
                 #print "Layer %s Temporal pooling percent = %s" % (layer, tempPoolPercent[layer])
-
         # Less then this percentage of temporal pooling should have occurred
         for i in range(len(tempPoolPercent)):
             print "layer %s temp pooling = %s" % (i, tempPoolPercent[i])
-            if (i > 0):
-                assert tempPoolPercent[i] > tempPoolPercent[i-1]
 
+        # Change the input pattern to pattern 1 (this is a pattern of right to left)
+        self.InputCreator.changePattern(1)
+        self.nSteps(400)
+
+        # change the input pattern back to the original one to see if it has been
+        # remebered and tmporal pooling still occurs.
         self.InputCreator.changePattern(0)
+
+        # Measure the temporal pooling for each layer. This requires
+        # a temporal pooling measuring class per layer.
+        self.temporalPoolingMeasures = [mtp.measureTemporalPooling() for i in range(self.numLayers)]
+        tempPoolPercent = [0 for i in range(self.numLayers)]
+        # Run through all the inputs twice and find the average temporal pooling percent
+        # for each of the layers
+        for i in range(2*self.InputCreator.numInputs):
+            self.step()
+            for layer in range(self.numLayers):
+                gridOutput = self.htm.regionArray[0].layerOutput(layer)
+                tempPoolPercent[layer] = self.temporalPoolingMeasures[layer].temporalPoolingPercent(gridOutput)
+                #print "Layer %s Temporal pooling percent = %s" % (layer, tempPoolPercent[layer])
+        # Less then this percentage of temporal pooling should have occurred
+        for i in range(len(tempPoolPercent)):
+            print "layer %s temp pooling = %s" % (i, tempPoolPercent[i])
 
         app = QtGui.QApplication(sys.argv)
         self.htmGui = GUI_HTM.HTMGui(self.htm, self.InputCreator)

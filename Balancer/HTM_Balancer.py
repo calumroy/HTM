@@ -97,17 +97,7 @@ class Column:
         self.pos_x = pos_x
         self.pos_y = pos_y
         self.overlap = 0.0  # As defined by the numenta white paper
-        self.minOverlap = params['minOverlap']
         self.boost = params['boost']
-        # The max distance that Synapses can be made at
-        self.potentialWidth = params['potentialWidth']
-        self.potentialHeight = params['potentialHeight']
-        # Spatial Pooler synapses inc or dec values
-        self.spatialPermanenceInc = params['spatialPermanenceInc']
-        self.spatialPermanenceDec = params['spatialPermanenceDec']
-        # Sequence Pooling synapses inc or dec values
-        self.permanenceInc = params['permanenceInc']
-        self.permanenceDec = params['permanenceDec']
         self.minDutyCycle = params['minDutyCycle']   # The minimum firing rate of the column
         # Keeps track of when the column was active.
         # All columns start as active. It stores the
@@ -124,13 +114,6 @@ class Column:
         #actve predictive and learn state arrays.
         self.historyLength = params['historyLength']
         self.highestScoredCell = None
-        # A time flag to indicate the column should stop temporally pooling
-        # This is set to the next timestep when a column has a poor overlap value for the current time
-        # but it is temporally pooling. On the next time step if the overlap is
-        # still poor the column should not keep temporally pooling (being activated).
-        self.stopTempAtTime = -1
-        # The last time temporal pooling occurred
-        self.lastTempPoolingTime = -1
 
         # An array storing the synapses with a permanence greater then the connectPermanence.
         self.connectedSynapses = np.array([], dtype=object)
@@ -224,12 +207,13 @@ class HTMLayer:
         # These parameters come from the column class.
         # Just take the parameters for the first column.
         #from PyQt4.QtCore import pyqtRemoveInputHook; import ipdb; pyqtRemoveInputHook(); ipdb.set_trace()
-        self.potentialWidth = params['Columns'][0]['potentialWidth']
-        self.potentialHeight = params['Columns'][0]['potentialHeight']
-        self.minOverlap = params['Columns'][0]['minOverlap']
-        self.spatialPermanenceInc = params['Columns'][0]['spatialPermanenceInc']
-        self.spatialPermanenceDec = params['Columns'][0]['spatialPermanenceDec']
-        self.historyLength = params['Columns'][0]['historyLength']
+        self.potentialWidth = params['potentialWidth']
+        self.potentialHeight = params['potentialHeight']
+        self.minOverlap = params['minOverlap']
+        self.spatialPermanenceInc = params['spatialPermanenceInc']
+        self.spatialPermanenceDec = params['spatialPermanenceDec']
+        self.permanenceInc = params['permanenceInc']
+        self.permanenceDec = params['permanenceDec']
         self.inputHeight = len(self.Input)
         self.inputWidth = len(self.Input[0])
         self.numPotSyn = self.potentialWidth * self.potentialHeight
@@ -412,17 +396,10 @@ class HTMLayer:
         columnIndex = column.pos_y * self.width + column.pos_x
         return self.colOverlaps[columnIndex]
 
-    def changeColsMinOverlap(self, newMinOverlap):
-        # Change the columns minOverlap value for all columns.
-        for k in range(len(self.columns)):
-            for c in self.columns[k]:
-                c.minOverlap = newMinOverlap
-
-    def changeColsSynSpatialDecrement(self, newPermanenceDec):
-         # Change the columns spatial pooler permanence decrement value for all columns.
-        for k in range(len(self.columns)):
-            for c in self.columns[k]:
-                c.spatialPermanenceDec = newPermanenceDec
+    def getColumnsMinOverlap(self):
+        # return the minoverlap value.
+        # All columns have the same minoverlap value in a htm layer.
+        return self.minOverlap
 
     def setupPotentialSynapses(self, inputWidth, inputHeight):
         # setup the locations of the potential synapses for every column.
@@ -440,7 +417,7 @@ class HTMLayer:
         cInd = 0
         for k in range(len(self.columns)):
             for c in self.columns[k]:
-                numPotSynapse = c.potentialHeight * c.potentialWidth
+                numPotSynapse = self.potentialHeight * self.potentialWidth
                 assert numPotSynapse == len(columnPotSynPositions[0][0])
                 c.potentialSynapses = np.array([])
                 for i in range(numPotSynapse):
@@ -477,26 +454,6 @@ class HTMLayer:
             #print "overlap DutyCycle = %s length =
             # %s averagelength = %s"%(c.overlapDutyCycle,len
                 # (c.overlapDutyCycleArray),self.dutyCycleAverageLength)
-
-    def increasePermanence(self, c, scale):
-        # Increases all the permanences of the Synapses.
-        # It's used to help columns win that don't
-        # have a good overlap with any inputs
-        for i in range(len(c.potentialSynapses)):
-            # Increase the permance by a scale factor
-            c.potentialSynapses[i].permanence = min(1.0, (1+scale)*(c.potentialSynapses[i].permanence))
-
-    def kthScore(self, cols, kth):
-        if len(cols) > 0 and kth > 0 and kth < (len(cols)-1):
-            #Add the overlap values to a single list
-            orderedScore = np.array([0 for i in range(len(cols))])
-            for i in range(len(orderedScore)):
-                orderedScore[i] = cols[i].overlap
-            #print cols[0].overlap
-            orderedScore = np.sort(orderedScore)
-            #print orderedScore
-            return orderedScore[-kth]       # Minus since list starts at lowest
-        return 0
 
     def updateActiveDutyCycle(self, c):
         # If the column is active now
@@ -958,10 +915,10 @@ class HTMLayer:
                     #structure are already in the segment. The
                     # new synapses are not yet however.
                     if positiveReinforcement is True:
-                        s.permanence += c.permanenceInc
+                        s.permanence += self.permanenceInc
                         s.permanence = min(1.0, s.permanence)
                     else:
-                        s.permanence -= c.permanenceDec
+                        s.permanence -= self.permanenceDec
                         s.permanence = max(0.0, s.permanence)
                     #print "     x,y,cell,segment= %s,%s,%s,%s
                     #syn end x,y,cell = %s,%s,%s"%(c.pos_x,c.pos_y,i,
@@ -970,7 +927,7 @@ class HTMLayer:
                     #print "     synapse permanence = %s"%(s.permanence)
                 # Decrement the permanence of all synapses in the synapse list
                 for s in c.cells[i].segments[segIndex].synapses:
-                    s.permanence -= c.permanenceDec
+                    s.permanence -= self.permanenceDec
                     s.permanence = max(0.0, s.permanence)
                     #print "     x,y,cell,segment= %s,%s,%s,%s syn end x,
                     #y,cell = %s,%s,%s"%(c.pos_x,c.pos_y,i,j,
@@ -1111,28 +1068,6 @@ class HTMLayer:
         self.colPotSynPerm = self.permanenceCalc.updatePermanenceValues(self.colPotSynPerm,
                                                                         self.colPotInputs,
                                                                         self.colActive)
-
-
-        # for c in self.activeColumns:
-        #     for s in c.potentialSynapses:
-        #         # Check if the input that this
-        #         #synapses is connected to is active.
-        #         inputActive = self.Input[s.pos_y][s.pos_x]
-        #         if inputActive == 1:
-        #         #Only handles binary input sources
-        #             s.permanence += c.spatialPermanenceInc
-        #             s.permanence = min(1.0, s.permanence)
-        #         else:
-        #             s.permanence -= c.spatialPermanenceDec
-        #             s.permanence = max(0.0, s.permanence)
-
-        # for i in range(len(self.columns)):
-        #     for c in self.columns[i]:
-        #         c.minDutyCycle = 0.01*self.maxDutyCycle(self.neighbours(c))
-        #         c.updateBoost()
-
-        #         if c.overlapDutyCycle < c.minDutyCycle:
-        #             self.increasePermanence(c, 0.1*self.connectPermanence)
 
     def updateActiveState(self, timeStep):
         """
