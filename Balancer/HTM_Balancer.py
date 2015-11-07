@@ -99,8 +99,6 @@ class Column:
         self.overlap = 0.0  # As defined by the numenta white paper
         self.minOverlap = params['minOverlap']
         self.boost = params['boost']
-        # The max distance a column can inhibit another column.
-        self.inhibitionRadius = params['inhibitionRadius']
         # The max distance that Synapses can be made at
         self.potentialWidth = params['potentialWidth']
         self.potentialHeight = params['potentialHeight']
@@ -414,12 +412,6 @@ class HTMLayer:
         columnIndex = column.pos_y * self.width + column.pos_x
         return self.colOverlaps[columnIndex]
 
-    def changeColsInhibRadius(self, newInhibRadius):
-        # Change the inhibition radius of all the columns
-        for k in range(len(self.columns)):
-            for c in self.columns[k]:
-                c.inhibitionRadius = newInhibRadius
-
     def changeColsMinOverlap(self, newMinOverlap):
         # Change the columns minOverlap value for all columns.
         for k in range(len(self.columns)):
@@ -471,16 +463,6 @@ class HTMLayer:
             # Convert the colIndicieList values from floats to ints.
             closeColumns.append(allColumns[int(i)])
         return np.array(closeColumns)
-
-    def areNeighbours(self, c, d):
-        # Checks to see if two columns are neighbours.
-        # This means the columns are within the inhibitionRadius of c.
-        distance = int(math.sqrt(math.pow(d.pos_y - c.pos_y, 2) + math.pow(d.pos_x - c.pos_x, 2)))
-        #print "c.inhibitionRadius = %s distance = %s" % (c.inhibitionRadius, distance)
-        if distance <= c.inhibitionRadius:
-            return True
-        else:
-            return False
 
     def updateOverlapDutyCycle(self, c):
             # Append the current time to the list of times that the column was active for

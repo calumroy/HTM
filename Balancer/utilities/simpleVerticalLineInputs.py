@@ -8,8 +8,16 @@ class simpleVerticalLineInputs:
         self.numInputs = numInputs
         self.width = width
         self.height = height
-        self.inputs = np.array([[[0 for i in range(self.width)]
-                                for j in range(self.height)] for k in range(self.numInputs)])
+        # How many input patterns to store
+        self.numPatterns = 2
+        # An index indicating the current pattern that is being used as a serias of input grids.
+        self.patIndex = 0
+        # An array storing different input patterns
+        # Each pattern is a series of 2dArray grids storing binary patterns.
+        self.inputs = np.array([[[[0 for i in range(self.width)]
+                                for j in range(self.height)]
+                                for k in range(self.numInputs)]
+                                for l in range(self.numPatterns)])
         self.setInputs(self.inputs)
         # Use an index to keep track of which input to send next
         self.index = 0
@@ -21,13 +29,25 @@ class simpleVerticalLineInputs:
         self.sequenceProbability = 1.0
 
     def setInputs(self, inputs):
-        # Will will create vertical lines in the input that move from side to side.
+        # This will create vertical lines in the input that move from side to side.
         # These inputs should then be used to test temporal pooling.
-        for n in range(len(inputs)):
-            for y in range(len(inputs[0])):
-                for x in range(len(inputs[n][y])):
+        # The first input pattern moves left to right
+        for n in range(len(inputs[0])):
+            for y in range(len(inputs[0][0])):
+                for x in range(len(inputs[0][n][y])):
                     if x == n:
-                        inputs[n][y][x] = 1
+                        inputs[0][n][y][x] = 1
+        # The second input pattern moves right to left
+        for n in range(len(inputs[1])):
+            for y in range(len(inputs[1][0])):
+                for x in range(len(inputs[0][n][y])):
+                    # reverse the pattern
+                    if x == (len(inputs[1]) - 1 - n):
+                        inputs[1][n][y][x] = 1
+
+    def changePattern(self, patternindex):
+        # Change the input pattern
+        self.patIndex = patternindex
 
     def step(self, cellGrid):
         # Required function for a InputCreator class
@@ -45,7 +65,7 @@ class simpleVerticalLineInputs:
         # The next input is at the self.index
         if self.noise > 0.0:
             # Return a new grid so the original input is not over written.
-            newGrid = deepcopy(self.inputs[self.index])
+            newGrid = deepcopy(self.inputs[self.patIndex][self.index])
 
             for y in range(len(newGrid[0])):
                 for x in range(len(newGrid[y])):
@@ -53,13 +73,13 @@ class simpleVerticalLineInputs:
                         newGrid[y][x] = 1
         # Give the next outpu a chance to be an out of sequence input.
         if (random.random() < self.sequenceProbability):
-            outputGrid = self.inputs[self.index]
+            outputGrid = self.inputs[self.patIndex][self.index]
         else:
-            sequenceLen = len(self.inputs)
-            outputGrid = self.inputs[random.randint(0, sequenceLen-1)]
+            sequenceLen = len(self.inputs[self.patIndex])
+            outputGrid = self.inputs[self.patIndex][random.randint(0, sequenceLen-1)]
         # Increment the index for next time
         self.index += 1
-        if (self.index >= len(self.inputs)):
+        if (self.index >= len(self.inputs[self.patIndex])):
             self.index = 0
         # If noise was added return the noisy grid.
         if newGrid is not None:

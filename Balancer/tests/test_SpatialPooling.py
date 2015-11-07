@@ -39,7 +39,6 @@ testParameters = {
                                 'Columns': [{
                                     'minOverlap': 3,
                                     'boost': 1,
-                                    'inhibitionRadius': 1,
                                     'potentialWidth': 4,
                                     'potentialHeight': 4,
                                     'spatialPermanenceInc': 0.1,

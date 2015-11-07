@@ -33,7 +33,6 @@
                 "Columns": [{
                     "minOverlap": 3,
                     "boost": 1,
-                    "inhibitionRadius": 2,
                     "potentialWidth": 4,
                     "potentialHeight": 4,
                     "spatialPermanenceInc": 0.1,
@@ -62,7 +61,6 @@
                 "Columns": [{
                     "minOverlap": 1,
                     "boost": 1,
-                    "inhibitionRadius": 0,
                     "potentialWidth": 3,
                     "potentialHeight": 2,
                     "spatialPermanenceInc": 0.1,
@@ -103,7 +101,6 @@
                 "Columns": [{
                     "minOverlap": 5,
                     "boost": 1,
-                    "inhibitionRadius": 5,
                     "potentialWidth": 60,
                     "potentialHeight": 8,
                     "spatialPermanenceInc": 0.1,
@@ -132,7 +129,6 @@
                 "Columns": [{
                     "minOverlap": 1,
                     "boost": 1,
-                    "inhibitionRadius": 0,
                     "potentialWidth": 3,
                     "potentialHeight": 2,
                     "spatialPermanenceInc": 0.1,

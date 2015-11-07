@@ -169,7 +169,7 @@ class inhibitionCalculator():
         # print "topPos_y, bottomPos_y, = %s, %s" % (topPos_y, bottomPos_y)
         # print "leftPos_x, rightPos_x = %s, %s" % (leftPos_x, rightPos_x)
 
-        # Add one to the c.pos_y+c.inhibitionRadius because for example range(0,2)=(0,1)
+        # Add one to the c.pos_y+c.inhibition width and height because for example range(0,2)=(0,1)
         for i in range(int(pos_y-topPos_y), int(pos_y+bottomPos_y)+1):
             if i >= 0 and i < self.height:
                 for j in range(int(pos_x-leftPos_x), int(pos_x+rightPos_x)+1):
