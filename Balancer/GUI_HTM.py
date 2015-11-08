@@ -279,6 +279,10 @@ class HTMInput(QtGui.QGraphicsView):
         self.scaleSize = self.scaleSize*scaleSize
         self.scale(scaleSize, scaleSize)
 
+    def resizeView(self):
+        # Resize the view. This function is called by some qt signals.
+        self.fitInView(self.sceneRect(), QtCore.Qt.KeepAspectRatio)
+
     def drawGrid(self, size):
         # Used to initialise the graphics scene with the input grid
         # Also used to draw a new layers input for the HTM since different layers cn have different sized inputs.
@@ -360,7 +364,7 @@ class HTMInput(QtGui.QGraphicsView):
         # Autoscale the scene to fit in the view
         # Get the position of the top most column item and
         # the bottom most left item.
-        self.fitInView(self.sceneRect(), QtCore.Qt.KeepAspectRatio)
+        self.resizeView()
 
     def keyPressEvent(self, event):
         if event.key() == QtCore.Qt.Key_Control and not self._mousePressed:
@@ -668,6 +672,10 @@ class HTMGridViewer(QtGui.QGraphicsView):
         #print "ScaleSize = %s" % self.scaleSize
         self.scale(scaleSize, scaleSize)
 
+    def resizeView(self):
+        # Resize the view. This function is called by some qt signals.
+        self.fitInView(self.sceneRect(), QtCore.Qt.KeepAspectRatio)
+
     def mousePressEvent(self, event):
 
         if event.buttons() == QtCore.Qt.LeftButton:
@@ -762,7 +770,7 @@ class HTMGridViewer(QtGui.QGraphicsView):
 
     def mouseDoubleClickEvent(self, event):
         # Fit the scene into the view
-        self.fitInView(self.sceneRect(), QtCore.Qt.KeepAspectRatio)
+        self.resizeView()
 
     def keyPressEvent(self, event):
         if event.key() == QtCore.Qt.Key_Control and not self.dragView:
@@ -1184,6 +1192,8 @@ class HTMNetwork(QtGui.QWidget):
 
 
 class HTMGui(QtGui.QMainWindow):
+    # Create a signal to to signal that the window size has changed.
+    windowSizeChanged = QtCore.pyqtSignal()
 
     def __init__(self, HTMInput, InputCreator):
         super(HTMGui, self).__init__()
@@ -1193,8 +1203,8 @@ class HTMGui(QtGui.QMainWindow):
     def initUI(self, HTMInput, InputCreator):
         layout = QtGui.QHBoxLayout()
         # Create the HTM Viewing widget and pass in the HTM object to view
-        HTMWidget = HTMNetwork(HTMInput, InputCreator)
-        layout.addWidget(HTMWidget)
+        self.HTMWidget = HTMNetwork(HTMInput, InputCreator)
+        layout.addWidget(self.HTMWidget)
         self.statusBar().showMessage('Ready')
 
         newInputAction = QtGui.QAction(QtGui.QIcon('grid.png'),
@@ -1211,6 +1221,9 @@ class HTMGui(QtGui.QMainWindow):
         #self.toolbar = self.addToolBar('draw a different Level')
         #self.toolbar.addAction(drawLevelAction)
 
+        # Connect this signal to every htm input and htm network widget.
+        self.connectWindowResizeEvent()
+
         menubar = self.menuBar()
         fileMenu = menubar.addMenu('&File')
         ViewMenu = menubar.addMenu('&View')
@@ -1219,8 +1232,24 @@ class HTMGui(QtGui.QMainWindow):
 
         self.setGeometry(600, 100, 800, 900)
         self.setWindowTitle('HTM')
-        self.setCentralWidget(HTMWidget)
+        self.setCentralWidget(self.HTMWidget)
         self.show()
+
+    def connectWindowResizeEvent(self):
+        # Need to iterate through all the input and htm widgets and
+        # connect the resize signal to a slot to tell them to resize their view.
+        numInputWidgets = len(self.HTMWidget.inputGrid)
+        numHTMWidgets = len(self.HTMWidget.HTMNetworkGrid)
+        for i in range(numInputWidgets):
+            self.windowSizeChanged.connect(self.HTMWidget.inputGrid[i].resizeView)
+        for j in range(numHTMWidgets):
+            self.windowSizeChanged.connect(self.HTMWidget.HTMNetworkGrid[j].resizeView)
+
+    def resizeEvent(self, resizeEvent):
+        # The screen has been resized.
+        # Send a signal to resize all the input and htm views so they
+        # fit the new screen size.
+        self.windowSizeChanged.emit()
 
 
 
