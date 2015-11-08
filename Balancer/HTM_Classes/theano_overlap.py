@@ -110,10 +110,10 @@ class OverlapCalculator():
         self.calcOverlap = function([self.b], self.m, allow_input_downcast=True)
 
         # Create the theano function for calculating
-        # if an overlap value is larger then minOverlap.
+        # if an overlap value is greater then minOverlap.
         # If not then set to zero.
         self.currOverlap = T.vector(dtype='float32')
-        self.ch_over = T.switch(T.lt(self.minOverlap, self.currOverlap), self.currOverlap, 0.0)
+        self.ch_over = T.switch(T.ge(self.currOverlap, self.minOverlap), self.currOverlap, 0.0)
         self.checkMinOverlap = function([self.currOverlap],
                                         self.ch_over,
                                         allow_input_downcast=True)

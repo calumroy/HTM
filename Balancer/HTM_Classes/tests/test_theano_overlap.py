@@ -235,4 +235,75 @@ class test_theanoOverlap:
 
                 assert len(colOverlaps) == numColumns
 
+    def test_smallPotSizes(self):
+        '''
+        Test the theano overlap calculator with a specific case.
+        Also test the overlap calculator remove small overlap values
+        with an edge case.
+        '''
+        potWidth = 2
+        potHeight = 2
+        centerPotSynapses = 0
+        numColumnRows = 5
+        numColumnCols = 4
+        connectedPerm = 0.3
+        minOverlap = 2
+
+         # The below colsynPerm needs to have potWidth * potHeight number of columns
+         # and needs to have numColumnCols * numColumnRows number of rows.
+        colSynPerm = np.array([[0.31, 0.31, 0.31, 0.31],
+                               [0.31, 0.31, 0.31, 0.31],
+                               [0.31, 0.31, 0.31, 0.31],
+                               [0.31, 0.31, 0.31, 0.31],
+                               [0.31, 0.31, 0.31, 0.31],
+                               [0.31, 0.31, 0.31, 0.31],
+                               [0.31, 0.31, 0.31, 0.31],
+                               [0.31, 0.31, 0.31, 0.31],
+                               [0.31, 0.31, 0.31, 0.31],
+                               [0.31, 0.31, 0.31, 0.31],
+                               [0.31, 0.31, 0.31, 0.31],
+                               [0.31, 0.31, 0.31, 0.31],
+                               [0.31, 0.31, 0.31, 0.31],
+                               [0.31, 0.31, 0.31, 0.31],
+                               [0.31, 0.31, 0.31, 0.31],
+                               [0.31, 0.31, 0.31, 0.31],
+                               [0.31, 0.31, 0.31, 0.31],
+                               [0.31, 0.31, 0.31, 0.31],
+                               [0.31, 0.31, 0.31, 0.31],
+                               [0.31, 0.31, 0.31, 0.31]])
+
+        # Needs to have numColumnCols number of columns and
+        # numColumnRows number of rows for it to be valid.
+        newInputMat = np.array([[0, 0, 1, 0],
+                                [0, 0, 1, 0],
+                                [0, 0, 1, 0],
+                                [0, 0, 1, 0]])
+
+        numInputCols = 4
+        numInputRows = 4
+
+        # Create an instance of the overlap calculation class
+        overlapCalc = theano_overlap.OverlapCalculator(potWidth,
+                                                       potHeight,
+                                                       numColumnCols,
+                                                       numColumnRows,
+                                                       numInputCols,
+                                                       numInputRows,
+                                                       centerPotSynapses,
+                                                       connectedPerm,
+                                                       minOverlap)
+
+        # Return both the overlap values and the inputs from
+        # the potential synapses to all columns.
+        colOverlaps, colPotInputs = overlapCalc.calculateOverlap(colSynPerm, newInputMat)
+
+        # limit the overlap values so they are larger then minOverlap
+        colOverlaps = overlapCalc.removeSmallOverlaps(colOverlaps)
+
+        #print "colOverlaps = ", colOverlaps
+        #import ipdb; ipdb.set_trace()
+        result = [0, 2, 2, 0, 0, 2, 2, 0, 0, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+
+        assert np.array_equal(colOverlaps, result)
+
 
