@@ -1,6 +1,21 @@
 import numpy as np
 
 
+def similarInputGrids(grid1, grid2):
+    # measure how similar the two 2D array inputs are and output
+    # this as a percent.
+    if (grid1 is not None) and (grid2 is not None):
+            totalPrevActiveIns = np.sum(grid1 != 0)
+            totalAndGrids = np.sum(np.logical_and(grid2 != 0, grid1 != 0))
+            if totalPrevActiveIns > 0:
+                percentTemp = float(totalAndGrids) / float(totalPrevActiveIns)
+            else:
+                # In this case there is no active columns. This means the spatial
+                # pooler is not working or the inputs are empty!
+                percentTemp = 0
+    return percentTemp
+
+
 def joinInputArrays(input1, input2):
     # Join two input 2D arrays together vstack them.
     # This means the widths of the arrays input1[0] = input2[0]

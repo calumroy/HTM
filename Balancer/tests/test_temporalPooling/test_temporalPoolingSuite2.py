@@ -5,6 +5,7 @@ from PyQt4 import QtGui
 import sys
 from copy import deepcopy
 from utilities import simpleVerticalLineInputs as svli, measureTemporalPooling as mtp
+from utilities import sdrFunctions
 import sys
 import json
 
@@ -22,10 +23,10 @@ testParameters = {
                             'enableCommandFeedback': 0,
 
                             'HTMLayers': [{
-                                'desiredLocalActivity': 2,
+                                'desiredLocalActivity': 1,
                                 'minOverlap': 3,
                                 'inhibitionWidth': 4,
-                                'inhibitionHeight': 3,
+                                'inhibitionHeight': 2,
                                 'centerPotSynapses': 1,
                                 'potentialWidth': 4,
                                 'potentialHeight': 4,
@@ -50,10 +51,10 @@ testParameters = {
                                 }]
                             },
                             {
-                                'desiredLocalActivity': 2,
+                                'desiredLocalActivity': 1,
                                 'minOverlap': 3,
                                 'inhibitionWidth': 8,
-                                'inhibitionHeight': 3,
+                                'inhibitionHeight': 2,
                                 'centerPotSynapses': 1,
                                 'potentialWidth': 8,
                                 'potentialHeight': 8,
@@ -78,10 +79,10 @@ testParameters = {
                                 }]
                             },
                             {
-                                'desiredLocalActivity': 2,
+                                'desiredLocalActivity': 1,
                                 'minOverlap': 2,
                                 'inhibitionWidth': 20,
-                                'inhibitionHeight': 3,
+                                'inhibitionHeight': 2,
                                 'centerPotSynapses': 1,
                                 'connectPermanence': 0.3,
                                 'potentialWidth': 30,
@@ -167,6 +168,7 @@ class test_temporalPoolingSuite2:
         This test is designed to make sure that a minimum amount
         of temporal pooling occurs for a repeating input sequence.
         '''
+
         self.nSteps(400)
 
         tempPoolPercent = 0
@@ -176,6 +178,7 @@ class test_temporalPoolingSuite2:
             htmOutput = self.htm.levelOutput(self.numLevels-1)
             tempPoolPercent = self.temporalPooling.temporalPoolingPercent(htmOutput)
             print "Temporal pooling percent = %s" % tempPoolPercent
+
 
         # app = QtGui.QApplication(sys.argv)
         # self.htmGui = GUI_HTM.HTMGui(self.htm, self.InputCreator)
@@ -230,22 +233,35 @@ class test_temporalPoolingSuite2:
         # Measure the temporal pooling for each layer. This requires
         # a temporal pooling measuring class per layer.
         self.temporalPoolingMeasures = [mtp.measureTemporalPooling() for i in range(self.numLayers)]
-        tempPoolPercent = [0 for i in range(self.numLayers)]
+        tempPoolPercentPat1 = [0 for i in range(self.numLayers)]
         # Run through all the inputs twice and find the average temporal pooling percent
         # for each of the layers
         for i in range(2*self.InputCreator.numInputs):
             self.step()
             for layer in range(self.numLayers):
                 gridOutput = self.htm.regionArray[0].layerOutput(layer)
-                tempPoolPercent[layer] = self.temporalPoolingMeasures[layer].temporalPoolingPercent(gridOutput)
-                #print "Layer %s Temporal pooling percent = %s" % (layer, tempPoolPercent[layer])
-        # Less then this percentage of temporal pooling should have occurred
-        for i in range(len(tempPoolPercent)):
-            print "layer %s temp pooling = %s" % (i, tempPoolPercent[i])
+                tempPoolPercentPat1[layer] = self.temporalPoolingMeasures[layer].temporalPoolingPercent(gridOutput)
+        # Print the values of temporal pooling that occurred in each layer
+        for i in range(len(tempPoolPercentPat1)):
+            print "layer %s temp pooling = %s" % (i, tempPoolPercentPat1[i])
 
         # Change the input pattern to pattern 1 (this is a pattern of right to left)
         self.InputCreator.changePattern(1)
         self.nSteps(400)
+        # Measure the temporal pooling for each layer. This requires
+        # a temporal pooling measuring class per layer.
+        self.temporalPoolingMeasures = [mtp.measureTemporalPooling() for i in range(self.numLayers)]
+        tempPoolPercentPat2 = [0 for i in range(self.numLayers)]
+        # Run through all the inputs twice and find the average temporal pooling percent
+        # for each of the layers
+        for i in range(2*self.InputCreator.numInputs):
+            self.step()
+            for layer in range(self.numLayers):
+                gridOutput = self.htm.regionArray[0].layerOutput(layer)
+                tempPoolPercentPat2[layer] = self.temporalPoolingMeasures[layer].temporalPoolingPercent(gridOutput)
+                # Less then this percentage of temporal pooling should have occurred
+        for i in range(len(tempPoolPercentPat2)):
+            print "layer %s temp pooling = %s" % (i, tempPoolPercentPat2[i])
 
         # change the input pattern back to the original one to see if it has been
         # remebered and tmporal pooling still occurs.
@@ -254,19 +270,129 @@ class test_temporalPoolingSuite2:
         # Measure the temporal pooling for each layer. This requires
         # a temporal pooling measuring class per layer.
         self.temporalPoolingMeasures = [mtp.measureTemporalPooling() for i in range(self.numLayers)]
-        tempPoolPercent = [0 for i in range(self.numLayers)]
+        tempPoolPercentPat3 = [0 for i in range(self.numLayers)]
         # Run through all the inputs twice and find the average temporal pooling percent
         # for each of the layers
         for i in range(2*self.InputCreator.numInputs):
             self.step()
             for layer in range(self.numLayers):
                 gridOutput = self.htm.regionArray[0].layerOutput(layer)
-                tempPoolPercent[layer] = self.temporalPoolingMeasures[layer].temporalPoolingPercent(gridOutput)
-                #print "Layer %s Temporal pooling percent = %s" % (layer, tempPoolPercent[layer])
-        # Less then this percentage of temporal pooling should have occurred
-        for i in range(len(tempPoolPercent)):
-            print "layer %s temp pooling = %s" % (i, tempPoolPercent[i])
+                tempPoolPercentPat3[layer] = self.temporalPoolingMeasures[layer].temporalPoolingPercent(gridOutput)
+                # Less then this percentage of temporal pooling should have occurred
+        for i in range(len(tempPoolPercentPat3)):
+            print "layer %s temp pooling = %s" % (i, tempPoolPercentPat3[i])
 
-        app = QtGui.QApplication(sys.argv)
+        # change the input pattern back to the second pattern to see if it has been
+        # remebered and tmporal pooling still occurs.
+        self.InputCreator.changePattern(1)
+
+        # Measure the temporal pooling for each layer. This requires
+        # a temporal pooling measuring class per layer.
+        self.temporalPoolingMeasures = [mtp.measureTemporalPooling() for i in range(self.numLayers)]
+        tempPoolPercentPat4 = [0 for i in range(self.numLayers)]
+        # Run through all the inputs twice and find the average temporal pooling percent
+        # for each of the layers
+        for i in range(2*self.InputCreator.numInputs):
+            self.step()
+            for layer in range(self.numLayers):
+                gridOutput = self.htm.regionArray[0].layerOutput(layer)
+                tempPoolPercentPat4[layer] = self.temporalPoolingMeasures[layer].temporalPoolingPercent(gridOutput)
+                # Less then this percentage of temporal pooling should have occurred
+        for i in range(len(tempPoolPercentPat4)):
+            print "layer %s temp pooling = %s" % (i, tempPoolPercentPat4[i])
+
+        # Now the temporal pooling calculated in tempPoolPercentPat1 should closely
+        # match the temporal pooling occurring in tempPoolPercentPat3. Also
+        # tempPoolPercentPat2 should match tempPoolPercentPat4.
+        # The values should be within 5 percent of each other. They aren't exactly
+        # the same because the first input after the pattern change is unexpected
+        # and causes bursting in the network.
+        for i in range(len(tempPoolPercentPat1)):
+            assert(abs(tempPoolPercentPat1[i] - tempPoolPercentPat3[i]) <= 0.05)
+            assert(abs(tempPoolPercentPat2[i] - tempPoolPercentPat4[i]) <= 0.05)
+
+    def test_similarPatterns(self):
+        '''
+        This test is designed to make sure different temporal pooling
+        patterns form even for input patterns that are similar and
+        maybe contain some of the same inputs.
+
+        TODO
+        THIS TEST DOESN'T WORK YET!
+        THE TEMPORAL POOLER NEEDS MODIFICATIONS!
+        '''
+
+        # Use a sequence of input patterns that uses every 2nd input of the
+        # left to right line sequence pattern in the input creator class.
+        # This is the left to right pattern sequence.
+        self.InputCreator.changePattern(0)
+        self.nSteps(400)
+
+        # Measure the temporal pooling for each layer. This requires
+        # a temporal pooling measuring class per layer.
+        self.temporalPoolingMeasures = [mtp.measureTemporalPooling() for i in range(self.numLayers)]
+        tempPoolPercentPat1 = [0 for i in range(self.numLayers)]
+        # Run through all the inputs twice and find the average temporal pooling percent
+        # for each of the layers
+        for i in range(2*self.InputCreator.numInputs):
+            self.step()
+            for layer in range(self.numLayers):
+                gridOutput = self.htm.regionArray[0].layerOutput(layer)
+                tempPoolPercentPat1[layer] = self.temporalPoolingMeasures[layer].temporalPoolingPercent(gridOutput)
+        # Print the values of temporal pooling that occurred in each layer
+        for i in range(len(tempPoolPercentPat1)):
+            print "layer %s temp pooling = %s" % (i, tempPoolPercentPat1[i])
+            # Store the top most layers output.
+            # This is used to compare to temporally pooled output
+            # of the topmost layer after the second pattern has been learnt.
+            topGridOutputPat1 = self.htm.regionArray[0].layerOutput(layer)
+
+        app = QtGui.QApplication.instance()  # checks if QApplication already exists
+        if not app:  # create QApplication if it doesnt exist
+            app = QtGui.QApplication(sys.argv)
+        app.aboutToQuit.connect(app.deleteLater)
         self.htmGui = GUI_HTM.HTMGui(self.htm, self.InputCreator)
-        sys.exit(app.exec_())
+        app.exec_()
+
+        self.InputCreator.changePattern(2)
+
+        app = QtGui.QApplication.instance()  # checks if QApplication already exists
+        if not app:  # create QApplication if it doesnt exist
+            app = QtGui.QApplication(sys.argv)
+        app.aboutToQuit.connect(app.deleteLater)
+        self.htmGui = GUI_HTM.HTMGui(self.htm, self.InputCreator)
+        app.exec_()
+
+        self.nSteps(400)
+
+        # Measure the temporal pooling for each layer. This requires
+        # a temporal pooling measuring class per layer.
+        self.temporalPoolingMeasures = [mtp.measureTemporalPooling() for i in range(self.numLayers)]
+        tempPoolPercentPat2 = [0 for i in range(self.numLayers)]
+        # Run through all the inputs twice and find the average temporal pooling percent
+        # for each of the layers
+        for i in range(2*self.InputCreator.numInputs):
+            self.step()
+            for layer in range(self.numLayers):
+                gridOutput = self.htm.regionArray[0].layerOutput(layer)
+                tempPoolPercentPat2[layer] = self.temporalPoolingMeasures[layer].temporalPoolingPercent(gridOutput)
+                # Less then this percentage of temporal pooling should have occurred
+        for i in range(len(tempPoolPercentPat2)):
+            print "layer %s temp pooling = %s" % (i, tempPoolPercentPat2[i])
+            topGridOutputPat2 = self.htm.regionArray[0].layerOutput(layer)
+
+        # Calcualte how similar the current output temporally pooled pattern
+        # is compared to the old one
+        tempPooledSimilarity = sdrFunctions.similarInputGrids(topGridOutputPat1, topGridOutputPat2)
+        print "The temporal pooled pattern is %s percent similar" % tempPooledSimilarity
+
+        self.InputCreator.changePattern(0)
+
+        app = QtGui.QApplication.instance()  # checks if QApplication already exists
+        if not app:  # create QApplication if it doesnt exist
+            app = QtGui.QApplication(sys.argv)
+        app.aboutToQuit.connect(app.deleteLater)
+        self.htmGui = GUI_HTM.HTMGui(self.htm, self.InputCreator)
+        app.exec_()
+
+

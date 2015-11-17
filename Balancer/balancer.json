@@ -18,9 +18,16 @@
 
             "HTMLayers": [{
                 "desiredLocalActivity": 1,
+                "minOverlap": 3,
                 "inhibitionWidth": 3,
                 "inhibitionHeight": 3,
                 "centerPotSynapses": 1,
+                "potentialWidth": 4,
+                "potentialHeight": 4,
+                "spatialPermanenceInc": 0.1,
+                "spatialPermanenceDec": 0.02,
+                "permanenceInc": 0.1,
+                "permanenceDec": 0.02,
                 "connectPermanence": 0.3,
                 "minThreshold": 4,
                 "minScoreThreshold": 5,
@@ -31,14 +38,7 @@
                 "synPermanence": 0.4,
 
                 "Columns": [{
-                    "minOverlap": 3,
                     "boost": 1,
-                    "potentialWidth": 4,
-                    "potentialHeight": 4,
-                    "spatialPermanenceInc": 0.1,
-                    "spatialPermanenceDec": 0.02,
-                    "permanenceInc": 0.1,
-                    "permanenceDec": 0.02,
                     "minDutyCycle": 0.01 ,
                     "boostStep": 0,
                     "historyLength": 2
@@ -46,9 +46,16 @@
             },
             {
                 "desiredLocalActivity": 1,
+                "minOverlap": 1,
                 "inhibitionWidth": 3,
                 "inhibitionHeight": 3,
                 "centerPotSynapses": 0,
+                "potentialWidth": 3,
+                "potentialHeight": 2,
+                "spatialPermanenceInc": 0.1,
+                "spatialPermanenceDec": 0.0,
+                "permanenceInc": 0.1,
+                "permanenceDec": 0.02,
                 "connectPermanence": 0.3,
                 "minThreshold": 5,
                 "minScoreThreshold": 5,
@@ -59,14 +66,8 @@
                 "synPermanence": 0.4,
 
                 "Columns": [{
-                    "minOverlap": 1,
+
                     "boost": 1,
-                    "potentialWidth": 3,
-                    "potentialHeight": 2,
-                    "spatialPermanenceInc": 0.1,
-                    "spatialPermanenceDec": 0.0,
-                    "permanenceInc": 0.1,
-                    "permanenceDec": 0.02,
                     "minDutyCycle": 0.01 ,
                     "boostStep": 0,
                     "historyLength": 2
@@ -86,9 +87,16 @@
 
             "HTMLayers": [{
                 "desiredLocalActivity": 3,
+                "minOverlap": 5,
                 "inhibitionWidth": 11,
                 "inhibitionHeight": 11,
                 "centerPotSynapses": 1,
+                "potentialWidth": 60,
+                "potentialHeight": 8,
+                "spatialPermanenceInc": 0.1,
+                "spatialPermanenceDec": 0.02,
+                "permanenceInc": 0.1,
+                "permanenceDec": 0.02,
                 "connectPermanence": 0.3,
                 "minThreshold": 5,
                 "minScoreThreshold": 5,
@@ -99,14 +107,7 @@
                 "synPermanence": 0.4,
 
                 "Columns": [{
-                    "minOverlap": 5,
                     "boost": 1,
-                    "potentialWidth": 60,
-                    "potentialHeight": 8,
-                    "spatialPermanenceInc": 0.1,
-                    "spatialPermanenceDec": 0.02,
-                    "permanenceInc": 0.1,
-                    "permanenceDec": 0.02,
                     "minDutyCycle": 0.01 ,
                     "boostStep": 0,
                     "historyLength": 2
@@ -114,9 +115,16 @@
             },
             {
                 "desiredLocalActivity": 1,
+                "minOverlap": 1,
                 "inhibitionWidth": 1,
                 "inhibitionHeight": 1,
                 "centerPotSynapses": 0,
+                "potentialWidth": 3,
+                "potentialHeight": 2,
+                "spatialPermanenceInc": 0.1,
+                "spatialPermanenceDec": 0.0,
+                "permanenceInc": 0.1,
+                "permanenceDec": 0.02,
                 "connectPermanence": 0.3,
                 "minThreshold": 5,
                 "minScoreThreshold": 5,
@@ -127,14 +135,7 @@
                 "synPermanence": 0.4,
 
                 "Columns": [{
-                    "minOverlap": 1,
                     "boost": 1,
-                    "potentialWidth": 3,
-                    "potentialHeight": 2,
-                    "spatialPermanenceInc": 0.1,
-                    "spatialPermanenceDec": 0.0,
-                    "permanenceInc": 0.1,
-                    "permanenceDec": 0.02,
                     "minDutyCycle": 0.01 ,
                     "boostStep": 0,
                     "historyLength": 2

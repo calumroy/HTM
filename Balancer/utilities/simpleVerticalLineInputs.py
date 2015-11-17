@@ -2,6 +2,7 @@ import numpy as np
 from copy import deepcopy
 import random
 
+
 class simpleVerticalLineInputs:
     def __init__(self, width, height, numInputs):
         # The number of inputs to store
@@ -9,7 +10,7 @@ class simpleVerticalLineInputs:
         self.width = width
         self.height = height
         # How many input patterns to store
-        self.numPatterns = 2
+        self.numPatterns = 5
         # An index indicating the current pattern that is being used as a serias of input grids.
         self.patIndex = 0
         # An array storing different input patterns
@@ -44,6 +45,30 @@ class simpleVerticalLineInputs:
                     # reverse the pattern
                     if x == (len(inputs[1]) - 1 - n):
                         inputs[1][n][y][x] = 1
+        # The third pattern is just every second input of the first pattern
+        patIndex = 0
+        for n in range(len(inputs[2])):
+            patIndex = patIndex + 4
+            if patIndex >= self.numInputs:
+                patIndex = 0
+            inputs[2][n] = inputs[0][patIndex]
+        # The forth pattern is just every second input of the second pattern
+        patIndex = 0
+        for n in range(len(inputs[3])):
+            patIndex = patIndex + 4
+            if patIndex >= self.numInputs:
+                patIndex = 0
+            inputs[3][n] = inputs[1][patIndex]
+        # The fifth pattern is the third pattern then the forth pattern
+        patIndex = 0
+        for n in range(len(inputs[3])):
+            patIndex = patIndex + 1
+            if patIndex >= self.numInputs:
+                patIndex = 0
+            if patIndex <= int(self.numInputs/2):
+                inputs[4][n] = inputs[2][patIndex]
+            else:
+                inputs[4][n] = inputs[3][patIndex]
 
     def changePattern(self, patternindex):
         # Change the input pattern

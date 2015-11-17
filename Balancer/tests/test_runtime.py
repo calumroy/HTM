@@ -24,9 +24,16 @@ testParameters = {
 
                             'HTMLayers': [{
                                 'desiredLocalActivity': 2,
+                                'minOverlap': 2,
                                 'inhibitionWidth': 2,
                                 'inhibitionHeight': 3,
                                 'centerPotSynapses': 1,
+                                'potentialWidth': 3,
+                                'potentialHeight': 3,
+                                'spatialPermanenceInc': 0.1,
+                                'spatialPermanenceDec': 0.02,
+                                'permanenceInc': 0.1,
+                                'permanenceDec': 0.02,
                                 'connectPermanence': 0.3,
                                 'minThreshold': 5,
                                 'minScoreThreshold': 5,
@@ -37,14 +44,7 @@ testParameters = {
                                 'synPermanence': 0.4,
 
                                 'Columns': [{
-                                    'minOverlap': 2,
                                     'boost': 1,
-                                    'potentialWidth': 3,
-                                    'potentialHeight': 3,
-                                    'spatialPermanenceInc': 0.1,
-                                    'spatialPermanenceDec': 0.02,
-                                    'permanenceInc': 0.1,
-                                    'permanenceDec': 0.02,
                                     'minDutyCycle': 0.01,
                                     'boostStep': 0,
                                     'historyLength': 2

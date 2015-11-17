@@ -24,9 +24,16 @@ testParameters = {
 
                             'HTMLayers': [{
                                 'desiredLocalActivity': 2,
+                                'minOverlap': 3,
                                 'inhibitionWidth': 3,
                                 'inhibitionHeight': 3,
                                 'centerPotSynapses': 1,
+                                'potentialWidth': 4,
+                                'potentialHeight': 4,
+                                'spatialPermanenceInc': 0.1,
+                                'spatialPermanenceDec': 0.02,
+                                'permanenceInc': 0.1,
+                                'permanenceDec': 0.02,
                                 'connectPermanence': 0.3,
                                 'minThreshold': 5,
                                 'minScoreThreshold': 5,
@@ -37,14 +44,7 @@ testParameters = {
                                 'synPermanence': 0.4,
 
                                 'Columns': [{
-                                    'minOverlap': 3,
                                     'boost': 1,
-                                    'potentialWidth': 4,
-                                    'potentialHeight': 4,
-                                    'spatialPermanenceInc': 0.1,
-                                    'spatialPermanenceDec': 0.02,
-                                    'permanenceInc': 0.1,
-                                    'permanenceDec': 0.02,
                                     'minDutyCycle': 0.01,
                                     'boostStep': 0,
                                     'historyLength': 2
@@ -145,8 +145,8 @@ class test_SpatialPooling:
         # Let the spatial pooler learn spatial patterns.
         self.nSteps(150)
 
-        SDR1 = self.InputCreator.inputs[0]
-        SDR2 = self.InputCreator.inputs[self.InputCreator.numInputs-1]
+        SDR1 = self.InputCreator.inputs[0][0]
+        SDR2 = self.InputCreator.inputs[0][self.InputCreator.numInputs-1]
 
         combinedInput = self.InputCreator.orSDRPatterns(SDR1, SDR2)
 
@@ -192,8 +192,8 @@ class test_SpatialPooling:
         if middleInpPlus >= numInps:
             middleInpPlus = 0
 
-        SDR1 = self.InputCreator.inputs[middleInp]
-        SDR2 = self.InputCreator.inputs[middleInpPlus]
+        SDR1 = self.InputCreator.inputs[0][middleInp]
+        SDR2 = self.InputCreator.inputs[0][middleInpPlus]
 
         combinedInput = self.InputCreator.orSDRPatterns(SDR1, SDR2)
 
@@ -230,8 +230,8 @@ class test_SpatialPooling:
         # Let the spatial pooler learn spatial patterns.
         self.nSteps(150)
 
-        SDR1 = self.InputCreator.inputs[0]
-        SDR2 = self.InputCreator.inputs[self.InputCreator.numInputs-1]
+        SDR1 = self.InputCreator.inputs[0][0]
+        SDR2 = self.InputCreator.inputs[0][self.InputCreator.numInputs-1]
 
         # Choose a half of the active columns from each SDR to keep on.
         totalActiveIns1 = np.sum(SDR1 != 0)
