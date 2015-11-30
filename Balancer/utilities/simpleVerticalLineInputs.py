@@ -83,6 +83,11 @@ class simpleVerticalLineInputs:
         reward = 0
         return reward
 
+    def setIndex(self, newIndex):
+        # Change the index keeping track of where in a pattern the input
+        # sequence is up to?
+        self.index = newIndex
+
     def createSimGrid(self):
         # Required function for a InputCreator class
         newGrid = None

@@ -55,7 +55,7 @@ testParameters = {
                 }
 
 
-class test_spatialPooling:
+class test_SpatialPooling:
     def setUp(self):
         '''
         We are tesing the spatial pooler.

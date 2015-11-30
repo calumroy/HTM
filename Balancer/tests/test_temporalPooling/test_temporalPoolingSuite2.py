@@ -345,7 +345,41 @@ class test_temporalPoolingSuite2:
             # Store the top most layers output.
             # This is used to compare to temporally pooled output
             # of the topmost layer after the second pattern has been learnt.
-            topGridOutputPat1 = self.htm.regionArray[0].layerOutput(layer)
+            topGridOutputPat1 = self.htm.regionArray[0].layerOutput(self.numLayers-1)
+
+        app = QtGui.QApplication.instance()  # checks if QApplication already exists
+        if not app:  # create QApplication if it doesnt exist
+            app = QtGui.QApplication(sys.argv)
+        app.aboutToQuit.connect(app.deleteLater)
+        self.htmGui = GUI_HTM.HTMGui(self.htm, self.InputCreator)
+        app.exec_()
+
+        self.InputCreator.changePattern(2)
+        self.nSteps(400)
+
+        # Measure the temporal pooling for each layer. This requires
+        # a temporal pooling measuring class per layer.
+        self.temporalPoolingMeasures = [mtp.measureTemporalPooling() for i in range(self.numLayers)]
+        tempPoolPercentPat2 = [0 for i in range(self.numLayers)]
+        # Run through all the inputs twice and find the average temporal pooling percent
+        # for each of the layers
+        for i in range(2*self.InputCreator.numInputs):
+            self.step()
+            for layer in range(self.numLayers):
+                gridOutput = self.htm.regionArray[0].layerOutput(layer)
+                tempPoolPercentPat2[layer] = self.temporalPoolingMeasures[layer].temporalPoolingPercent(gridOutput)
+                # Less then this percentage of temporal pooling should have occurred
+        for i in range(len(tempPoolPercentPat2)):
+            print "layer %s temp pooling = %s" % (i, tempPoolPercentPat2[i])
+            topGridOutputPat2 = self.htm.regionArray[0].layerOutput(self.numLayers-1)
+
+        # Calcualte how similar the current output temporally pooled pattern
+        # is compared to the old one
+        tempPooledSimilarity = sdrFunctions.similarInputGrids(topGridOutputPat1, topGridOutputPat2)
+        print "The temporal pooled pattern is %s percent similar" % tempPooledSimilarity
+
+        self.InputCreator.changePattern(0)
+        self.nSteps(400)
 
         app = QtGui.QApplication.instance()  # checks if QApplication already exists
         if not app:  # create QApplication if it doesnt exist
@@ -363,29 +397,6 @@ class test_temporalPoolingSuite2:
         self.htmGui = GUI_HTM.HTMGui(self.htm, self.InputCreator)
         app.exec_()
 
-        self.nSteps(400)
-
-        # Measure the temporal pooling for each layer. This requires
-        # a temporal pooling measuring class per layer.
-        self.temporalPoolingMeasures = [mtp.measureTemporalPooling() for i in range(self.numLayers)]
-        tempPoolPercentPat2 = [0 for i in range(self.numLayers)]
-        # Run through all the inputs twice and find the average temporal pooling percent
-        # for each of the layers
-        for i in range(2*self.InputCreator.numInputs):
-            self.step()
-            for layer in range(self.numLayers):
-                gridOutput = self.htm.regionArray[0].layerOutput(layer)
-                tempPoolPercentPat2[layer] = self.temporalPoolingMeasures[layer].temporalPoolingPercent(gridOutput)
-                # Less then this percentage of temporal pooling should have occurred
-        for i in range(len(tempPoolPercentPat2)):
-            print "layer %s temp pooling = %s" % (i, tempPoolPercentPat2[i])
-            topGridOutputPat2 = self.htm.regionArray[0].layerOutput(layer)
-
-        # Calcualte how similar the current output temporally pooled pattern
-        # is compared to the old one
-        tempPooledSimilarity = sdrFunctions.similarInputGrids(topGridOutputPat1, topGridOutputPat2)
-        print "The temporal pooled pattern is %s percent similar" % tempPooledSimilarity
-
         self.InputCreator.changePattern(0)
 
         app = QtGui.QApplication.instance()  # checks if QApplication already exists
@@ -394,5 +405,16 @@ class test_temporalPoolingSuite2:
         app.aboutToQuit.connect(app.deleteLater)
         self.htmGui = GUI_HTM.HTMGui(self.htm, self.InputCreator)
         app.exec_()
+
+        self.InputCreator.changePattern(2)
+
+        app = QtGui.QApplication.instance()  # checks if QApplication already exists
+        if not app:  # create QApplication if it doesnt exist
+            app = QtGui.QApplication(sys.argv)
+        app.aboutToQuit.connect(app.deleteLater)
+        self.htmGui = GUI_HTM.HTMGui(self.htm, self.InputCreator)
+        app.exec_()
+
+
 
 
