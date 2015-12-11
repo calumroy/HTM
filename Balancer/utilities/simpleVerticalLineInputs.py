@@ -1,16 +1,27 @@
 import numpy as np
 from copy import deepcopy
 import random
+from utilities import sdrFunctions as SDRFunct
 
 
 class simpleVerticalLineInputs:
+    '''
+    A class used to create different input sequences consisting of
+    straight vertical lines. A number of different sequences are stored in
+    an array of an array of matricies.
+
+    The different sequences are defined in the setinputs method.
+    To add a new sequence, increment the self.numPatterns and add
+    the sequence to the end of the current self.inputs array.
+
+    '''
     def __init__(self, width, height, numInputs):
         # The number of inputs to store
         self.numInputs = numInputs
         self.width = width
         self.height = height
         # How many input patterns to store
-        self.numPatterns = 5
+        self.numPatterns = 6
         # An index indicating the current pattern that is being used as a serias of input grids.
         self.patIndex = 0
         # An array storing different input patterns
@@ -69,6 +80,21 @@ class simpleVerticalLineInputs:
                 inputs[4][n] = inputs[2][patIndex]
             else:
                 inputs[4][n] = inputs[3][patIndex]
+        # The 6th pattern is the first combined with the third pattern
+        # by a logical or operation.
+        patIndex = 0
+        for n in range(len(inputs[3])):
+            patIndex = patIndex + 1
+            if patIndex >= self.numInputs:
+                patIndex = 0
+            inputs[5][n] = SDRFunct.orSDRPatterns(inputs[0][patIndex], inputs[2][patIndex])
+
+    def appendSequence(self, sequence):
+        # Take the input sequence and append it to the end of the current
+        # inputs array which holds a list of all the other sequences.
+        # Return the position index that this new sequence hold in the inputs list
+        # of sequences.
+
 
     def changePattern(self, patternindex):
         # Change the input pattern
@@ -116,17 +142,4 @@ class simpleVerticalLineInputs:
             return newGrid
         else:
             return outputGrid
-
-    def orSDRPatterns(self, SDR1, SDR2):
-        '''
-        Combine two inputs SDR patterns to create an output SDR
-        which is the or of both the input SDRs.
-        '''
-
-        outputSDR = None
-
-        if SDR1 is not None:
-            outputSDR = np.logical_or(SDR1, SDR2).astype(int)
-
-        return outputSDR
 

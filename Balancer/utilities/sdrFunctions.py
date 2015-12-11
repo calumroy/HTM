@@ -16,6 +16,17 @@ def similarInputGrids(grid1, grid2):
     return percentTemp
 
 
+def orSDRPatterns(grid1, grid2):
+    # Combine two inputs SDR patterns to create an output SDR
+    # which is the or of both the input SDRs.
+
+    if (grid1 is not None) and (grid2 is not None):
+        outputGrid = np.logical_or(grid1, grid2)
+        outputGrid = outputGrid.astype(int)
+        return outputGrid
+    return None
+
+
 def joinInputArrays(input1, input2):
     # Join two input 2D arrays together vstack them.
     # This means the widths of the arrays input1[0] = input2[0]

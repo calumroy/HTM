@@ -229,6 +229,223 @@ class test_spatialPoolingSuite2:
         # self.htmGui = GUI_HTM.HTMGui(self.htm, self.InputCreator)
         # app.exec_()
 
+    def test_case2(self):
+        '''
+        Spatial pooler multiple input patterns.
+
+        Similar to test case1. Only this time pattern B is very similar
+        to pattern A. Test the spatial pooler and make sure that if it learns
+        sequence A then another sequence B, A should not be forgotten.
+
+        Two patterns are learnt by the htm.
+        Once learnt the output SDR for each input in each pattern
+        is stored. Then another pattern is sent as an input.
+        After sometime the original patterns again become the input and
+        new outputs are compared against the previously stored outputs
+        to see if they are they same.
+
+        '''
+        # How many patterns are we comparing against
+        numPatternsTested = 2
+
+        # Run the patterns through the htm multiple times
+        # this is done so the htm can settle on a representation
+        # for each input.
+        self.InputCreator.changePattern(0)
+        self.nSteps(5*self.numInputs)
+        self.InputCreator.changePattern(2)
+        self.nSteps(5*self.numInputs)
+        self.InputCreator.changePattern(0)
+        self.nSteps(5*self.numInputs)
+        self.InputCreator.changePattern(2)
+        self.nSteps(5*self.numInputs)
+        self.InputCreator.changePattern(0)
+        self.nSteps(self.numInputs)
+
+        # Now run through the old pattern and store each output SDR
+        # These are used to compare against later on.
+        # outputsFromPatternX is an array storing a list of SDRs representing
+        # the output form the htm for every input in a particular pattern.
+        # Reset the pattern to the start
+        self.InputCreator.setIndex(0)
+        self.nSteps(self.numInputs)
+        outputSDR00 = self.getColumnGridOutput(self.htm, 0, 0)
+        outputsFromPatternX = np.array([[np.zeros_like(outputSDR00)
+                                         for n in range(self.numInputs)]
+                                        for p in range(numPatternsTested)]
+                                       )
+        outputsFromPatternXAgain = np.array([[np.zeros_like(outputSDR00)
+                                              for n in range(self.numInputs)]
+                                             for p in range(numPatternsTested)]
+                                            )
+
+        for i in range(self.numInputs):
+            outputsFromPatternX[0][i] = self.getColumnGridOutput(self.htm, 0, 0)
+            self.step()
+
+        #import ipdb; ipdb.set_trace()
+
+        self.InputCreator.changePattern(2)
+
+        # Store the outputs from the second pattern.
+        self.InputCreator.setIndex(0)
+        self.nSteps(self.numInputs)
+        for i in range(self.numInputs):
+            outputsFromPatternX[1][i] = self.getColumnGridOutput(self.htm, 0, 0)
+            self.step()
+
+        self.InputCreator.changePattern(0)
+
+        # Now the pattern has been changed back to the first one.
+        # Rerun through all the inputs and store the outputs from
+        # the first pattern again.
+        self.InputCreator.setIndex(0)
+        self.nSteps(self.numInputs)
+        for i in range(self.numInputs):
+            outputsFromPatternXAgain[0][i] = self.getColumnGridOutput(self.htm, 0, 0)
+            self.step()
+
+        # Change the pattern back to the second pattern.
+        self.InputCreator.changePattern(2)
+
+        # Restore all the outputs. form the second pattern
+        self.InputCreator.setIndex(0)
+        self.nSteps(self.numInputs)
+        for i in range(self.numInputs):
+            outputsFromPatternXAgain[1][i] = self.getColumnGridOutput(self.htm, 0, 0)
+            self.step()
+
+        # Now we need to compare the two ouptus from both times the two input patterns
+        # were stored.
+        similarOutputsIn1 = np.zeros(self.numInputs)
+        similarOutputsIn2 = np.zeros(self.numInputs)
+        for i in range(self.numInputs):
+            similarOutputsIn1[i] = self.gridsSimilar(outputsFromPatternX[0][i],
+                                                     outputsFromPatternXAgain[0][i])
+            similarOutputsIn2[i] = self.gridsSimilar(outputsFromPatternX[1][i],
+                                                     outputsFromPatternXAgain[1][i])
+
+            print "similarOutputsIn1[%s] = %s" % (i, similarOutputsIn1[i])
+            print "similarOutputsIn2[%s] = %s" % (i, similarOutputsIn2[i])
+
+        assert np.average(similarOutputsIn1) >= 0.95
+        assert np.average(similarOutputsIn2) >= 0.95
+
+        # app = QtGui.QApplication.instance()  # checks if QApplication already exists
+        # if not app:  # create QApplication if it doesnt exist
+        #     app = QtGui.QApplication(sys.argv)
+        # app.aboutToQuit.connect(app.deleteLater)
+        # self.htmGui = GUI_HTM.HTMGui(self.htm, self.InputCreator)
+        # app.exec_()
+
+    def test_case3(self):
+        '''
+        Spatial pooler multiple input patterns.
+
+        Similar to test case2. Only this time also learn a third pattern C.
+        Test the spatial pooler and make sure that it learns
+        sequence A, B and C and doens't forget any.
+        '''
+        # How many patterns are we comparing against
+        numPatternsTested = 2
+
+        # Run the patterns through the htm multiple times
+        # this is done so the htm can settle on a representation
+        # for each input.
+        self.InputCreator.changePattern(0)
+        self.nSteps(5*self.numInputs)
+        self.InputCreator.changePattern(5)
+
+        app = QtGui.QApplication.instance()  # checks if QApplication already exists
+        if not app:  # create QApplication if it doesnt exist
+            app = QtGui.QApplication(sys.argv)
+        app.aboutToQuit.connect(app.deleteLater)
+        self.htmGui = GUI_HTM.HTMGui(self.htm, self.InputCreator)
+        app.exec_()
+
+        self.nSteps(5*self.numInputs)
+        self.InputCreator.changePattern(0)
+        self.nSteps(5*self.numInputs)
+        self.InputCreator.changePattern(5)
+        self.nSteps(5*self.numInputs)
+        self.InputCreator.changePattern(0)
+        self.nSteps(self.numInputs)
+
+        # Now run through the old pattern and store each output SDR
+        # These are used to compare against later on.
+        # outputsFromPatternX is an array storing a list of SDRs representing
+        # the output form the htm for every input in a particular pattern.
+        # Reset the pattern to the start
+        self.InputCreator.setIndex(0)
+        outputSDR00 = self.getColumnGridOutput(self.htm, 0, 0)
+        outputsFromPatternX = np.array([[np.zeros_like(outputSDR00)
+                                         for n in range(self.numInputs)]
+                                        for p in range(numPatternsTested)]
+                                       )
+        outputsFromPatternXAgain = np.array([[np.zeros_like(outputSDR00)
+                                              for n in range(self.numInputs)]
+                                             for p in range(numPatternsTested)]
+                                            )
+
+        for i in range(self.numInputs):
+            outputsFromPatternX[0][i] = self.getColumnGridOutput(self.htm, 0, 0)
+            self.step()
+
+        #import ipdb; ipdb.set_trace()
+
+        self.InputCreator.changePattern(5)
+
+        # Store the outputs from the second pattern.
+        self.InputCreator.setIndex(0)
+        for i in range(self.numInputs):
+            outputsFromPatternX[1][i] = self.getColumnGridOutput(self.htm, 0, 0)
+            self.step()
+
+        self.InputCreator.changePattern(0)
+
+        # Now the pattern has been changed back to the first one.
+        # Rerun through all the inputs and store the outputs from
+        # the first pattern again.
+        self.InputCreator.setIndex(0)
+        for i in range(self.numInputs):
+            outputsFromPatternXAgain[0][i] = self.getColumnGridOutput(self.htm, 0, 0)
+            self.step()
+
+        # Change the pattern back to the sixth pattern.
+        self.InputCreator.changePattern(5)
+
+        # Store all the outputs from the sixth pattern again.
+        self.InputCreator.setIndex(0)
+        for i in range(self.numInputs):
+            outputsFromPatternXAgain[1][i] = self.getColumnGridOutput(self.htm, 0, 0)
+            self.step()
+
+        self.InputCreator.changePattern(0)
+
+        # Now we need to compare the two outputs from both times the two input patterns
+        # were stored.
+        similarOutputsIn1 = np.zeros(self.numInputs)
+        similarOutputsIn2 = np.zeros(self.numInputs)
+        for i in range(self.numInputs):
+            similarOutputsIn1[i] = self.gridsSimilar(outputsFromPatternX[0][i],
+                                                     outputsFromPatternXAgain[0][i])
+            similarOutputsIn2[i] = self.gridsSimilar(outputsFromPatternX[1][i],
+                                                     outputsFromPatternXAgain[1][i])
+
+            print "similarOutputsIn1[%s] = %s" % (i, similarOutputsIn1[i])
+            print "similarOutputsIn2[%s] = %s" % (i, similarOutputsIn2[i])
+
+        print "np.average(similarOutputsIn1)= ", np.average(similarOutputsIn1)
+        print "np.average(similarOutputsIn2)= ", np.average(similarOutputsIn2)
+        # assert np.average(similarOutputsIn1) >= 0.95
+        # assert np.average(similarOutputsIn2) >= 0.95
+
+        # app = QtGui.QApplication.instance()  # checks if QApplication already exists
+        # if not app:  # create QApplication if it doesnt exist
+        #     app = QtGui.QApplication(sys.argv)
+        # app.aboutToQuit.connect(app.deleteLater)
+        # self.htmGui = GUI_HTM.HTMGui(self.htm, self.InputCreator)
+        # app.exec_()
 
 
 

@@ -8,6 +8,7 @@ import sys
 import json
 from copy import deepcopy
 from utilities import simpleVerticalLineInputs as svli
+from utilities import sdrFunctions as SDRFunct
 
 testParameters = {
                     'HTM':
@@ -55,7 +56,7 @@ testParameters = {
                 }
 
 
-class test_SpatialPooling:
+class test_spatialPooling:
     def setUp(self):
         '''
         We are tesing the spatial pooler.
@@ -148,7 +149,7 @@ class test_SpatialPooling:
         SDR1 = self.InputCreator.inputs[0][0]
         SDR2 = self.InputCreator.inputs[0][self.InputCreator.numInputs-1]
 
-        combinedInput = self.InputCreator.orSDRPatterns(SDR1, SDR2)
+        combinedInput = SDRFunct.orSDRPatterns(SDR1, SDR2)
 
         # Run the inputs through the htm just once and obtain the column SDR outputs.
         self.htm.spatialTemporal(SDR1)
@@ -195,7 +196,7 @@ class test_SpatialPooling:
         SDR1 = self.InputCreator.inputs[0][middleInp]
         SDR2 = self.InputCreator.inputs[0][middleInpPlus]
 
-        combinedInput = self.InputCreator.orSDRPatterns(SDR1, SDR2)
+        combinedInput = SDRFunct.orSDRPatterns(SDR1, SDR2)
 
         # Run the inputs through the htm just once and obtain the column SDR outputs.
         self.htm.spatialTemporal(SDR1)
@@ -251,7 +252,7 @@ class test_SpatialPooling:
                         SDR2[y][x] = 0
                     numLeftOn2 += 1
 
-        combinedInput = self.InputCreator.orSDRPatterns(SDR1, SDR2)
+        combinedInput = SDRFunct.orSDRPatterns(SDR1, SDR2)
 
         # Run the inputs through the htm just once and obtain the column SDR outputs.
         self.htm.spatialTemporal(SDR1)
