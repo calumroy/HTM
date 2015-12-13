@@ -140,9 +140,9 @@ class test_RunTime:
 
         #from PyQt4.QtCore import pyqtRemoveInputHook; import ipdb; pyqtRemoveInputHook(); ipdb.set_trace()
 
-        app = QtGui.QApplication(sys.argv)
-        self.htmGui = GUI_HTM.HTMGui(self.htm, self.InputCreator)
-        sys.exit(app.exec_())
+        # app = QtGui.QApplication(sys.argv)
+        # self.htmGui = GUI_HTM.HTMGui(self.htm, self.InputCreator)
+        # sys.exit(app.exec_())
 
         #from PyQt4.QtCore import pyqtRemoveInputHook; import ipdb; pyqtRemoveInputHook(); ipdb.set_trace()
         assert 1 == 1

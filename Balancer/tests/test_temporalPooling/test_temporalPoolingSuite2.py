@@ -6,8 +6,8 @@ import sys
 from copy import deepcopy
 from utilities import simpleVerticalLineInputs as svli, measureTemporalPooling as mtp
 from utilities import sdrFunctions
-import sys
-import json
+from utilities import startHtmGui as gui
+
 
 testParameters = {
                     'HTM':
@@ -266,7 +266,8 @@ class test_temporalPoolingSuite2:
         # change the input pattern back to the original one to see if it has been
         # remebered and tmporal pooling still occurs.
         self.InputCreator.changePattern(0)
-
+        self.InputCreator.setIndex(0)
+        self.nSteps(self.InputCreator.numInputs)
         # Measure the temporal pooling for each layer. This requires
         # a temporal pooling measuring class per layer.
         self.temporalPoolingMeasures = [mtp.measureTemporalPooling() for i in range(self.numLayers)]
@@ -285,7 +286,8 @@ class test_temporalPoolingSuite2:
         # change the input pattern back to the second pattern to see if it has been
         # remebered and tmporal pooling still occurs.
         self.InputCreator.changePattern(1)
-
+        self.InputCreator.setIndex(0)
+        self.nSteps(self.InputCreator.numInputs)
         # Measure the temporal pooling for each layer. This requires
         # a temporal pooling measuring class per layer.
         self.temporalPoolingMeasures = [mtp.measureTemporalPooling() for i in range(self.numLayers)]
@@ -326,6 +328,7 @@ class test_temporalPoolingSuite2:
         # left to right line sequence pattern in the input creator class.
         # This is the left to right pattern sequence.
         self.InputCreator.changePattern(0)
+        #gui.startHtmGui(self.htm, self.InputCreator)
         self.nSteps(400)
 
         # Measure the temporal pooling for each layer. This requires
@@ -346,13 +349,6 @@ class test_temporalPoolingSuite2:
             # This is used to compare to temporally pooled output
             # of the topmost layer after the second pattern has been learnt.
             topGridOutputPat1 = self.htm.regionArray[0].layerOutput(self.numLayers-1)
-
-        app = QtGui.QApplication.instance()  # checks if QApplication already exists
-        if not app:  # create QApplication if it doesnt exist
-            app = QtGui.QApplication(sys.argv)
-        app.aboutToQuit.connect(app.deleteLater)
-        self.htmGui = GUI_HTM.HTMGui(self.htm, self.InputCreator)
-        app.exec_()
 
         self.InputCreator.changePattern(2)
         self.nSteps(400)
@@ -381,13 +377,6 @@ class test_temporalPoolingSuite2:
         self.InputCreator.changePattern(0)
         self.nSteps(400)
 
-        app = QtGui.QApplication.instance()  # checks if QApplication already exists
-        if not app:  # create QApplication if it doesnt exist
-            app = QtGui.QApplication(sys.argv)
-        app.aboutToQuit.connect(app.deleteLater)
-        self.htmGui = GUI_HTM.HTMGui(self.htm, self.InputCreator)
-        app.exec_()
-
         self.InputCreator.changePattern(2)
 
         app = QtGui.QApplication.instance()  # checks if QApplication already exists
@@ -399,21 +388,9 @@ class test_temporalPoolingSuite2:
 
         self.InputCreator.changePattern(0)
 
-        app = QtGui.QApplication.instance()  # checks if QApplication already exists
-        if not app:  # create QApplication if it doesnt exist
-            app = QtGui.QApplication(sys.argv)
-        app.aboutToQuit.connect(app.deleteLater)
-        self.htmGui = GUI_HTM.HTMGui(self.htm, self.InputCreator)
-        app.exec_()
-
         self.InputCreator.changePattern(2)
 
-        app = QtGui.QApplication.instance()  # checks if QApplication already exists
-        if not app:  # create QApplication if it doesnt exist
-            app = QtGui.QApplication(sys.argv)
-        app.aboutToQuit.connect(app.deleteLater)
-        self.htmGui = GUI_HTM.HTMGui(self.htm, self.InputCreator)
-        app.exec_()
+        #gui.startHtmGui(self.htm, self.InputCreator)
 
 
 

@@ -16,7 +16,8 @@ from HTM_Classes import theano_temporal as temporal
 from HTM_Classes import theano_overlap as overlap
 #from HTM_Classes import theano_inhibition as inhibition
 from HTM_Classes import np_inhibition as inhibition
-from HTM_Classes import theano_learning as learning
+#from HTM_Classes import theano_learning as learning
+from HTM_Classes import np_learning as learning
 
 
 ##Struct = {'field1': 'some val', 'field2': 'some val'}
@@ -969,17 +970,8 @@ class HTMLayer:
         """
         Phase one for the spatial pooler
 
-        This function also includes the new temporal pooling agorithm.
-        The temporal pooler works in the spatial pooler by keeping columns
-        active that where active but not bursting on the previous time step.
-
-        This is done so the columns learn to activate on multiple input patterns
-        keeping them activated throughout a sequence of patterns.
-
-        Note the temporal pooling is very dependent on the potential radius.
-        a larger potential radius allows the temporal pooler to pool over a larger
-        number of columns. Columns temporally pool using their potential synapses,
-        where normal colum activation only counts connected synapses.
+        Calculate the overlap value each column has with it's
+        connected input synapses.
         """
 
         # print "len(self.input) = %s len(self.input[0]) = %s " % (len(self.Input), len(self.Input[0]))
@@ -1019,11 +1011,26 @@ class HTMLayer:
         #         #print "%d %d %d" % (c.overlap, c.minOverlap, c.boost)
 
     def temporal(self):
-        # Temporal pooling is done here by increasing the overlap if
-        # potential synapses are connected to active inputs
-        # Add the potenial (2*radius+1)^2 as this is the maximum
-        # overlap a column could have. This guarantees the column will
-        # win later when inhibition occurs.
+        '''
+        This function also includes the new temporal pooling agorithm.
+        The temporal pooler works in the spatial pooler by keeping columns
+        active that where active but not bursting on the previous time step.
+
+        This is done so the columns learn to activate on multiple input patterns
+        keeping them activated throughout a sequence of patterns.
+
+        Note the temporal pooling is very dependent on the potential radius.
+        a larger potential radius allows the temporal pooler to pool over a larger
+        number of columns. Columns temporally pool using their potential synapses,
+        where normal colum activation only counts connected synapses.
+
+        Temporal pooling is done here by increasing the overlap if
+        potential synapses are connected to active inputs
+        Add the potenial (2*radius+1)^2 as this is the maximum
+        overlap a column could have. This guarantees the column will
+        win later when inhibition occurs.
+
+        '''
 
         # We need just the latest column active but not bursting times.
         latestColActNotBurst = self.colActNotBurst[:, 0]

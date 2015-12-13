@@ -122,7 +122,7 @@ class test_spatialPoolingSuite3:
 
         return activeColGrid
 
-    def createDottedVerticalLineSeq(self, patternLength, lineWidth, dottedLineHeight=-1):
+    def createDottedVerticalLineSeq(self, patternLength, lineWidth, dottedLineHeight=-1, dottedLineGap=1):
         # Create the input patterns to test with.
         patNumInputs = patternLength
         newPattern = np.array([[[0 for i in range(self.inputWidth)]
@@ -135,7 +135,7 @@ class test_spatialPoolingSuite3:
                 for x in range(len(newPattern[n][y])):
                     if (x >= n-int(math.floor(lineWidth/2.0))) and (x <= n+int(math.ceil(lineWidth/2.0))-1):
                         if dottedLineHeight > 0:
-                            if (y % (dottedLineHeight+1)) != 0:
+                            if (y % (dottedLineHeight+1)) < dottedLineGap:
                                 newPattern[n][y][x] = 1
                         else:
                             # No dotted line
@@ -404,8 +404,9 @@ class test_spatialPoolingSuite3:
         # The third pattern is just a dotted vertical line of height 3.
         lineWidth = 1
         dottedLineHeight = 3
+        dottedLineGap = 2
         patNumInputs = self.InputCreator.getNumInputsInSeq(0)
-        self.createDottedVerticalLineSeq(patNumInputs, lineWidth, dottedLineHeight)
+        self.createDottedVerticalLineSeq(patNumInputs, lineWidth, dottedLineHeight, dottedLineGap)
 
         # We will use these defined pattern above for testing.
         numPatternsTested = self.InputCreator.getNumCustomSequences()
