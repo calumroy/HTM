@@ -1,6 +1,5 @@
 import numpy as np
 
-
 def similarInputGrids(grid1, grid2):
     # measure how similar the two 2D array inputs are and output
     # this as a percent.

@@ -89,13 +89,6 @@ class simpleVerticalLineInputs:
                 patIndex = 0
             inputs[5][n] = SDRFunct.orSDRPatterns(inputs[0][patIndex], inputs[2][patIndex])
 
-    def appendSequence(self, sequence):
-        # Take the input sequence and append it to the end of the current
-        # inputs array which holds a list of all the other sequences.
-        # Return the position index that this new sequence hold in the inputs list
-        # of sequences.
-
-
     def changePattern(self, patternindex):
         # Change the input pattern
         self.patIndex = patternindex
