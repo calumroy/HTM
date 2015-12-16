@@ -791,6 +791,22 @@ class HTMGridViewer(QtGui.QGraphicsView):
             #print "Level %s" % level
             #Update the HTM veiwer
             self.updateGrid()
+        # The number keys 1,2,3 select the show active, show pred and show learn cells.
+        elif event.key() == QtCore.Qt.Key_1:
+            self.showActiveCells = True
+            self.showPredictCells = False
+            self.showLearnCells = False
+            self.updateGrid()
+        elif event.key() == QtCore.Qt.Key_2:
+            self.showActiveCells = False
+            self.showPredictCells = True
+            self.showLearnCells = False
+            self.updateGrid()
+        elif event.key() == QtCore.Qt.Key_3:
+            self.showActiveCells = False
+            self.showPredictCells = False
+            self.showLearnCells = True
+            self.updateGrid()
         else:
             super(HTMGridViewer, self).keyPressEvent(event)
 
