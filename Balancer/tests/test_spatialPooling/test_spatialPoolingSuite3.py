@@ -31,8 +31,8 @@ testParameters = {
                                 'centerPotSynapses': 1,
                                 'potentialWidth': 4,
                                 'potentialHeight': 4,
-                                'spatialPermanenceInc': 0.1,
-                                'spatialPermanenceDec': 0.02,
+                                'spatialPermanenceInc': 0.15,
+                                'spatialPermanenceDec': 0.05,
                                 'permanenceInc': 0.1,
                                 'permanenceDec': 0.02,
                                 'connectPermanence': 0.3,
@@ -384,7 +384,7 @@ class test_spatialPoolingSuite3:
         Spatial pooler multiple input patterns.
 
         Same as test case2.
-        There are three different dotted verticla lines.
+        There are three different dotted vertical lines.
 
         The htm should be able to differentiate between the three.
         The output from the htm for all the input sequences should be different.
@@ -539,6 +539,124 @@ class test_spatialPoolingSuite3:
         assert np.average(similarOutputsIn1And2) < 0.05
         assert np.average(similarOutputsIn1And3) < 0.05
         assert np.average(similarOutputsIn2And3) < 0.05
+
+        #gui.startHtmGui(self.htm, self.InputCreator)
+
+    def test_case4(self):
+        '''
+        Spatial pooler multiple input patterns.
+
+        Same as test case2 only this time sequence A and B are different type
+        of vertical dotted line.
+
+        The output from the htm for both the input sequences should be different.
+        This is because they both contain different features.
+
+        '''
+        # Create the input patterns to test with
+        lineWidth = 1
+        dottedLineHeight = 2
+        dottedLineGap = 2
+        patNumInputs = self.InputCreator.getNumInputsInSeq(0)
+        self.createDottedVerticalLineSeq(patNumInputs, lineWidth, dottedLineHeight, dottedLineGap)
+        # The second pattern is just a dotted vertical line of height 2.
+        lineWidth = 2
+        dottedLineHeight = 1
+        dottedLineGap = 2
+        self.createDottedVerticalLineSeq(patNumInputs, lineWidth, dottedLineHeight, dottedLineGap)
+
+        # We will use these defined pattern above for testing.
+        numPatternsTested = self.InputCreator.getNumCustomSequences()
+        pat0NumInputs = self.InputCreator.getNumInputsInSeq(0)
+        pat1NumInputs = self.InputCreator.getNumInputsInSeq(1)
+
+        # Run the patterns through the htm multiple times
+        # this is done so the htm can settle on a representation
+        # for each input.
+        self.InputCreator.changePattern(1)
+        self.nSteps(5*pat0NumInputs)
+        self.InputCreator.changePattern(2)
+        self.nSteps(5*pat1NumInputs)
+
+        # Now run through the old pattern and store each output SDR
+        # These are used to compare against later on.
+        # outputsFromPatternX is an array storing a list of SDRs representing
+        # the output from the htm for every input in a particular pattern.
+        # Reset the pattern to the start
+        self.InputCreator.changePattern(1)
+        self.InputCreator.setIndex(0)
+        self.nSteps(pat0NumInputs)
+        outputSDR00 = self.getColumnGridOutput(self.htm, 0, 0)
+        outputsFromPatternX = np.array([[np.zeros_like(outputSDR00)
+                                         for n in range(pat0NumInputs)]
+                                        for p in range(numPatternsTested)]
+                                       )
+        outputsFromPatternXAgain = np.array([[np.zeros_like(outputSDR00)
+                                              for n in range(pat0NumInputs)]
+                                             for p in range(numPatternsTested)]
+                                            )
+        for i in range(pat0NumInputs):
+            outputsFromPatternX[0][i] = self.getColumnGridOutput(self.htm, 0, 0)
+            self.step()
+
+        #import ipdb; ipdb.set_trace()
+
+        self.InputCreator.changePattern(2)
+        # Store the outputs from the second pattern.
+        self.InputCreator.setIndex(0)
+        self.nSteps(pat1NumInputs)
+        for i in range(pat1NumInputs):
+            outputsFromPatternX[1][i] = self.getColumnGridOutput(self.htm, 0, 0)
+            self.step()
+
+        self.InputCreator.changePattern(1)
+        # Now the pattern has been changed back to the first one.
+        # Rerun through all the inputs and store the outputs from
+        # the first pattern again.
+        self.InputCreator.setIndex(0)
+        self.nSteps(pat0NumInputs)
+        for i in range(pat0NumInputs):
+            outputsFromPatternXAgain[0][i] = self.getColumnGridOutput(self.htm, 0, 0)
+            self.step()
+
+        # Change the pattern back to the second pattern.
+        self.InputCreator.changePattern(2)
+        # Restore all the outputs from the second pattern
+        self.InputCreator.setIndex(0)
+        self.nSteps(pat1NumInputs)
+        for i in range(pat1NumInputs):
+            outputsFromPatternXAgain[1][i] = self.getColumnGridOutput(self.htm, 0, 0)
+            self.step()
+
+        # Now we need to compare the two outptus from both times the two input patterns
+        # were stored. Also compare the output from the two times the different patterns were
+        # recorded.
+        similarOutputsIn1 = np.zeros(pat0NumInputs)
+        similarOutputsIn2 = np.zeros(pat1NumInputs)
+        similarOutputsIn1And2 = np.zeros(pat0NumInputs)
+        for i in range(pat0NumInputs):
+            similarOutputsIn1[i] = self.gridsSimilar(outputsFromPatternX[0][i],
+                                                     outputsFromPatternXAgain[0][i])
+            similarOutputsIn2[i] = self.gridsSimilar(outputsFromPatternX[1][i],
+                                                     outputsFromPatternXAgain[1][i])
+            similarOutputsIn1And2[i] = self.gridsSimilar(outputsFromPatternXAgain[0][i],
+                                                         outputsFromPatternXAgain[1][i])
+
+            # The two times the ouput from the htm was recorded for each pattern
+            # the same output SDR should have been created.
+            print "similarOutputsIn1[%s] = %s" % (i, similarOutputsIn1[i])
+            print "similarOutputsIn2[%s] = %s" % (i, similarOutputsIn2[i])
+            print "similarOutputsIn1And2[%s] = %s" % (i, similarOutputsIn1And2[i])
+
+        print "Averaged similarOutputsIn1 = %s" % np.average(similarOutputsIn1)
+        print "Averaged similarOutputsIn2 = %s" % np.average(similarOutputsIn2)
+        print "Averaged similarOutputsIn1And2 = %s" % np.average(similarOutputsIn1And2)
+
+        assert np.average(similarOutputsIn1) >= 0.95
+        assert np.average(similarOutputsIn2) >= 0.95
+        # The outputs from the two input sequences should be very different.
+        # The two dotted lines do not share similar features.
+        assert np.average(similarOutputsIn1And2) < 0.05
 
         #gui.startHtmGui(self.htm, self.InputCreator)
 

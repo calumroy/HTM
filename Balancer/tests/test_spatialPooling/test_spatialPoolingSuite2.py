@@ -310,7 +310,7 @@ class test_spatialPoolingSuite2:
         # Change the pattern back to the second pattern.
         self.InputCreator.changePattern(2)
 
-        # Restore all the outputs. form the second pattern
+        # Restore all the outputs from the second pattern
         self.InputCreator.setIndex(0)
         self.nSteps(self.numInputs)
         for i in range(self.numInputs):

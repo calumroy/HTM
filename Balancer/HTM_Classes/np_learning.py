@@ -1,8 +1,5 @@
-import theano.tensor as T
-from theano import function
+
 import numpy as np
-from theano.sandbox.neighbours import images2neibs
-from theano import Mode
 import math
 
 
@@ -54,25 +51,52 @@ class LearningCalculator():
         self.spatialPermanenceInc = spatialPermanenceInc
         self.spatialPermanenceDec = spatialPermanenceDec
 
+        # Store the previous colPotInputs.
+        # This is so a potential synapse can work out if it's end
+        # has changed state. If so then we update the synapses permanence.
+        # Initialize with a negative value so the first update always updates
+        # the permanence values. Normally this matrix holds 0 or 1 only.
+        self.prevColPotInputs = np.array([[-1 for x in range(self.numPotSynapses)] for y in range(self.numColumns)])
+        self.prevActiveCols = np.array([-1 for i in range(self.numColumns)])
+
+    def updatePermanence(self, c, s, colPotInputs, colSynPerm):
+        # Check if the input that this
+        # synapses is connected to is active.
+        if colPotInputs[c][s] == 1:
+        # Only handles binary input sources
+            colSynPerm[c][s] += self.spatialPermanenceInc
+            colSynPerm[c][s] = min(1.0, colSynPerm[c][s])
+        else:
+            colSynPerm[c][s] -= self.spatialPermanenceDec
+            colSynPerm[c][s] = max(0.0, colSynPerm[c][s])
+
     def updatePermanenceValues(self, colSynPerm, colPotInputs, activeCols):
         # The inputs colSynPerm and colPotInputs are matricies.
         # colSynPerm is the permanence values of every poetnetial synapse for each column.
-        # colPotInputs is the input value for each potential synapse for each column.
+        # colPotInputs is the binary input value for each potential synapse for each column.
         # If one then that potential synapse is connected to an active input bit.
         # activeCols is an array storing a bit indicating if the column is active (1) or not (0).
         for c in range(len(activeCols)):
+            # Only update the potential synapses for the active columns.
             if activeCols[c] == 1:
-                for s in range(len(colSynPerm[c])):
+                # If the column was newly activated then update all the permanence values
+                # for each potential synapse regardless whether the synpases input has changed.
+                if self.prevActiveCols[c] != activeCols[c]:
+                    for s in range(len(colSynPerm[c])):
+                        self.updatePermanence(c, s, colPotInputs, colSynPerm)
+                else:
+                    # The column was previously active.
+                    # This means it it temporally pooling or the same input
+                    # was sent. Only update the potential synpase permanences if
+                    # the input to a potential synpase changed.
+                    for s in range(len(colSynPerm[c])):
+                        # Check that this potential synapses input has changed
+                        if self.prevColPotInputs[c][s] != colPotInputs[c][s]:
+                            self.updatePermanence(c, s, colPotInputs, colSynPerm)
 
-                    # Check if the input that this
-                    #synapses is connected to is active.
-                    if colPotInputs[c][s] == 1:
-                    #Only handles binary input sources
-                        colSynPerm[c][s] += self.spatialPermanenceInc
-                        colSynPerm[c][s] = min(1.0, colSynPerm[c][s])
-                    else:
-                        colSynPerm[c][s] -= self.spatialPermanenceDec
-                        colSynPerm[c][s] = max(0.0, colSynPerm[c][s])
+        # Store the current inputs to the potentialSynapses to use next time.
+        self.prevColPotInputs = colPotInputs
+        self.prevActiveCols = activeCols
 
         return colSynPerm
 
