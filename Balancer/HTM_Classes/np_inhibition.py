@@ -90,6 +90,12 @@ class inhibitionCalculator():
         # width and inhibition height are not equal.
         self.colInNeighboursLists = np.zeros((self.numColumns, self.inhibitionArea))
         self.colInNeighboursLists = self.calculateColInNeighboursLists(self.colInNeighboursLists)
+        # Store the previous active columns
+        # This is so a column that was previously active can be given a slight bias,
+        # to break any ties that occur this timestep.
+        # Initialize with a 0 no columsn where active previously.
+        # the permanence values. Normally this matrix holds 0 or 1 only.
+        self.prevActiveCols = np.array([0for i in range(self.numColumns)])
 
     def calculateNeighboursLists(self, neighbourColsLists):
         # Returns a 2d array where each row represents a column.
@@ -187,21 +193,46 @@ class inhibitionCalculator():
         colIndList = colIndList[colIndList >= 0]
         return colIndList
 
+    def addTieBreaker(self, overlapsGrid):
+        # Take the colOverlapMat and add a small number to each overlap
+        # value based on that row and col number. This helps when deciding
+        # how to break ties in the inhibition stage. Note this is not a random value!
+        # Make sure the tiebreaker contains values less then 1.
+        # The tie breaker is based on position and whether the column was previously active.
+        # If the column was previously active this counts for more then the position of the column.
+
+        normValue = 1.0/float(2*self.numColumns+2)
+        tieBreaker = np.array([[(1+i+j*self.width)*normValue for i in range(self.width)]
+                              for j in range(self.height)])
+        maxNormValue = (self.numColumns+1) * normValue
+        # maxNormValue + normValue*numColumns must be smaller then one.
+        # The maxNormValue should be larger then numColumns * normValue
+        activeColTieBreaker = np.array([[self.prevActiveCols[i+j*self.width]*maxNormValue for i in range(self.width)]
+                                        for j in range(self.height)])
+        #print "activeColTieBreaker=\n%s" % activeColTieBreaker
+        # Add the tie breakers
+        totalTieBreaker = np.add(tieBreaker, activeColTieBreaker)
+        #print "totalTieBreaker=\n%s" % totalTieBreaker
+        # Add the total tiebreaker matrix to the overlapsGrid.
+        overlapsGrid = np.add(overlapsGrid, totalTieBreaker)
+
+        return overlapsGrid
+
     def calculateWinningCols(self, overlapsGrid):
+        '''
+        The Main function for this class.
+
+        Take a matrix holding all the overlap values for every column
+        and calculate the active columns and the inhibitied (inactive) columns.
+
+        '''
 
         activeColumns = []
         assert self.width == len(overlapsGrid[0])
         assert self.height == len(overlapsGrid)
 
-        #print "overlapsGrid = \n%s" % overlapsGrid
-        # Take the colOverlapMat and add a small number to each overlap
-        # value based on that row and col number. This helps when deciding
-        # how to break ties in the inhibition stage. Note this is not a random value!
-        # Make sure the tiebreaker contains values less then 1.
-        normValue = 1.0/float(self.numColumns+1)
-        tieBreaker = np.array([[(1+i+j*self.width)*normValue for i in range(self.width)] for j in range(self.height)])
         # Add the time breaker to the overlapsGrid
-        overlapsGrid = np.add(overlapsGrid, tieBreaker)
+        overlapsGrid = self.addTieBreaker(overlapsGrid)
 
         allColsOverlaps = overlapsGrid.flatten().tolist()
         columnActive = np.zeros_like(allColsOverlaps)
@@ -300,6 +331,10 @@ class inhibitionCalculator():
         # print "ACTIVE COLUMN INDICIES = \n%s" % activeColumns
         # print "columnActive = \n%s" % columnActive
 
+        # Save the columActive array so the prev active columns
+        # are known and can be used next time this function is called.
+        self.prevActiveCols = columnActive
+
         return columnActive
 
 if __name__ == '__main__':
@@ -324,6 +359,10 @@ if __name__ == '__main__':
                                            desiredLocalActivity, centerInhib)
 
     #cProfile.runctx('activeColumns = inhibCalculator.calculateWinningCols(colOverlapGrid)', globals(), locals())
+    activeColumns = inhibCalculator.calculateWinningCols(colOverlapGrid)
+    activeColumns = activeColumns.reshape((numRows, numCols))
+    print "activeColumns = \n%s" % activeColumns
+
     activeColumns = inhibCalculator.calculateWinningCols(colOverlapGrid)
 
     activeColumns = activeColumns.reshape((numRows, numCols))
