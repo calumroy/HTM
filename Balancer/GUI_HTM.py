@@ -987,12 +987,15 @@ class HTMNetwork(QtGui.QWidget):
 
     def markHTM(self):
         # Mark the current state of the HTM by creatng an new view to view the current state.
+        # Copy the current htm network once. The newly created views will use this one copy of the htm to
+        # display different layers and levels.
+        newCopiedHTM = copy.deepcopy(self.htm)
         for HTMView in self.HTMNetworkGrid:
             self.markedHTMViews.append(HTMGridViewer(self.htm))
             # Get the newest view added to the end of the array
             newHTMView = self.markedHTMViews[-1]
             # Use the HTMGridVeiw objects that has been appended to the end of the list
-            newHTMView.htm = copy.deepcopy(self.htm)
+            newHTMView.htm = newCopiedHTM
             # Update the view settings
             newHTMView.showActiveCells = HTMView.showActiveCells
             newHTMView.showLearnCells = HTMView.showLearnCells
