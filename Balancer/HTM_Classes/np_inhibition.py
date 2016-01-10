@@ -65,7 +65,7 @@ THIS IS A REINIMPLEMENTATION OF THE OLD INHIBITON CODE BELOW
 
 class inhibitionCalculator():
     def __init__(self, width, height, potentialInhibWidth, potentialInhibHeight,
-                 desiredLocalActivity, centerInhib=1):
+                 desiredLocalActivity, minOverlap, centerInhib=1):
         # Temporal Parameters
         ###########################################
         # Specifies if the potential synapses are centered
@@ -77,9 +77,17 @@ class inhibitionCalculator():
         self.potentialHeight = potentialInhibHeight
         self.numPotSyn = self.potentialWidth * self.potentialHeight
         self.desiredLocalActivity = desiredLocalActivity
+        self.minOverlap = minOverlap
         # Initialize the neighbours list for each column
         self.numColumns = self.width * self.height
         self.inhibitionArea = self.potentialWidth * self.potentialHeight
+        # Initialize the matricies storing the active and inhibited columns
+        self.activeColumns = []  # This is a list storing only the active columsn indicies
+        self.columnActive = None  # This is an array storing 1 (active) or 0 (inactive) for all columns.
+        self.inhibitedCols = None
+        # This list stores the number of active columns in a columns neighbours list.
+        # It is updated and checked by other columns during the following for loop.
+        self.numColsActInNeigh = None
         # Calculate the neighbours list for each column.
         # Note this means we can't adjust the inhibiton width or height without
         # recalculating this list.
@@ -218,28 +226,119 @@ class inhibitionCalculator():
 
         return overlapsGrid
 
-    def calculateWinningCols(self, overlapsGrid):
+    def calcualteInhibition(self, colIndex, overlapScore):
+        i = colIndex
+        # Make sure the column hasn't been inhibited
+        if self.inhibitedCols[i] != 1:
+            # # Get the columns position
+            # pos_x = i % self.width
+            # pos_y = math.floor(i/self.height)
+
+            #print "COLUMN INDEX = %s" % i
+
+            neighbourCols = self.neighbourColsLists[i]
+
+            # Check the neighbours and count how many are already active.
+            # These columns will be set active.
+            numActiveNeighbours = 0
+            for d in neighbourCols:
+                # Don't include any -1 index values. These are only padding values.
+                if d >= 0:
+                    if (self.columnActive[d] == 1):
+                        numActiveNeighbours += 1
+                        # In the active neighbours see if any already have the
+                        # desired number of columns active in their neighbours group.
+                        # If so this column should not be set active, inhibit it.
+                        if self.numColsActInNeigh[d] >= self.desiredLocalActivity:
+                            # print " Col index = %s has an active col with too many active neighbours" % i
+                            self.inhibitedCols[i] = 1
+
+            # Check the columns which are already active and contain the current
+            # column in its neighbours list. If one of these already has the desired
+            # local activity number of active columns then the current one should be inhibited.
+            for d in self.colInNeighboursLists[i]:
+                if (self.columnActive[d] == 1):
+                    # Don't include any -1 index values. These are only padding values.
+                    if d >= 0:
+                        if self.numColsActInNeigh[d] >= self.desiredLocalActivity:
+                            self.inhibitedCols[i] = 1
+
+            # Store the number of active columns in this columns
+            # neighbours group. This is used and updated by other columns.
+            self.numColsActInNeigh[i] = numActiveNeighbours
+
+            # If this column wasn't inhibited and  less then the desired local
+            # activity have been set or will be set as active then activate
+            # this column as well.
+            if ((self.inhibitedCols[i] != 1) and (self.numColsActInNeigh[i] < self.desiredLocalActivity)):
+                self.activeColumns.append(i)
+                self.columnActive[i] = 1
+                # This column is activated so the numColsActInNeigh must be
+                # updated for the columns with this column in their neighbours list.
+                for c in self.colInNeighboursLists[i]:
+                    # Don't include any -1 index values. These are only padding values.
+                    if c >= 0:
+                        self.numColsActInNeigh[c] += 1
+            else:
+                # Inhibit this columns. It will not become active
+                self.inhibitedCols[i] = 1
+                # print " Col index = %s has too many active cols in neighbours" % i
+                # # Set the overlap score for the losing columns to zero
+                # allColsOverlaps[i] = 0
+
+    def calculateWinningCols(self, overlapsGrid, potOverlapsGrid):
         '''
         The Main function for this class.
 
         Take a matrix holding all the overlap values for every column
         and calculate the active columns and the inhibitied (inactive) columns.
 
+        The process of inhibitng columns is outlined below;
+         1. Get the list of overlap scores for all columns.
+         2. Starting from the columns with the maximum overlaps check that
+            columns neighbours and decide if the column should be inhibited based
+            on the number of active columns in the neighbous list and the desired
+            local activity parameter.
+         3. Also check any columns that are already active and also contain the
+            current column in their neighbours list.
+         4. If this column is to be set active then update the columns numColsActInNeigh
+            variable. This keeps track of how many active columns are within that cols
+            neighbours list.
+         5. Also update the numColsActInNeigh parameter for any columns that contain the
+            current column in their neighbours list.
+
+        ## Potential winning columns function
+        An extra feature needed from the inhibiton class is to calculate
+        active columns for situations when no column has an overlap score larger
+        then the minoverlap parameter.
+         6. For any columns that have a overlap score less then the minoverlap parameter
+            check these columns potential overlap scores and inhibit the columns that have
+            a potential overlap score smaller then the minoverlap parameter.
+         7. If the potential overlap score is larger then the minoverlap parameter then add a tie breaker
+            value to the potential overlap score.
+         8. Now rerun the inhibiton process (steps 1 to 6) this time using the list of
+            potential overlap scores.
+
+
         '''
 
-        activeColumns = []
+        self.activeColumns = []
         assert self.width == len(overlapsGrid[0])
         assert self.height == len(overlapsGrid)
 
         # Add the time breaker to the overlapsGrid
         overlapsGrid = self.addTieBreaker(overlapsGrid)
+        # Do the same for the potential Overlaps Grid
+        potOverlapsGrid = self.addTieBreaker(potOverlapsGrid)
 
         allColsOverlaps = overlapsGrid.flatten().tolist()
-        columnActive = np.zeros_like(allColsOverlaps)
-        inhibitedCols = np.zeros_like(allColsOverlaps)
+        allColsPotOverlaps = potOverlapsGrid.flatten().tolist()
+
+        self.columnActive = np.zeros_like(allColsOverlaps)
+        self.inhibitedCols = np.zeros_like(allColsOverlaps)
         # This list stores the number of active columns in a columns neighbours list.
         # It is updated and checked by other columns during the following for loop.
-        numColsActInNeigh = np.zeros_like(allColsOverlaps)
+        self.numColsActInNeigh = np.zeros_like(allColsOverlaps)
 
         # print "columnActive = \n%s" % columnActive
         #print "overlapsGrid plus tiebreaker = \n%s" % overlapsGrid
@@ -253,89 +352,43 @@ class inhibitionCalculator():
         # Now start from the columns with the highest overlap and inhibit
         # columns with smaller overlaps.
         for i in reversed(sortedAllColsInd):
-            # Make sure the overlap value is larger than one.
+            # Make sure the overlap value is larger than the minOverlap.
             # The added tiebreaker makes a zero overlap value
             # appear in the range of 0 to 1.
             overlap = allColsOverlaps[i]
-            if overlap >= 1:
-                # Make sure the column hasn't been inhibited
-                if inhibitedCols[i] != 1:
-                    # # Get the columns position
-                    # pos_x = i % self.width
-                    # pos_y = math.floor(i/self.height)
-
-                    #print "COLUMN INDEX = %s" % i
-
-                    neighbourCols = self.neighbourColsLists[i]
-
-                    # Check the neighbours and count how many are already active.
-                    # These columns will be set active.
-                    numActiveNeighbours = 0
-                    for d in neighbourCols:
-                        # Don't include any -1 index values. These are only padding values.
-                        if d >= 0:
-                            if (columnActive[d] == 1):
-                                numActiveNeighbours += 1
-                                # In the active neighbours see if any already have the
-                                # desired number of columns active in their neighbours group.
-                                # If so this column should not be set active, inhibit it.
-                                if numColsActInNeigh[d] >= self.desiredLocalActivity:
-                                    # print " Col index = %s has an active col with too many active neighbours" % i
-                                    inhibitedCols[i] = 1
-
-                    # Check the columns which are already active and contain the current
-                    # column in its neighbours list. If one of these already has the desired
-                    # local activity number of active columns then the current one should be inhibited.
-                    for d in self.colInNeighboursLists[i]:
-                        if (columnActive[d] == 1):
-                            # Don't include any -1 index values. These are only padding values.
-                            if d >= 0:
-                                if numColsActInNeigh[d] >= self.desiredLocalActivity:
-                                    inhibitedCols[i] = 1
-
-                    # Store the number of active columns in this columns
-                    # neighbours group. This is used and updated by other columns.
-                    numColsActInNeigh[i] = numActiveNeighbours
-
-                    # If this column wasn't inhibited and  less then the desired local
-                    # activity have been set or will be set as active then activate
-                    # this column as well.
-                    if ((inhibitedCols[i] != 1) and (numColsActInNeigh[i] < self.desiredLocalActivity)):
-                        activeColumns.append(i)
-                        columnActive[i] = 1
-                        # This column is activated so the numColsActInNeigh must be
-                        # updated for the columns with this column in their neighbours list.
-                        for c in self.colInNeighboursLists[i]:
-                            # Don't include any -1 index values. These are only padding values.
-                            if c >= 0:
-                                # # Don't update the current column, this has already been done.
-                                # if c != i:
-                                # print "Adding one 100 col index = % s" % c
-                                numColsActInNeigh[c] += 1
-                    else:
-                        # Inhibit this columns. It will not become active
-                        inhibitedCols[i] = 1
-                        # print " Col index = %s has too many active cols in neighbours" % i
-                        # # Set the overlap score for the losing columns to zero
-                        # allColsOverlaps[i] = 0
+            if overlap >= self.minOverlap:
+                self.calcualteInhibition(i, overlap)
             else:
-                # Inhibit this columns. It will not become active
-                inhibitedCols[i] = 1
-                # # Set the overlap score for the losing columns to zero
-                # allColsOverlaps[i] = 0
+                # The remaining columns all have too small overlap values.
+                break
+
+        # The remaining columns may still become active if they have good potential overlap values
+        # and they haven't been inhibited by the already active columns.
+        # Start from the columns with the highest potential overlap values.
+        sortedAllColsPotInd = np.argsort(allColsPotOverlaps)
+        for i in reversed(sortedAllColsPotInd):
+            # Don't look at any columns that have already been activated or inhibited.
+            if self.inhibitedCols[i] == 0 and self.columnActive[i] == 0:
+                # Check the columns potential overlap score.
+                potOverlap = allColsPotOverlaps[i]
+                if potOverlap >= self.minOverlap:
+                    # Check that this column is not inhibited by any active column,
+                    # if not then set active.
+                    self.calcualteInhibition(i, potOverlap)
+
             # print "numColsActInNeigh reshaped = \n%s" % np.array(numColsActInNeigh).reshape((self.height, self.width))
-            # print "inhibitedCols reshaped = \n%s" % np.array(inhibitedCols).reshape((self.height, self.width))
+            #print "inhibitedCols reshaped = \n%s" % np.array(self.inhibitedCols).reshape((self.height, self.width))
             # print "allColsOverlaps reshaped = \n%s" % np.array(allColsOverlaps).reshape((self.height, self.width))
-            # print "columnActive reshaped = \n%s" % np.array(columnActive).reshape((self.height, self.width))
+            #print "columnActive reshaped = \n%s" % np.array(self.columnActive).reshape((self.height, self.width))
 
         # print "ACTIVE COLUMN INDICIES = \n%s" % activeColumns
         # print "columnActive = \n%s" % columnActive
 
         # Save the columActive array so the prev active columns
         # are known and can be used next time this function is called.
-        self.prevActiveCols = columnActive
+        self.prevActiveCols = self.columnActive
 
-        return columnActive
+        return self.columnActive
 
 if __name__ == '__main__':
 
@@ -345,25 +398,41 @@ if __name__ == '__main__':
     numRows = 4
     numCols = 4
     desiredLocalActivity = 2
+    minOverlap = 2
 
     # Some made up inputs to test with
     #colOverlapGrid = np.random.randint(10, size=(numRows, numCols))
-    colOverlapGrid = np.array([[8, 4, 5, 8],
-                               [8, 6, 1, 6],
-                               [7, 7, 9, 4],
-                               [2, 3, 1, 5]])
+    # colOverlapGrid = np.array([[8, 4, 5, 8],
+    #                            [8, 6, 1, 6],
+    #                            [7, 7, 9, 4],
+    #                            [2, 3, 1, 5]])
+    colOverlapGrid = np.array([[0, 5, 0, 0],
+                               [0, 0, 0, 0],
+                               [0, 0, 0, 0],
+                               [0, 0, 6, 0]])
+    potColOverlapGrid = np.array([[0, 5, 1, 0],
+                                  [2, 1, 1, 0],
+                                  [3, 0, 2, 0],
+                                  [2, 0, 6, 0]])
     print "colOverlapGrid = \n%s" % colOverlapGrid
 
     inhibCalculator = inhibitionCalculator(numCols, numRows,
                                            potWidth, potHeight,
-                                           desiredLocalActivity, centerInhib)
+                                           desiredLocalActivity,
+                                           minOverlap,
+                                           centerInhib)
 
     #cProfile.runctx('activeColumns = inhibCalculator.calculateWinningCols(colOverlapGrid)', globals(), locals())
-    activeColumns = inhibCalculator.calculateWinningCols(colOverlapGrid)
+    activeColumns = inhibCalculator.calculateWinningCols(colOverlapGrid, potColOverlapGrid)
     activeColumns = activeColumns.reshape((numRows, numCols))
     print "activeColumns = \n%s" % activeColumns
 
-    activeColumns = inhibCalculator.calculateWinningCols(colOverlapGrid)
+    potColOverlapGrid = np.array([[0, 5, 1, 0],
+                                  [3, 1, 1, 0],
+                                  [3, 0, 2, 2],
+                                  [2, 0, 6, 0]])
+
+    activeColumns = inhibCalculator.calculateWinningCols(colOverlapGrid, potColOverlapGrid)
 
     activeColumns = activeColumns.reshape((numRows, numCols))
     print "activeColumns = \n%s" % activeColumns

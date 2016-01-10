@@ -181,7 +181,9 @@ class HTMLayer:
         # If the permanence value for a synapse is greater than this
         # value, it is said to be connected.
         self.connectPermanence = params['connectPermanence']
-        # Should be smaller than activationThreshold
+        # Should be smaller than activationThreshold.
+        # More then this many synapses in a segment must be active for the segment
+        # to be considered for an alternative sequence (to increment a cells score).
         self.minThreshold = params['minThreshold']
         # The minimum score needed by a cell to be added
         # to the alternative sequence.
@@ -199,9 +201,12 @@ class HTMLayer:
         # It is larger then the input by a factor of the number of cells per column
         self.output = np.array([[0 for i in range(self.width * self.cellsPerColumn)] for j in range(self.height)])
         self.activeColumns = np.array([], dtype=object)
-        # The starting permanence of new synapses. This is used to create new synapses.
-        self.synPermanence = params['synPermanence']
-
+        # The starting permanence of new column synapses (spatial pooler synapses).
+        # This is used to create new synapses.
+        self.colSynPermanence = params['colSynPermanence']
+        # The starting permanence of new cell synapses (sequence pooler synapses).
+        # This is used to create new synapses.
+        self.cellSynPermanence = params['cellSynPermanence']
         # Create matrix group variables. These variables store info about all
         # the columns, cells and synpases. This is done to improve the performance
         # since operations are just matrix manipulations.
@@ -221,7 +226,7 @@ class HTMLayer:
         self.numColumns = self.height * self.width
         # Setup a matrix where each row represents a list of a columns
         # potential synapse permanence values
-        self.colPotSynPerm = np.array([[self.synPermanence for i in range(self.numPotSyn)] for j in range(self.numColumns)])
+        self.colPotSynPerm = np.array([[self.colSynPermanence for i in range(self.numPotSyn)] for j in range(self.numColumns)])
         # Setup a matrix where each position represents a columns overlap.
         self.colOverlaps = np.empty([self.height, self.width])
         # Setup a matrix where each row represents a columns input values from its potential synapses.
@@ -277,6 +282,7 @@ class HTMLayer:
                                                          self.inhibitionWidth,
                                                          self.inhibitionHeight,
                                                          self.desiredLocalActivity,
+                                                         self.minOverlap,
                                                          self.centerPotSynapses)
 
         self.permanenceCalc = learning.LearningCalculator(self.numColumns,
@@ -425,7 +431,7 @@ class HTMLayer:
                     y = columnPotSynPositions[0][cInd][i]
                     x = columnPotSynPositions[1][cInd][i]
                     c.potentialSynapses = np.append(c.potentialSynapses,
-                                                    [Synapse(x, y, -1, self.synPermanence)])
+                                                    [Synapse(x, y, -1, self.colSynPermanence)])
                 cInd += 1
 
     def neighbours(self, c):
@@ -657,7 +663,7 @@ class HTMLayer:
                     if self.learnState(m, j, timeStep) is True:
                         #print "time = %s synapse ends at
                         # active cell x,y,i = %s,%s,%s"%(timeStep,m.pos_x,m.pos_y,j)
-                        synapseList.append(Synapse(m.pos_x, m.pos_y, j, self.synPermanence))
+                        synapseList.append(Synapse(m.pos_x, m.pos_y, j, self.cellSynPermanence))
         # Take a random sample from the list synapseList
         # Check that there is at least one segment
         # and the segment index isnot -1 meaning
@@ -966,6 +972,11 @@ class HTMLayer:
         else:
             print "New Input is not a 2D numpy array!"
 
+    def getPotentialOverlaps(self):
+        # Get the potential overlap scores for each column.
+        # Get them from the overlpas calculator
+        return self.overlapCalc.getPotentialOverlaps()
+
     def Overlap(self):
         """
         Phase one for the spatial pooler
@@ -1012,7 +1023,9 @@ class HTMLayer:
 
     def temporal(self):
         '''
-        This function also includes the new temporal pooling agorithm.
+        Temporal Pooling is done whitin the spatial pooler process after the
+        intial overlap has been calcualted.
+
         The temporal pooler works in the spatial pooler by keeping columns
         active that where active but not bursting on the previous time step.
 
@@ -1051,8 +1064,11 @@ class HTMLayer:
         # The inhibitor calculator requires the column overlaps to be in
         # a grid with the same shape as the HTM layer.
         colOverlapsGrid = self.colOverlaps.reshape((self.height, self.width))
+        # It also requires the potential overlaps to be in a grid form.
+        # Get the potential overlaps and reshape them into a grid (matrix).
+        potColOverlapsGrid = self.getPotentialOverlaps().reshape((self.height, self.width))
 
-        self.colActive = self.inhibCalc.calculateWinningCols(colOverlapsGrid)
+        self.colActive = self.inhibCalc.calculateWinningCols(colOverlapsGrid, potColOverlapsGrid)
         #print "self.colActive = \n%s" % self.colActive
 
         # Update the activeColumn list using the colActive vector.

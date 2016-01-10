@@ -24,6 +24,7 @@ class test_voidInhibition:
         numRows = 20
         numCols = 8
         desiredLocalActivity = 2
+        minOverlap = 1
 
         colOverlapGrid = np.array([[0, 0, 3, 3, 0, 0, 0, 0],
                                    [0, 0, 3, 3, 0, 0, 0, 0],
@@ -46,11 +47,14 @@ class test_voidInhibition:
                                    [0, 0, 3, 3, 0, 0, 0, 0],
                                    [0, 0, 3, 3, 0, 0, 0, 0]])
 
+        potColOverlapGrid = colOverlapGrid
+
         inhibCalculator = void_inhibition.inhibitionCalculator(numCols, numRows,
                                                                inhibitionWidth, inhibitionHeight,
-                                                               desiredLocalActivity, centerInhib)
+                                                               desiredLocalActivity,
+                                                               minOverlap, centerInhib)
 
-        activeColumns = inhibCalculator.calculateWinningCols(colOverlapGrid)
+        activeColumns = inhibCalculator.calculateWinningCols(colOverlapGrid, potColOverlapGrid)
 
         activeColumns = activeColumns.reshape((numRows, numCols))
         print "activeColumns = \n%s" % activeColumns
@@ -89,17 +93,21 @@ class test_voidInhibition:
         numRows = 4
         numCols = 4
         desiredLocalActivity = 2
+        minOverlap = 1
 
         colOverlapGrid = np.array([[8, 0, 5, 8],
                                    [8, 0, 0, 0],
                                    [0, 0, 9, 0],
                                    [2, 0, 0, 5]])
 
+        potColOverlapGrid = colOverlapGrid
+
         inhibCalculator = void_inhibition.inhibitionCalculator(numCols, numRows,
                                                                inhibitionWidth, inhibitionHeight,
-                                                               desiredLocalActivity, centerInhib)
+                                                               desiredLocalActivity,
+                                                               minOverlap, centerInhib)
 
-        activeColumns = inhibCalculator.calculateWinningCols(colOverlapGrid)
+        activeColumns = inhibCalculator.calculateWinningCols(colOverlapGrid, potColOverlapGrid)
 
         activeColumns = activeColumns.reshape((numRows, numCols))
         print "activeColumns = \n%s" % activeColumns
@@ -126,18 +134,21 @@ class test_voidInhibition:
         numRows = 100
         numCols = 100
         desiredLocalActivity = 2
+        minOverlap = 1
 
         # Some made up input to test with
         # We use a non random incrementing input so we can compare run times with other
         # inhibition calculator class implementations.
         colOverlapGrid = np.array([[1+i+numRows*j for i in range(numRows)] for j in range(numCols)])
+        potColOverlapGrid = colOverlapGrid
 
         inhibCalculator = void_inhibition.inhibitionCalculator(numCols, numRows,
                                                                inhibitionWidth, inhibitionHeight,
-                                                               desiredLocalActivity, centerInhib)
+                                                               desiredLocalActivity,
+                                                               minOverlap, centerInhib)
 
         for i in range(numCycles):
-            activeColumns = inhibCalculator.calculateWinningCols(colOverlapGrid)
+            activeColumns = inhibCalculator.calculateWinningCols(colOverlapGrid, potColOverlapGrid)
 
         activeColumns = activeColumns.reshape((numRows, numCols))
 

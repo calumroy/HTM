@@ -26,6 +26,7 @@ class test_npInhibition:
         numRows = 20
         numCols = 8
         desiredLocalActivity = 2
+        minOverlap = 1
 
         colOverlapGrid = np.array([[0, 0, 3, 3, 0, 0, 0, 0],
                                    [0, 0, 3, 3, 0, 0, 0, 0],
@@ -48,11 +49,14 @@ class test_npInhibition:
                                    [0, 0, 3, 3, 0, 0, 0, 0],
                                    [0, 0, 3, 3, 0, 0, 0, 0]])
 
+        potColOverlapGrid = colOverlapGrid
+
         inhibCalculator = np_inhibition.inhibitionCalculator(numCols, numRows,
                                                              inhibitionWidth, inhibitionHeight,
-                                                             desiredLocalActivity, centerInhib)
+                                                             desiredLocalActivity,
+                                                             minOverlap, centerInhib)
 
-        activeColumns = inhibCalculator.calculateWinningCols(colOverlapGrid)
+        activeColumns = inhibCalculator.calculateWinningCols(colOverlapGrid, potColOverlapGrid)
 
         activeColumns = activeColumns.reshape((numRows, numCols))
         print "activeColumns = \n%s" % activeColumns
@@ -91,17 +95,21 @@ class test_npInhibition:
         numRows = 4
         numCols = 4
         desiredLocalActivity = 2
+        minOverlap = 1
 
         colOverlapGrid = np.array([[8, 4, 5, 8],
                                    [8, 6, 1, 6],
                                    [7, 7, 9, 4],
                                    [2, 3, 1, 5]])
 
+        potColOverlapGrid = colOverlapGrid
+
         inhibCalculator = np_inhibition.inhibitionCalculator(numCols, numRows,
                                                              inhibitionWidth, inhibitionHeight,
-                                                             desiredLocalActivity, centerInhib)
+                                                             desiredLocalActivity,
+                                                             minOverlap, centerInhib)
 
-        activeColumns = inhibCalculator.calculateWinningCols(colOverlapGrid)
+        activeColumns = inhibCalculator.calculateWinningCols(colOverlapGrid, potColOverlapGrid)
 
         activeColumns = activeColumns.reshape((numRows, numCols))
         print "activeColumns = \n%s" % activeColumns
@@ -124,17 +132,21 @@ class test_npInhibition:
         numRows = 4
         numCols = 4
         desiredLocalActivity = 2
+        minOverlap = 1
 
         colOverlapGrid = np.array([[8, 4, 5, 8],
                                    [8, 6, 1, 6],
                                    [7, 7, 9, 4],
                                    [2, 3, 1, 5]])
 
+        potColOverlapGrid = colOverlapGrid
+
         inhibCalculator = np_inhibition.inhibitionCalculator(numCols, numRows,
                                                              inhibitionWidth, inhibitionHeight,
-                                                             desiredLocalActivity, centerInhib)
+                                                             desiredLocalActivity,
+                                                             minOverlap, centerInhib)
 
-        activeColumns = inhibCalculator.calculateWinningCols(colOverlapGrid)
+        activeColumns = inhibCalculator.calculateWinningCols(colOverlapGrid, potColOverlapGrid)
 
         activeColumns = activeColumns.reshape((numRows, numCols))
         print "activeColumns = \n%s" % activeColumns
@@ -145,8 +157,8 @@ class test_npInhibition:
                            [1, 1, 0, 1]])
         # Make sure the uninhibted columns are equal to the above
         # predetermined test results.
-        # assert np.array_equal(activeColumns, result)
-        assert 1 == 1
+        assert np.array_equal(activeColumns, result)
+        #assert 1 == 1
 
     def test_case4(self):
         '''
@@ -158,6 +170,7 @@ class test_npInhibition:
         numRows = 6
         numCols = 5
         desiredLocalActivity = 2
+        minOverlap = 1
 
         colOverlapGrid = np.array([[0, 0, 3, 3, 0],
                                    [0, 0, 3, 3, 0],
@@ -166,11 +179,14 @@ class test_npInhibition:
                                    [0, 0, 3, 3, 0],
                                    [0, 0, 3, 3, 0]])
 
+        potColOverlapGrid = colOverlapGrid
+
         inhibCalculator = np_inhibition.inhibitionCalculator(numCols, numRows,
                                                              inhibitionWidth, inhibitionHeight,
-                                                             desiredLocalActivity, centerInhib)
+                                                             desiredLocalActivity,
+                                                             minOverlap, centerInhib)
 
-        activeColumns = inhibCalculator.calculateWinningCols(colOverlapGrid)
+        activeColumns = inhibCalculator.calculateWinningCols(colOverlapGrid, potColOverlapGrid)
 
         activeColumns = activeColumns.reshape((numRows, numCols))
         print "activeColumns = \n%s" % activeColumns
@@ -195,17 +211,20 @@ class test_npInhibition:
         numRows = 100
         numCols = 100
         desiredLocalActivity = 2
+        minOverlap = 1
 
         # Some made up input to test with
         # We use a non random incrementing input so we can compare run times with other
         # inhibition calculator class implementations.
         colOverlapGrid = np.array([[1+i+numRows*j for i in range(numRows)] for j in range(numCols)])
+        potColOverlapGrid = colOverlapGrid
 
         inhibCalculator = np_inhibition.inhibitionCalculator(numCols, numRows,
                                                              inhibitionWidth, inhibitionHeight,
-                                                             desiredLocalActivity, centerInhib)
+                                                             desiredLocalActivity,
+                                                             minOverlap, centerInhib)
 
-        activeColumns = inhibCalculator.calculateWinningCols(colOverlapGrid)
+        activeColumns = inhibCalculator.calculateWinningCols(colOverlapGrid, potColOverlapGrid)
 
         activeColumns = activeColumns.reshape((numRows, numCols))
 
@@ -229,18 +248,21 @@ class test_npInhibition:
         numRows = 100
         numCols = 100
         desiredLocalActivity = 2
+        minOverlap = 1
 
         # Some made up input to test with
         # We use a non random incrementing input so we can compare run times with other
         # inhibition calculator class implementations.
         colOverlapGrid = np.array([[1+i+numRows*j for i in range(numRows)] for j in range(numCols)])
+        potColOverlapGrid = colOverlapGrid
 
         inhibCalculator = np_inhibition.inhibitionCalculator(numCols, numRows,
                                                              inhibitionWidth, inhibitionHeight,
-                                                             desiredLocalActivity, centerInhib)
+                                                             desiredLocalActivity,
+                                                             minOverlap, centerInhib)
 
         for i in range(numCycles):
-            activeColumns = inhibCalculator.calculateWinningCols(colOverlapGrid)
+            activeColumns = inhibCalculator.calculateWinningCols(colOverlapGrid, potColOverlapGrid)
 
         activeColumns = activeColumns.reshape((numRows, numCols))
 

@@ -35,7 +35,8 @@
                 "maxNumSegments": 10,
                 "activationThreshold": 4,
                 "dutyCycleAverageLength": 1000,
-                "synPermanence": 0.4,
+                "colSynPermanence": 0.4,
+                "cellSynPermanence": 0.4,
 
                 "Columns": [{
                     "boost": 1,
@@ -63,7 +64,8 @@
                 "maxNumSegments": 12,
                 "activationThreshold": 8,
                 "dutyCycleAverageLength": 1000,
-                "synPermanence": 0.4,
+                "colSynPermanence": 0.4,
+                "cellSynPermanence": 0.4,
 
                 "Columns": [{
 
@@ -104,7 +106,8 @@
                 "maxNumSegments": 10,
                 "activationThreshold": 6,
                 "dutyCycleAverageLength": 1000,
-                "synPermanence": 0.4,
+                "colSynPermanence": 0.4,
+                "cellSynPermanence": 0.4,
 
                 "Columns": [{
                     "boost": 1,
@@ -132,7 +135,8 @@
                 "maxNumSegments": 10,
                 "activationThreshold": 6,
                 "dutyCycleAverageLength": 1000,
-                "synPermanence": 0.4,
+                "colSynPermanence": 0.4,
+                "cellSynPermanence": 0.4,
 
                 "Columns": [{
                     "boost": 1,

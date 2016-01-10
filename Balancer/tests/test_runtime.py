@@ -41,7 +41,8 @@ testParameters = {
                                 'maxNumSegments': 10,
                                 'activationThreshold': 6,
                                 'dutyCycleAverageLength': 1000,
-                                'synPermanence': 0.4,
+                                'colSynPermanence': 0.2,
+                                'cellSynPermanence': 0.4,
 
                                 'Columns': [{
                                     'boost': 1,

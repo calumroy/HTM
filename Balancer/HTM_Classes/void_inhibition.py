@@ -21,7 +21,7 @@ is active or not.
 
 class inhibitionCalculator():
     def __init__(self, width, height, potentialInhibWidth, potentialInhibHeight,
-                 desiredLocalActivity, centerInhib=1):
+                 desiredLocalActivity, minOverlap, centerInhib=1):
         # This constructor method is just a placeholder so this inhibiton class looks
         # similar to the other inhibiton calculator classes.
         # We still need to calculate the neighbours lists as this is required
@@ -31,6 +31,7 @@ class inhibitionCalculator():
         self.height = height
         self.potentialWidth = potentialInhibWidth
         self.potentialHeight = potentialInhibHeight
+        self.minOverlap = minOverlap
         # Initialize the neighbours list for each column
         self.numColumns = self.width * self.height
         self.inhibitionArea = self.potentialWidth * self.potentialHeight
@@ -111,7 +112,7 @@ class inhibitionCalculator():
         colIndList = colIndList[colIndList >= 0]
         return colIndList
 
-    def calculateWinningCols(self, overlapsGrid):
+    def calculateWinningCols(self, overlapsGrid, potOverlapsGrid):
 
         allColsOverlaps = overlapsGrid.flatten().tolist()
         columnActive = np.zeros_like(allColsOverlaps)
