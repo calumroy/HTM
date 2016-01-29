@@ -45,11 +45,16 @@ class LearningCalculator():
                  numColumns,
                  numPotSynapses,
                  spatialPermanenceInc,
-                 spatialPermanenceDec):
+                 spatialPermanenceDec,
+                 activeColPermanenceDec):
         self.numColumns = numColumns
         self.numPotSynapses = numPotSynapses
         self.spatialPermanenceInc = spatialPermanenceInc
         self.spatialPermanenceDec = spatialPermanenceDec
+        # This parameter is another value used to decrement synapses permance values by.
+        # It is required since already active columsn decrement their synapses by a
+        # different value as compared to columns that just become active.
+        self.activeColPermanenceDec = activeColPermanenceDec
 
         # Store the previous colPotInputs.
         # This is so a potential synapse can work out if it's end
@@ -59,20 +64,20 @@ class LearningCalculator():
         self.prevColPotInputs = np.array([[-1 for x in range(self.numPotSynapses)] for y in range(self.numColumns)])
         self.prevActiveCols = np.array([-1 for i in range(self.numColumns)])
 
-    def updatePermanence(self, c, s, colPotInputs, colSynPerm):
+    def updatePermanence(self, c, s, colPotInputs, colSynPerm, incPerm, decPerm):
         # Check if the input that this
         # synapses is connected to is active.
         if colPotInputs[c][s] == 1:
         # Only handles binary input sources
-            colSynPerm[c][s] += self.spatialPermanenceInc
+            colSynPerm[c][s] += incPerm
             colSynPerm[c][s] = min(1.0, colSynPerm[c][s])
         else:
-            colSynPerm[c][s] -= self.spatialPermanenceDec
+            colSynPerm[c][s] -= decPerm
             colSynPerm[c][s] = max(0.0, colSynPerm[c][s])
 
     def updatePermanenceValues(self, colSynPerm, colPotInputs, activeCols):
         # The inputs colSynPerm and colPotInputs are matricies.
-        # colSynPerm is the permanence values of every poetnetial synapse for each column.
+        # colSynPerm is the permanence values of every potential synapse for each column.
         # colPotInputs is the binary input value for each potential synapse for each column.
         # If one then that potential synapse is connected to an active input bit.
         # activeCols is an array storing a bit indicating if the column is active (1) or not (0).
@@ -83,16 +88,21 @@ class LearningCalculator():
                 # for each potential synapse regardless whether the synpases input has changed.
                 if self.prevActiveCols[c] != activeCols[c]:
                     for s in range(len(colSynPerm[c])):
-                        self.updatePermanence(c, s, colPotInputs, colSynPerm)
+                        self.updatePermanence(c, s, colPotInputs, colSynPerm,
+                                              self.spatialPermanenceInc,
+                                              self.spatialPermanenceDec)
                 else:
                     # The column was previously active.
-                    # This means it it temporally pooling or the same input
-                    # was sent. Only update the potential synpase permanences if
-                    # the input to a potential synpase changed.
-                    for s in range(len(colSynPerm[c])):
-                        # Check that this potential synapses input has changed
-                        if self.prevColPotInputs[c][s] != colPotInputs[c][s]:
-                            self.updatePermanence(c, s, colPotInputs, colSynPerm)
+                    # This means it is temporally pooling or the same input
+                    # was sent. If the synapse permanence should be decremented only
+                    # reduce it by the value self.activeColPermanenceDec, if any of the inputs have changed.
+                    # This value allows us to control the amount of temporally pooling
+                    # occuring in active columns.
+                    if (self.prevColPotInputs[c] != colPotInputs[c]).any():
+                        for s in range(len(colSynPerm[c])):
+                            self.updatePermanence(c, s, colPotInputs, colSynPerm,
+                                                  self.spatialPermanenceInc,
+                                                  self.activeColPermanenceDec)
 
         # Store the current inputs to the potentialSynapses to use next time.
         self.prevColPotInputs = colPotInputs
@@ -107,6 +117,8 @@ if __name__ == '__main__':
     numCols = 4
     spatialPermanenceInc = 1.0
     spatialPermanenceDec = 1.0
+    maxNumTempoPoolPatterns = 3
+    activeColPermanenceDec = float(spatialPermanenceInc)/float(maxNumTempoPoolPatterns)
     numPotSyn = 4
     numColumns = numRows * numCols
     # Create an array representing the permanences of colums synapses
@@ -123,7 +135,8 @@ if __name__ == '__main__':
     permanenceUpdater = LearningCalculator(numColumns,
                                            numPotSyn,
                                            spatialPermanenceInc,
-                                           spatialPermanenceDec)
+                                           spatialPermanenceDec,
+                                           activeColPermanenceDec)
 
     colSynPerm = permanenceUpdater.updatePermanenceValues(colSynPerm,
                                                           colPotInputsMat,

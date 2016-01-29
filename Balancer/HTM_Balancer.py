@@ -218,6 +218,9 @@ class HTMLayer:
         self.minOverlap = params['minOverlap']
         self.spatialPermanenceInc = params['spatialPermanenceInc']
         self.spatialPermanenceDec = params['spatialPermanenceDec']
+        self.maxNumTempPoolPatterns = params['maxNumTempPoolPatterns']
+        # Already active columns have their spatial synapses decremented by a different value in the spatial pooler.
+        self.activeColPermanenceDec = float(self.spatialPermanenceInc)/float(self.maxNumTempPoolPatterns)
         self.permanenceInc = params['permanenceInc']
         self.permanenceDec = params['permanenceDec']
         self.inputHeight = len(self.Input)
@@ -233,13 +236,13 @@ class HTMLayer:
         self.colPotInputs = np.empty([self.numColumns, self.numPotSyn])
         # Setup a matrix where each element represents the timestep when a column
         # was active but not bursting last. Each position in the first dimension
-        # represents a column. The matrix may stores the last two times the column
+        # represents a column. The matrix stores the last two times the column
         # was active but not bursting. The latest timeStep is stored in the first position.
-        # eg. self.colActNotBurst[41][0] sotres the latest time that column 42 was active
-        # but not bursting. self.colActNotBurst[41][1] stores the second last time that column
+        # eg. self.colActNotBurstTimes[41][0] sotres the latest time that column 42 was active
+        # but not bursting. self.colActNotBurstTimes[41][1] stores the second last time that column
         # 42 was active but not bursting. The third place is a temporary position used to update
         # the other two positions.
-        self.colActNotBurst = np.zeros((self.numColumns, 3))
+        self.colActNotBurstTimes = np.zeros((self.numColumns, 3))
         self.tempTimeCheck = 0
         # Setup a vector where each element represents a timeStep when a column
         # should stop temporal pooling.
@@ -264,10 +267,6 @@ class HTMLayer:
         # Setup the theano calculator classes used to calculate
         # efficiently the spatial, temporal and sequence pooling.
 
-        self.tempPoolCalc = temporal.TemporalPoolCalculator(self.potentialWidth,
-                                                            self.potentialHeight,
-                                                            self.minOverlap)
-
         self.overlapCalc = overlap.OverlapCalculator(self.potentialWidth,
                                                      self.potentialHeight,
                                                      self.width,
@@ -277,6 +276,10 @@ class HTMLayer:
                                                      self.centerPotSynapses,
                                                      self.connectPermanence,
                                                      self.minOverlap)
+
+        self.tempPoolCalc = temporal.TemporalPoolCalculator(self.potentialWidth,
+                                                            self.potentialHeight,
+                                                            self.minOverlap)
 
         self.inhibCalc = inhibition.inhibitionCalculator(self.width, self.height,
                                                          self.inhibitionWidth,
@@ -288,7 +291,8 @@ class HTMLayer:
         self.permanenceCalc = learning.LearningCalculator(self.numColumns,
                                                           self.numPotSyn,
                                                           self.spatialPermanenceInc,
-                                                          self.spatialPermanenceDec)
+                                                          self.spatialPermanenceDec,
+                                                          self.activeColPermanenceDec)
 
     def setupColumns(self, columnParams):
         # Get just the parameters for the columns
@@ -537,7 +541,7 @@ class HTMLayer:
             c.cells[i].segments[segIndex].synapses.remove(d)
         #print "     deleted %s number of synapses"%(len(deleteActiveSynapses))
 
-    def updateColActNotBurst(self, columnIndex, timeStep):
+    def updateColActNotBurstTimes(self, columnIndex, timeStep):
         # update the vector holding the timestep when the columns
         # where active but not bursting last.
         # The input column c should be updated with the input timestep
@@ -545,18 +549,18 @@ class HTMLayer:
         # then no update should occur. Check the last position for the current time
         # and also check the temporary storing position which also may hold this time
         # if the column already tried to check this time.
-        if (self.colActNotBurst[columnIndex][0] != timeStep and
-            self.colActNotBurst[columnIndex][2] != timeStep):
+        if (self.colActNotBurstTimes[columnIndex][0] != timeStep and
+            self.colActNotBurstTimes[columnIndex][2] != timeStep):
             # move the vector back so the old time is kept.
-            self.colActNotBurst[columnIndex][1] = self.colActNotBurst[columnIndex][0]
-            self.colActNotBurst[columnIndex][0] = timeStep
+            self.colActNotBurstTimes[columnIndex][1] = self.colActNotBurstTimes[columnIndex][0]
+            self.colActNotBurstTimes[columnIndex][0] = timeStep
         else:
             # A cell in the column was already active so this column is bursting.
             # revert the latest timeback to the previous value.
             # Also store the current time in the temp position so the column knows this time
             # was already checked.
-            self.colActNotBurst[columnIndex][2] = timeStep
-            self.colActNotBurst[columnIndex][0] = self.colActNotBurst[columnIndex][1]
+            self.colActNotBurstTimes[columnIndex][2] = timeStep
+            self.colActNotBurstTimes[columnIndex][0] = self.colActNotBurstTimes[columnIndex][1]
 
     def columnActiveAdd(self, c, timeStep):
         # We add the new time to the start of the array
@@ -572,9 +576,9 @@ class HTMLayer:
         # the array then delete the time at the end of the array.
         # All the times should be in order from
         # most recent to oldest.
-        # The colActNotBurst matrix is updated as well.
+        # The colActNotBurstTimes matrix is updated as well.
         columnIndex = c.pos_y * self.width + c.pos_x
-        self.updateColActNotBurst(columnIndex, timeStep)
+        self.updateColActNotBurstTimes(columnIndex, timeStep)
         newArray = np.insert(c.activeStateArray[i], 0, timeStep)
         newArray = np.delete(newArray, len(newArray)-1)
         c.activeStateArray[i] = newArray
@@ -977,6 +981,11 @@ class HTMLayer:
         # Get them from the overlpas calculator
         return self.overlapCalc.getPotentialOverlaps()
 
+    def getColActNotBurstVect(self):
+        # Return the binary vector displaying if a column was active
+        # but not bursting one timestep ago.
+        return self.tempPoolCalc.getColActNotBurstVect()
+
     def Overlap(self):
         """
         Phase one for the spatial pooler
@@ -1046,9 +1055,9 @@ class HTMLayer:
         '''
 
         # We need just the latest column active but not bursting times.
-        latestColActNotBurst = self.colActNotBurst[:, 0]
+        latestColActNotBurstTimes = self.colActNotBurstTimes[:, 0]
 
-        self.colOverlaps, self.colStopTempAtTime = self.tempPoolCalc.calculateTemporalPool(latestColActNotBurst,
+        self.colOverlaps, self.colStopTempAtTime = self.tempPoolCalc.calculateTemporalPool(latestColActNotBurstTimes,
                                                                                            self.timeStep,
                                                                                            self.colOverlaps,
                                                                                            self.colPotInputs,
@@ -1068,7 +1077,12 @@ class HTMLayer:
         # Get the potential overlaps and reshape them into a grid (matrix).
         potColOverlapsGrid = self.getPotentialOverlaps().reshape((self.height, self.width))
 
-        self.colActive = self.inhibCalc.calculateWinningCols(colOverlapsGrid, potColOverlapsGrid)
+        # The inhibitor calculator requires a binary matrix representing if a column was
+        # active but not bursting one timestep ago.
+        # Turn the vector into a matrix representing our grid of columns
+        colActNotBurstGrid = self.getColActNotBurstVect().reshape((self.height, self.width))
+
+        self.colActive = self.inhibCalc.calculateWinningCols(colOverlapsGrid, potColOverlapsGrid, colActNotBurstGrid)
         #print "self.colActive = \n%s" % self.colActive
 
         # Update the activeColumn list using the colActive vector.

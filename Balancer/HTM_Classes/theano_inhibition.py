@@ -77,7 +77,7 @@ THIS IS A REINIMPLEMENTATION OF THE OLD INHIBITON CODE BELOW
 
 class inhibitionCalculator():
     def __init__(self, width, height, potentialInhibWidth, potentialInhibHeight,
-                 desiredLocalActivity, centerInhib=1):
+                 desiredLocalActivity, minOverlap, centerInhib=1):
         # Temporal Parameters
         ###########################################
         # Specifies if the potential synapses are centered
@@ -89,6 +89,7 @@ class inhibitionCalculator():
         self.potentialHeight = potentialInhibHeight
         self.areaKernel = self.potentialWidth * self.potentialHeight
         self.desiredLocalActivity = desiredLocalActivity
+        self.minOverlap = minOverlap
         # Store how much padding is added to the input grid
         self.topPos_y = 0
         self.bottomPos_y = 0
@@ -870,6 +871,7 @@ if __name__ == '__main__':
     numRows = 4
     numCols = 4
     desiredLocalActivity = 2
+    minOverlap = 1
 
     # Some made up inputs to test with
     #colOverlapGrid = np.random.randint(1, size=(numRows, numCols))
@@ -881,7 +883,9 @@ if __name__ == '__main__':
 
     inhibCalculator = inhibitionCalculator(numCols, numRows,
                                            potWidth, potHeight,
-                                           desiredLocalActivity, centerInhib)
+                                           desiredLocalActivity,
+                                           minOverlap,
+                                           centerInhib)
 
     #cProfile.runctx('activeColumns = inhibCalculator.calculateWinningCols(colOverlapGrid)', globals(), locals())
     activeColumns = inhibCalculator.calculateWinningCols(colOverlapGrid)

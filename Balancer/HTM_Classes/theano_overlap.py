@@ -62,6 +62,11 @@ class OverlapCalculator():
         self.columnsWidth = columnsWidth
         self.columnsHeight = columnsHeight
         self.numColumns = columnsWidth * columnsHeight
+        # Store the potetnial inputs to every column.
+        # Each row represents the inputs a columns potential synapses cover.
+        self.colInputPotSyn = None
+        # Store the potential overlap values for every column
+        self.colPotOverlaps = None
         # StepX and Step Y describe how far each
         # columns potential synapses differ from the adjacent
         # columns in the X and Y directions. These parameters can't
@@ -274,6 +279,8 @@ class OverlapCalculator():
         return stepX, stepY
 
     def getColInputs(self, inputGrid):
+        # This function uses theano's convolution function to
+        # return the inputs that each column potentially connects to.
         # Take the input and put it into a 4D tensor.
         # This is because the theano function images2neibs
         # works with 4D tensors only.
@@ -298,21 +305,29 @@ class OverlapCalculator():
         # print "inputConPotSyn.shape = %s,%s" % inputConPotSyn.shape
         return inputConPotSyn
 
+    def getPotentialOverlaps(self):
+        # Return the calculated potential overlap score for every column.
+        # This is the overlap score each column has if all poential synpases
+        # are checked for active inputs.
+        # Sum the potential inputs for every column.
+        self.colPotOverlaps = self.calcOverlap(self.colInputPotSyn)
+        return self.colPotOverlaps
+
     def calculateOverlap(self, colSynPerm, inputGrid):
         # Check that the new inputs are the same dimensions as the old ones
         # and the colsynPerm match the original specified parameters.
         self.checkNewInputParams(colSynPerm, inputGrid)
         # Calcualte the inputs to each column
-        colInputPotSyn = self.getColInputs(inputGrid)
+        self.colInputPotSyn = self.getColInputs(inputGrid)
         # Call the theano functions to calculate the overlap value.
         # print "colSynPerm = \n%s" % colSynPerm
         # print "colInputPotSyn = \n%s" % colInputPotSyn
         # print "len(colSynPerm) = %s len(colSynPerm[0]) = %s " % (len(colSynPerm), len(colSynPerm[0]))
         # print "len(colInputPotSyn) = %s len(colInputPotSyn[0]) = %s " % (len(colInputPotSyn), len(colInputPotSyn[0]))
-        connectedSynInputs = self.getConnectedSynInput(colSynPerm, colInputPotSyn)
+        connectedSynInputs = self.getConnectedSynInput(colSynPerm, self.colInputPotSyn)
         # print "connectedSynInputs = \n%s" % connectedSynInputs
         colOverlapVals = self.calcOverlap(connectedSynInputs)
-        return colOverlapVals, colInputPotSyn
+        return colOverlapVals, self.colInputPotSyn
 
     def removeSmallOverlaps(self, colOverlapVals):
         # Set any overlap values that are smaller then the

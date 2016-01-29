@@ -41,7 +41,8 @@ testParameters = {
                                 'maxNumSegments': 10,
                                 'activationThreshold': 6,
                                 'dutyCycleAverageLength': 1000,
-                                'synPermanence': 0.4,
+                                'colSynPermanence': 0.1,
+                                'cellSynPermanence': 0.4,
 
                                 'Columns': [{
 
@@ -52,25 +53,26 @@ testParameters = {
                                 }]
                             },
                             {
-                                'desiredLocalActivity': 4,
+                                'desiredLocalActivity': 1,
                                 'minOverlap': 3,
-                                'inhibitionWidth': 3,
+                                'inhibitionWidth': 8,
                                 'inhibitionHeight': 3,
                                 'centerPotSynapses': 1,
                                 'potentialWidth': 8,
                                 'potentialHeight': 8,
                                 'spatialPermanenceInc': 0.1,
                                 'spatialPermanenceDec': 0.02,
-                                'permanenceInc': 0.1,
-                                'permanenceDec': 0.02,
+                                'permanenceInc': 0.2,
+                                'permanenceDec': 0.05,
                                 'connectPermanence': 0.3,
-                                'minThreshold': 5,
-                                'minScoreThreshold': 5,
+                                'minThreshold': 6,
+                                'minScoreThreshold': 3,
                                 'newSynapseCount': 10,
                                 'maxNumSegments': 10,
                                 'activationThreshold': 6,
                                 'dutyCycleAverageLength': 1000,
-                                'synPermanence': 0.4,
+                                'colSynPermanence': 0.1,
+                                'cellSynPermanence': 0.4,
 
                                 'Columns': [{
                                     'boost': 1,
@@ -80,25 +82,26 @@ testParameters = {
                                 }]
                             },
                             {
-                                'desiredLocalActivity': 6,
+                                'desiredLocalActivity': 2,
                                 'minOverlap': 3,
                                 'inhibitionWidth': 9,
-                                'inhibitionHeight': 9,
+                                'inhibitionHeight': 4,
                                 'centerPotSynapses': 1,
                                 'potentialWidth': 20,
                                 'potentialHeight': 8,
-                                'spatialPermanenceInc': 0.1,
-                                'spatialPermanenceDec': 0.02,
+                                'spatialPermanenceInc': 0.2,
+                                'spatialPermanenceDec': 0.05,
                                 'permanenceInc': 0.1,
                                 'permanenceDec': 0.02,
                                 'connectPermanence': 0.3,
-                                'minThreshold': 5,
+                                'minThreshold': 6,
                                 'minScoreThreshold': 5,
                                 'newSynapseCount': 10,
                                 'maxNumSegments': 10,
                                 'activationThreshold': 6,
                                 'dutyCycleAverageLength': 1000,
-                                'synPermanence': 0.4,
+                                'colSynPermanence': 0.05,
+                                'cellSynPermanence': 0.4,
 
                                 'Columns': [{
                                     'boost': 1,
@@ -166,6 +169,7 @@ class test_temporalPooling:
         This test is designed to make sure that a minimum amount
         of temporal pooling occurs for a repeating input sequence.
         '''
+        #gui.startHtmGui(self.htm, self.InputCreator)
         self.nSteps(400)
 
         tempPoolPercent = 0
@@ -181,15 +185,16 @@ class test_temporalPooling:
         # sys.exit(app.exec_())
 
         # More then this percentage of temporal pooling should have occurred
-        assert tempPoolPercent >= 0.75
+        assert tempPoolPercent >= 0.85
 
     def test_case2(self):
         '''
-        This test is designed to make sure that not much
+        This test is designed to make sure that not too much
         temporal pooling occurs for an input sequence that is
         changing constantly.
+
         '''
-        self.nSteps(100)
+        self.nSteps(200)
 
         # Not much temporal pooling should occur for a sequence of random inputs.
         # Set the probabiltiy that the next input is in sequence to really low
@@ -201,12 +206,10 @@ class test_temporalPooling:
             tempPoolPercent = self.temporalPooling.temporalPoolingPercent(htmOutput)
             print "Temporal pooling percent = %s" % tempPoolPercent
 
-        # app = QtGui.QApplication(sys.argv)
-        # self.htmGui = GUI_HTM.HTMGui(self.htm, self.InputCreator)
-        # sys.exit(app.exec_())
+        gui.startHtmGui(self.htm, self.InputCreator)
 
         # Less then this percentage of temporal pooling should have occurred
-        assert tempPoolPercent < 0.3
+        assert tempPoolPercent < 0.6
 
     def test_case3(self):
         '''
@@ -226,9 +229,7 @@ class test_temporalPooling:
             tempPoolPercent = self.temporalPooling.temporalPoolingPercent(htmOutput)
             print "Temporal pooling percent = %s" % tempPoolPercent
 
-        #app = QtGui.QApplication(sys.argv)
-        #self.htmGui = GUI_HTM.HTMGui(self.htm, self.InputCreator)
-        #sys.exit(app.exec_())
+        #gui.startHtmGui(self.htm, self.InputCreator)
 
         # More then this percentage of temporal pooling should have occurred
         assert tempPoolPercent > 0.6

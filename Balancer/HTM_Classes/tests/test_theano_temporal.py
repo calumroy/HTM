@@ -29,10 +29,10 @@ class test_theanoTemporal:
         # Create an instance of the temporal calculation class
         tempPooler = theano_temporal.TemporalPoolCalculator(potWidth, potHeight, minOverlap)
 
-        colActNotBurst = np.array([0, 0, 0, 0,
-                                   0, 0, 0, 0,
-                                   3, 3, 3, 3,
-                                   3, 3, 3, 3])
+        colActNotBurstTimes = np.array([0, 0, 0, 0,
+                                        0, 0, 0, 0,
+                                        3, 3, 3, 3,
+                                        3, 3, 3, 3])
 
         colOverlapVals = np.array([0, 0, 0, 0,
                                    0, 0, 0, 0,
@@ -61,7 +61,7 @@ class test_theanoTemporal:
                                       4, 4, 0, 0,
                                       0, 0, 0, 0])
 
-        newTempPoolOverlapVals, updatedTempStopTime = tempPooler.calculateTemporalPool(colActNotBurst,
+        newTempPoolOverlapVals, updatedTempStopTime = tempPooler.calculateTemporalPool(colActNotBurstTimes,
                                                                                        timeStep,
                                                                                        colOverlapVals,
                                                                                        colInputPotSyn,
@@ -92,10 +92,10 @@ class test_theanoTemporal:
         # Create an instance of the temporal calculation class
         tempPooler = theano_temporal.TemporalPoolCalculator(potWidth, potHeight, minOverlap)
 
-        colActNotBurst = np.array([0, 0, 0, 0,
-                                   0, 0, 0, 0,
-                                   3, 3, 3, 3,
-                                   3, 3, 3, 3])
+        colActNotBurstTimes = np.array([0, 0, 0, 0,
+                                        0, 0, 0, 0,
+                                        3, 3, 3, 3,
+                                        3, 3, 3, 3])
 
         colOverlapVals = np.array([0, 0, 0, 0,
                                    0, 0, 0, 0,
@@ -124,7 +124,7 @@ class test_theanoTemporal:
                                       4, 4, 0, 0,
                                       0, 0, 0, 0])
 
-        newTempPoolOverlapVals, updatedTempStopTime = tempPooler.calculateTemporalPool(colActNotBurst,
+        newTempPoolOverlapVals, updatedTempStopTime = tempPooler.calculateTemporalPool(colActNotBurstTimes,
                                                                                        timeStep,
                                                                                        colOverlapVals,
                                                                                        colInputPotSyn,
@@ -153,10 +153,10 @@ class test_theanoTemporal:
         # Create an instance of the temporal calculation class
         tempPooler = theano_temporal.TemporalPoolCalculator(potWidth, potHeight, minOverlap)
 
-        colActNotBurst = np.array([0, 0, 0, 0,
-                                   0, 0, 0, 0,
-                                   3, 3, 3, 3,
-                                   4, 4, 4, 4])
+        colActNotBurstTimes = np.array([0, 0, 0, 0,
+                                        0, 0, 0, 0,
+                                        3, 3, 3, 3,
+                                        4, 4, 4, 4])
 
         colOverlapVals = np.array([0, 0, 0, 0,
                                    0, 0, 0, 0,
@@ -185,7 +185,7 @@ class test_theanoTemporal:
                                       0, 0, 0, 0,
                                       5, 5, 5, 5])
 
-        newTempPoolOverlapVals, updatedTempStopTime = tempPooler.calculateTemporalPool(colActNotBurst,
+        newTempPoolOverlapVals, updatedTempStopTime = tempPooler.calculateTemporalPool(colActNotBurstTimes,
                                                                                        timeStep,
                                                                                        colOverlapVals,
                                                                                        colInputPotSyn,
@@ -218,12 +218,12 @@ class test_theanoTemporal:
             numCols = j
             print "NEW TEST ROUND"
             print "numCols = %s " % (numCols)
-            colActNotBurst = np.random.randint(7, size=numCols)
+            colActNotBurstTimes = np.random.randint(7, size=numCols)
             colOverlapVals = np.random.randint(potWidth * potHeight, size=(numCols))
             colInputPotSyn = np.random.randint(2, size=(numCols, potWidth * potHeight))
             colStopTempAtTime = np.random.randint(2, size=(numCols))
 
-            newTempPoolOverlapVals, updatedTempStopTime = tempPooler.calculateTemporalPool(colActNotBurst,
+            newTempPoolOverlapVals, updatedTempStopTime = tempPooler.calculateTemporalPool(colActNotBurstTimes,
                                                                                            timeStep,
                                                                                            colOverlapVals,
                                                                                            colInputPotSyn,

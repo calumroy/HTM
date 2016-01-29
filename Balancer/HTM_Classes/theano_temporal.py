@@ -62,6 +62,10 @@ class TemporalPoolCalculator():
         self.minOverlap = minOverlap
         self.maxOverlap = potentialWidth * potentialHeight
 
+        # Save the calculated vector describing if each column
+        # was active but not bursting one timestep ago.
+        self.colActNotBurstVect = None
+
         # Create theano variables and functions
         ############################################
 
@@ -125,6 +129,12 @@ class TemporalPoolCalculator():
                                        self.checkPotOverlap,
                                        allow_input_downcast=True)
 
+    def getColActNotBurstVect(self):
+        # Return the binary vector displaying if a column was active
+        # but not bursting one timestep ago.
+        # This should only be called after calculateTemporalPool is run.
+        return self.colActNotBurstVect
+
     def calculateTemporalPool(self, colActNotBurst, timeStep, colOverlapVals,
                               colInputPotSyn, colStopTempAtTime):
         # First check if the column should perform temp pooling.
@@ -138,9 +148,10 @@ class TemporalPoolCalculator():
         # Setup a vector to compare the current time to.
         timeStepVect = np.array([timeStep for j in range(numCols)])
         # print "prevTimeStepVect = \n%s" % prevTimeStepVect
-        doTempPoolVect = self.doTempPool(colActNotBurst, prevTimeStepVect)
-        # In the doTempPoolVect each pos represents a col. If it has non zero
-        # value then that col should do temp pooling.
+        self.colActNotBurstVect = self.doTempPool(colActNotBurst, prevTimeStepVect)
+        # In the self.colActNotBurstVect each pos represents a col. If it has non zero
+        # value then that col should do temp pooling (the column was active but not bursting
+        # one timestep ago).
         # Update the columns stopTempAtTime variable.
         # If the overlap is less then minOverlap (zero since the
         # overlap values have already filtered smaller values to zero),
@@ -148,11 +159,11 @@ class TemporalPoolCalculator():
         # print "colOverlapVals = \n%s" % colOverlapVals
         # print "colStopTempAtTime = \n%s" % colStopTempAtTime
         # print "timeStepVect = \n%s" % timeStepVect
-        # print "doTempPoolVect = \n%s" % doTempPoolVect
+        # print "self.colActNotBurstVect = \n%s" % self.colActNotBurstVect
         updatedTempStopTime = self.setStopTempPoolTimeZero(colOverlapVals,
                                                            colStopTempAtTime,
                                                            timeStepVect,
-                                                           doTempPoolVect
+                                                           self.colActNotBurstVect
                                                            )
         # print "updatedTempStopTime = \n%s" % updatedTempStopTime
         # print "timeStepVect = \n%s" % timeStepVect
