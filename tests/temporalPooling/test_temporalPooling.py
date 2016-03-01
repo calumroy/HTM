@@ -1,6 +1,6 @@
 # from mock import MagicMock
 # from mock import patch
-from HTM_Balancer import HTM
+from HTM_network import HTM
 import numpy as np
 import GUI_HTM
 from PyQt4 import QtGui

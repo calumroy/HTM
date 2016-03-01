@@ -1,6 +1,6 @@
 from mock import MagicMock
 from mock import patch
-from HTM_Balancer import HTM, HTMLayer, HTMRegion, Column
+from HTM_network import HTM, HTMLayer, HTMRegion, Column
 import numpy as np
 from utilities import sdrFunctions as SDRFunct
 
@@ -22,7 +22,7 @@ class test_HTMLayer:
         for i in range(self.cellsPerColumn-1):   # Minus one since the first entry is already there
             self.predictiveStateArray = np.vstack((self.predictiveStateArray, [0 for i in range(self.historyLength)]))
 
-    #@patch('HTM_Balancer.Column.predictiveStateArray')
+    #@patch('HTM_network.Column.predictiveStateArray')
     def test_predictiveState(self):
         #column = self.htmlayer.columns[0][0]
         #column.predictiveStateArray = np.array([[1, 0], [3, 0], [5, 6]])
@@ -35,7 +35,7 @@ class test_HTMLayer:
         #result = self.htmlayer.predictiveState(column, 0, 0)
         assert 1 == 1
 
-    #@patch.object(HTM_Balancer.Column.predictiveStateArray,)
+    #@patch.object(HTM_network.Column.predictiveStateArray,)
     #def test_getBestMatchingCell(self):
     #    timestep = 0
     #    column = Column(3, 0, 0)

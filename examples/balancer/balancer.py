@@ -9,7 +9,7 @@ import GUI_HTM
 from PyQt4 import QtGui
 import sys
 import json
-import HTM_Balancer as HTM_V
+import HTM_network as HTM_V
 import Inverted_Pendulum
 
 

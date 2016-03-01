@@ -17,7 +17,7 @@ class test_InvertedPendulum:
         self.input = np.array([[0 for i in range(self.width)] for j in range(self.height)])
 
     # These tests need updating
-    #@patch('HTM_Balancer.Column.predictiveStateArray')
+    #@patch('HTM_network.Column.predictiveStateArray')
     # def test_convertSDRtoAcc_min(self):
     #     minAcc = -1
     #     maxAcc = 1
