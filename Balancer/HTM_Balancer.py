@@ -288,7 +288,7 @@ class HTMLayer:
                                                          self.minOverlap,
                                                          self.centerPotSynapses)
 
-        self.permanenceCalc = learning.LearningCalculator(self.numColumns,
+        self.learningCalc = learning.LearningCalculator(self.numColumns,
                                                           self.numPotSyn,
                                                           self.spatialPermanenceInc,
                                                           self.spatialPermanenceDec,
@@ -728,6 +728,7 @@ class HTMLayer:
         # synapses with the state "state" is larger then
         # the self.activationThreshold.
         # state is -1 = predictive state, 1 = active, 2 = learn state
+        # if so return the number of synpases with the state
         count = 0
         for i in range(len(s.synapses)):
             # Only check synapses that have a large enough permanence
@@ -1102,7 +1103,7 @@ class HTMLayer:
         Update the column synapses permanence.
         '''
 
-        self.colPotSynPerm = self.permanenceCalc.updatePermanenceValues(self.colPotSynPerm,
+        self.colPotSynPerm = self.learningCalc.updatePermanenceValues(self.colPotSynPerm,
                                                                         self.colPotInputs,
                                                                         self.colActive)
 
@@ -1257,6 +1258,8 @@ class HTMLayer:
                         #activeState = 1
                         #if self.segmentActive(s,timeStep,activeState) > 0:
                         #learnState = 2
+                        # Use active state since a segment sets a cell into the predictive
+                        # state when it contains many synapses connected to currently active cells.
                         activeState = 1
                         predictionLevel = self.segmentActive(s, timeStep, activeState)
                         #if predictionLevel > 0:
