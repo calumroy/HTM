@@ -19,7 +19,7 @@ import random
 from PyQt4 import QtGui, QtCore
 #from PyQt4.QtCore import QObject
 import HTM_network as HTM_V
-import Thalamus
+from reinforcement_learning import Thalamus
 import math
 import copy
 

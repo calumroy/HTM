@@ -1,6 +1,6 @@
-from HTM_network import HTM
+from HTM_network import HTM_network
 import numpy as np
-import GUI_HTM
+from HTM_GUI import GUI_HTM
 from PyQt4 import QtGui
 import sys
 from copy import deepcopy
@@ -149,9 +149,9 @@ class test_temporalPoolingSuite2:
 
         self.InputCreator = svli.simpleVerticalLineInputs(inputWidth, inputHeight, numInputs)
         #self.htmlayer = HTMLayer(self.inputs[0], self.width, self.height, self.cellsPerColumn)
-        self.htm = HTM(self.InputCreator.createSimGrid(),
-                       params
-                       )
+        self.htm = HTM_network.HTM(self.InputCreator.createSimGrid(),
+                                   params
+                                   )
 
         # Measure the temporal pooling
         self.temporalPooling = mtp.measureTemporalPooling()
@@ -333,7 +333,7 @@ class test_temporalPoolingSuite2:
         # This is the left to right pattern sequence.
         self.InputCreator.changePattern(0)
 
-        #gui.startHtmGui(self.htm, self.InputCreator)
+        gui.startHtmGui(self.htm, self.InputCreator)
         self.nSteps(150)
 
         # # Measure the temporal pooling for each layer. This requires
@@ -356,8 +356,8 @@ class test_temporalPoolingSuite2:
         #     topGridOutputPat1 = self.htm.regionArray[0].layerOutput(self.numLayers-1)
 
         self.InputCreator.changePattern(2)
-        #gui.startHtmGui(self.htm, self.InputCreator)
-        self.nSteps(150)
+        gui.startHtmGui(self.htm, self.InputCreator)
+        #self.nSteps(150)
 
         # # Measure the temporal pooling for each layer. This requires
         # # a temporal pooling measuring class per layer.
@@ -380,41 +380,41 @@ class test_temporalPoolingSuite2:
         # tempPooledSimilarity = sdrFunctions.similarInputGrids(topGridOutputPat1, topGridOutputPat2)
         # print "The temporal pooled pattern is %s percent similar" % tempPooledSimilarity
 
-        self.InputCreator.changePattern(0)
-        self.nSteps(2*self.InputCreator.numInputs)
-        self.InputCreator.changePattern(2)
-        self.nSteps(2*self.InputCreator.numInputs)
-        self.InputCreator.changePattern(0)
-        self.nSteps(2*self.InputCreator.numInputs)
-        self.InputCreator.changePattern(2)
-        self.nSteps(self.InputCreator.numInputs)
-        self.InputCreator.changePattern(0)
-        self.nSteps(self.InputCreator.numInputs)
-        self.InputCreator.changePattern(2)
-        self.nSteps(self.InputCreator.numInputs)
-        self.InputCreator.changePattern(0)
-        self.nSteps(self.InputCreator.numInputs)
-        self.InputCreator.changePattern(2)
-        self.nSteps(self.InputCreator.numInputs)
-        self.InputCreator.changePattern(0)
-        self.nSteps(self.InputCreator.numInputs)
-        self.InputCreator.changePattern(2)
-        self.nSteps(self.InputCreator.numInputs)
-        self.InputCreator.changePattern(0)
-        self.nSteps(self.InputCreator.numInputs)
-        self.InputCreator.changePattern(2)
-        self.nSteps(self.InputCreator.numInputs)
-        self.InputCreator.changePattern(0)
-        gui.startHtmGui(self.htm, self.InputCreator)
+        # self.InputCreator.changePattern(0)
+        # self.nSteps(2*self.InputCreator.numInputs)
+        # self.InputCreator.changePattern(2)
+        # self.nSteps(2*self.InputCreator.numInputs)
+        # self.InputCreator.changePattern(0)
+        # self.nSteps(2*self.InputCreator.numInputs)
+        # self.InputCreator.changePattern(2)
+        # self.nSteps(self.InputCreator.numInputs)
+        # self.InputCreator.changePattern(0)
+        # self.nSteps(self.InputCreator.numInputs)
+        # self.InputCreator.changePattern(2)
+        # self.nSteps(self.InputCreator.numInputs)
+        # self.InputCreator.changePattern(0)
+        # self.nSteps(self.InputCreator.numInputs)
+        # self.InputCreator.changePattern(2)
+        # self.nSteps(self.InputCreator.numInputs)
+        # self.InputCreator.changePattern(0)
+        # self.nSteps(self.InputCreator.numInputs)
+        # self.InputCreator.changePattern(2)
+        # self.nSteps(self.InputCreator.numInputs)
+        # self.InputCreator.changePattern(0)
+        # self.nSteps(self.InputCreator.numInputs)
+        # self.InputCreator.changePattern(2)
+        # self.nSteps(self.InputCreator.numInputs)
+        # self.InputCreator.changePattern(0)
+        # gui.startHtmGui(self.htm, self.InputCreator)
 
-        self.InputCreator.changePattern(2)
-        gui.startHtmGui(self.htm, self.InputCreator)
+        # self.InputCreator.changePattern(2)
+        # gui.startHtmGui(self.htm, self.InputCreator)
 
-        self.InputCreator.changePattern(0)
-        gui.startHtmGui(self.htm, self.InputCreator)
+        # self.InputCreator.changePattern(0)
+        # gui.startHtmGui(self.htm, self.InputCreator)
 
-        self.InputCreator.changePattern(2)
-        gui.startHtmGui(self.htm, self.InputCreator)
+        # self.InputCreator.changePattern(2)
+        # gui.startHtmGui(self.htm, self.InputCreator)
 
         #gui.startHtmGui(self.htm, self.InputCreator)
 

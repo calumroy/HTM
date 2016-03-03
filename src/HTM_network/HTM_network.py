@@ -10,14 +10,14 @@ import math
 #import pprint
 import copy
 from utilities import sdrFunctions as SDRFunct
-import Thalamus
+from reinforcement_learning import Thalamus
 
-from HTM_Classes import theano_temporal as temporal
-from HTM_Classes import theano_overlap as overlap
-#from HTM_Classes import theano_inhibition as inhibition
-from HTM_Classes import np_inhibition as inhibition
-#from HTM_Classes import theano_learning as learning
-from HTM_Classes import np_learning as learning
+from HTM_calc import theano_temporal as temporal
+from HTM_calc import theano_overlap as overlap
+#from HTM_calc import theano_inhibition as inhibition
+from HTM_calc import np_inhibition as inhibition
+#from HTM_calc import theano_learning as learning
+from HTM_calc import np_learning as learning
 
 
 ##Struct = {'field1': 'some val', 'field2': 'some val'}

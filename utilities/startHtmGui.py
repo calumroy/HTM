@@ -1,5 +1,5 @@
 import sys
-import GUI_HTM
+from HTM_GUI import GUI_HTM
 from PyQt4 import QtGui
 
 
