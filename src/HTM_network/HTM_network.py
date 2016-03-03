@@ -985,7 +985,8 @@ class HTMLayer:
     def getColActNotBurstVect(self):
         # Return the binary vector displaying if a column was active
         # but not bursting one timestep ago.
-        return self.tempPoolCalc.getColActNotBurstVect()
+        # TODO
+        pass
 
     def Overlap(self):
         """
@@ -1004,65 +1005,6 @@ class HTMLayer:
         # limit the overlap values so they are larger then minOverlap
         self.colOverlaps = self.overlapCalc.removeSmallOverlaps(self.colOverlaps)
 
-        # print "self.Input = %s" % self.Input
-        # print "len(self.colOverlaps) = %s" % len(self.colOverlaps)
-        # print "self.colOverlaps = \n%s" % self.colOverlaps
-
-        # for i in range(len(self.columns)):
-        #     for c in self.columns[i]:
-        #         c.overlap = 0.0
-        #         self.updateConnectedSynapses(c)
-
-        #         # Temporal pooling is done if the column was active but not bursting one timestep ago.
-        #         if self.columnActiveNotBursting(c, self.timeStep-1) is not None:
-        #             self.temporalPool(c)
-        #         else:
-        #             # Calculate the overlap for the non temporally pooled columns.
-        #             for s in c.connectedSynapses:
-        #                 # Check if the input that this synapses
-        #                 # is connected to is active.
-        #                 inputActive = self.Input[s.pos_y][s.pos_x]
-        #                 c.overlap = c.overlap + inputActive
-
-        #         if c.overlap < c.minOverlap:
-        #             c.overlap = 0.0
-        #         else:
-        #             c.overlap = c.overlap*c.boost
-        #             self.updateOverlapDutyCycle(c)
-        #         #print "%d %d %d" % (c.overlap, c.minOverlap, c.boost)
-
-    def temporal(self):
-        '''
-        Temporal Pooling is done whitin the spatial pooler process after the
-        intial overlap has been calcualted.
-
-        The temporal pooler works in the spatial pooler by keeping columns
-        active that where active but not bursting on the previous time step.
-
-        This is done so the columns learn to activate on multiple input patterns
-        keeping them activated throughout a sequence of patterns.
-
-        Note the temporal pooling is very dependent on the potential radius.
-        a larger potential radius allows the temporal pooler to pool over a larger
-        number of columns. Columns temporally pool using their potential synapses,
-        where normal colum activation only counts connected synapses.
-
-        Temporal pooling is done here by increasing the overlap if
-        potential synapses are connected to active inputs
-        Add the potenial (2*radius+1)^2 as this is the maximum
-        overlap a column could have. This guarantees the column will
-        win later when inhibition occurs.
-
-        '''
-
-        # We need just the latest column active but not bursting times.
-        latestColActNotBurstTimes = self.colActNotBurstTimes[:, 0]
-
-        self.colOverlaps, self.colStopTempAtTime = self.tempPoolCalc.calculateTemporalPool(latestColActNotBurstTimes,
-                                                                                           self.timeStep,
-                                                                                           self.colOverlaps,
-                                                                                           self.colPotInputs,
-                                                                                           self.colStopTempAtTime)
 
     def inhibition(self, timeStep):
         '''
@@ -1078,12 +1020,7 @@ class HTMLayer:
         # Get the potential overlaps and reshape them into a grid (matrix).
         potColOverlapsGrid = self.getPotentialOverlaps().reshape((self.height, self.width))
 
-        # The inhibitor calculator requires a binary matrix representing if a column was
-        # active but not bursting one timestep ago.
-        # Turn the vector into a matrix representing our grid of columns
-        colActNotBurstGrid = self.getColActNotBurstVect().reshape((self.height, self.width))
-
-        self.colActive = self.inhibCalc.calculateWinningCols(colOverlapsGrid, potColOverlapsGrid, colActNotBurstGrid)
+        self.colActive = self.inhibCalc.calculateWinningCols(colOverlapsGrid, potColOverlapsGrid)
         #print "self.colActive = \n%s" % self.colActive
 
         # Update the activeColumn list using the colActive vector.
@@ -1316,6 +1253,28 @@ class HTMLayer:
         # Update the output of the layer
         self.updateOutput()
 
+    def temporal(self):
+        '''
+        Temporal Pooler keeps cells that are correclty predicitng a
+        pattern active longer through the input sequence.
+
+        It works by adjusting the permanences of both the proximal and distal syanpses.
+        It performs learning on the column synapses and cell synapses for columsn and cells
+        that where previously "active predictive" (they where predicting and then became active)
+        and columsn that have just become active predictive.
+
+        '''
+        # TODO
+        pass
+        # We need just the latest column active but not bursting times.
+        # latestColActNotBurstTimes = self.colActNotBurstTimes[:, 0]
+
+        # self.colOverlaps, self.colStopTempAtTime = self.tempPoolCalc.calculateTemporalPool(latestColActNotBurstTimes,
+        #                                                                                    self.timeStep,
+        #                                                                                    self.colOverlaps,
+        #                                                                                    self.colPotInputs,
+        #                                                                                    self.colStopTempAtTime)
+
 
 class HTMRegion:
     def __init__(self, input, columnArrayWidth, columnArrayHeight, cellsPerColumn, params):
@@ -1398,7 +1357,7 @@ class HTMRegion:
         if self.thalamus is not None:
             topLayer = self.numLayers-1
             predCommGrid = self.layerPredCommandOutput(topLayer)
-            #print "predCommGrid = %s" % predCommGrid
+            # print "predCommGrid = %s" % predCommGrid
             thalamusCommand = self.thalamus.pickCommand(predCommGrid)
 
             # Update each level of the htm with the thalamus command
@@ -1468,19 +1427,21 @@ class HTMRegion:
     def spatialTemporal(self):
         i = 0
         for layer in self.layerArray:
-            #print "     Layer = %s" % i
+            # print "     Layer = %s" % i
             i += 1
             layer.timeStep = layer.timeStep+1
-            ## Update the current layers input with the new input
+            # Update the current layers input with the new input
             # This updates the spatial pooler
             layer.Overlap()
-            layer.temporal()
             layer.inhibition(layer.timeStep)
             layer.learning()
-            # This Updates the sequence pooler
+            # This updates the sequence pooler
             layer.updateActiveState(layer.timeStep)
             layer.updatePredictiveState(layer.timeStep)
             layer.sequenceLearning(layer.timeStep)
+            # TODO
+            # This updates the temporal pooler
+            #layer.temporal()
 
 
 class HTM:

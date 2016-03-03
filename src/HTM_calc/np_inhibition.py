@@ -295,7 +295,7 @@ class inhibitionCalculator():
                 # # Set the overlap score for the losing columns to zero
                 # allColsOverlaps[i] = 0
 
-    def calculateWinningCols(self, overlapsGrid, potOverlapsGrid, colActNotBurst):
+    def calculateWinningCols(self, overlapsGrid, potOverlapsGrid):
         '''
         The Main function for this class.
 
@@ -430,10 +430,6 @@ if __name__ == '__main__':
                                   [2, 1, 1, 0],
                                   [3, 0, 2, 3],
                                   [2, 0, 6, 0]])
-    colActNotBurstGrid = np.array([[0, 0, 0, 0],
-                                   [0, 0, 0, 0],
-                                   [0, 0, 1, 0],
-                                   [0, 0, 0, 0]])
     print "colOverlapGrid = \n%s" % colOverlapGrid
     print "potColOverlapGrid = \n%s" % potColOverlapGrid
     print "colActNotBurstGrid = \n%s" % colActNotBurstGrid
@@ -445,7 +441,7 @@ if __name__ == '__main__':
                                            centerInhib)
 
     #cProfile.runctx('activeColumns = inhibCalculator.calculateWinningCols(colOverlapGrid)', globals(), locals())
-    activeColumns = inhibCalculator.calculateWinningCols(colOverlapGrid, potColOverlapGrid, colActNotBurstGrid)
+    activeColumns = inhibCalculator.calculateWinningCols(colOverlapGrid, potColOverlapGrid)
     activeColumns = activeColumns.reshape((numRows, numCols))
     print "activeColumns = \n%s" % activeColumns
 
@@ -454,7 +450,7 @@ if __name__ == '__main__':
                                   [3, 0, 2, 2],
                                   [2, 0, 6, 0]])
 
-    activeColumns = inhibCalculator.calculateWinningCols(colOverlapGrid, potColOverlapGrid, colActNotBurstGrid)
+    activeColumns = inhibCalculator.calculateWinningCols(colOverlapGrid, potColOverlapGrid)
 
     activeColumns = activeColumns.reshape((numRows, numCols))
     print "activeColumns = \n%s" % activeColumns
