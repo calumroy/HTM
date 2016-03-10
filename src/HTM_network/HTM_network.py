@@ -19,6 +19,8 @@ from HTM_calc import np_inhibition as inhibition
 #from HTM_calc import theano_learning as learning
 from HTM_calc import np_learning as learning
 
+from HTM_calc import np_activeCells as activeCells
+
 
 ##Struct = {'field1': 'some val', 'field2': 'some val'}
 ##myStruct = { 'num': 1}
@@ -277,10 +279,6 @@ class HTMLayer:
                                                      self.connectPermanence,
                                                      self.minOverlap)
 
-        self.tempPoolCalc = temporal.TemporalPoolCalculator(self.potentialWidth,
-                                                            self.potentialHeight,
-                                                            self.minOverlap)
-
         self.inhibCalc = inhibition.inhibitionCalculator(self.width, self.height,
                                                          self.inhibitionWidth,
                                                          self.inhibitionHeight,
@@ -289,10 +287,19 @@ class HTMLayer:
                                                          self.centerPotSynapses)
 
         self.learningCalc = learning.LearningCalculator(self.numColumns,
-                                                          self.numPotSyn,
-                                                          self.spatialPermanenceInc,
-                                                          self.spatialPermanenceDec,
-                                                          self.activeColPermanenceDec)
+                                                        self.numPotSyn,
+                                                        self.spatialPermanenceInc,
+                                                        self.spatialPermanenceDec,
+                                                        self.activeColPermanenceDec)
+
+        self.activeCellsCalc = activeCells.activeCellsCalculator()
+
+
+        self.tempPoolCalc = temporal.TemporalPoolCalculator(self.potentialWidth,
+                                                            self.potentialHeight,
+                                                            self.minOverlap)
+
+
 
     def setupColumns(self, columnParams):
         # Get just the parameters for the columns
@@ -905,26 +912,26 @@ class HTMLayer:
         return newSegmentUpdate
 
     def adaptSegments(self, c, i, positiveReinforcement):
-        #print " adaptSegments x,y,cell = %s,%s,%s positive
-        #reinforcement = %r"%(c.pos_x,c.pos_y,i,positiveReinforcement)
+        # print " adaptSegments x,y,cell = %s,%s,%s positive
+        # reinforcement = %r"%(c.pos_x,c.pos_y,i,positiveReinforcement)
         # Adds the new segments to the cell and inc or dec the segments synapses
         # If positive reinforcement is true then segments on the update list
         # get their permanence values increased all others
-        #get their permanence decreased.
+        # get their permanence decreased.
         # If positive reinforcement is false then decrement
-        #the permanence value for the active synapses.
+        # the permanence value for the active synapses.
         for j in range(len(c.cells[i].segmentUpdateList)):
-            #print "     segUpdateList = %s" % c.cells[i].segmentUpdateList[j]
+            # print "     segUpdateList = %s" % c.cells[i].segmentUpdateList[j]
             segIndex = c.cells[i].segmentUpdateList[j]['index']
-            #print "     segIndex = %s"%segIndex
+            # print "     segIndex = %s"%segIndex
             # If the segment exists
             if segIndex > -1:
-                #print "     adapted x,y,cell,segment=%s,%s,%s,%s"%(c.pos_x,c.pos_y,i,c.cells[i].segmentUpdateList[j]['index'])
+                # print "     adapted x,y,cell,segment=%s,%s,%s,%s"%(c.pos_x,c.pos_y,i,c.cells[i].segmentUpdateList[j]['index'])
                 for s in c.cells[i].segmentUpdateList[j]['activeSynapses']:
                     # For each synapse in the segments activeSynapse list increment or
                     # decrement their permanence values.
                     # The synapses in the update segment
-                    #structure are already in the segment. The
+                    # structure are already in the segment. The
                     # new synapses are not yet however.
                     if positiveReinforcement is True:
                         s.permanence += self.permanenceInc
@@ -932,24 +939,24 @@ class HTMLayer:
                     else:
                         s.permanence -= self.permanenceDec
                         s.permanence = max(0.0, s.permanence)
-                    #print "     x,y,cell,segment= %s,%s,%s,%s
-                    #syn end x,y,cell = %s,%s,%s"%(c.pos_x,c.pos_y,i,
-                        #c.cells[i].segmentUpdateList[j]['index'],s.pos_x,
-                        #s.pos_y,s.cell)
-                    #print "     synapse permanence = %s"%(s.permanence)
+                    # print "     x,y,cell,segment= %s,%s,%s,%s
+                    # syn end x,y,cell = %s,%s,%s"%(c.pos_x,c.pos_y,i,
+                        # c.cells[i].segmentUpdateList[j]['index'],s.pos_x,
+                        # s.pos_y,s.cell)
+                    # print "     synapse permanence = %s"%(s.permanence)
                 # Decrement the permanence of all synapses in the synapse list
                 for s in c.cells[i].segments[segIndex].synapses:
                     s.permanence -= self.permanenceDec
                     s.permanence = max(0.0, s.permanence)
-                    #print "     x,y,cell,segment= %s,%s,%s,%s syn end x,
-                    #y,cell = %s,%s,%s"%(c.pos_x,c.pos_y,i,j,
-                        #s.pos_x,s.pos_y,s.cell)
-                    #print "     synapse permanence = %s"%(s.permanence)
+                    # print "     x,y,cell,segment= %s,%s,%s,%s syn end x,
+                    # y,cell = %s,%s,%s"%(c.pos_x,c.pos_y,i,j,
+                    # s.pos_x,s.pos_y,s.cell)
+                    # print "     synapse permanence = %s"%(s.permanence)
                 # Add the new Synpases in the structure to the real segment
-                #print c.cells[i].segmentUpdateList[j]['newSynapses']
-                #print "oldActiveSyn = %s newSyn = %s"
-                #%(len(c.cells[i].segments[segIndex].synapses),
-                    #len(c.cells[i].segmentUpdateList[j]['newSynapses']))
+                # print c.cells[i].segmentUpdateList[j]['newSynapses']
+                # print "oldActiveSyn = %s newSyn = %s"
+                # %(len(c.cells[i].segments[segIndex].synapses),
+                    # len(c.cells[i].segmentUpdateList[j]['newSynapses']))
                 c.cells[i].segments[segIndex].synapses.extend(c.cells[i].segmentUpdateList[j]['newSynapses'])
                 # Delete synapses that have low permanence values.
                 self.deleteWeakSynapses(c, i, segIndex)
@@ -1044,7 +1051,17 @@ class HTMLayer:
                                                                         self.colPotInputs,
                                                                         self.colActive)
 
+    def sequencePooler(self, timeStep):
+        '''
+        Calls the calculators that update the sequence pooler.
+        '''
+        # TODO
+        # self.activeCellsCalc.updateActiveCells(self.activeColumns)
+
+
     def updateActiveState(self, timeStep):
+        # TODO
+        # Remove this function it goes in a  calcualtor class.
         """
         First function called to update the sequence pooler.
         This function has been modified to the CLA whitepaper but it resembles
@@ -1166,8 +1183,6 @@ class HTMLayer:
                     sUpdate = self.getSegmentActiveSynapses(c, cell, timeStep-1, s, True)
                     sUpdate['sequenceSegment'] = timeStep
                     c.cells[cell].segmentUpdateList.append(sUpdate)
-                    #print "Length of cells updatelist =
-                    #%s"%len(c.cells[cell].segmentUpdateList)
 
     def updatePredictiveState(self, timeStep):
         # The second function call for the sequence pooler.
@@ -1436,9 +1451,10 @@ class HTMRegion:
             layer.inhibition(layer.timeStep)
             layer.learning()
             # This updates the sequence pooler
-            layer.updateActiveState(layer.timeStep)
-            layer.updatePredictiveState(layer.timeStep)
-            layer.sequenceLearning(layer.timeStep)
+            layer.sequencePooler(layer.timeStep)
+            # layer.updateActiveState(layer.timeStep)
+            # layer.updatePredictiveState(layer.timeStep)
+            # layer.sequenceLearning(layer.timeStep)
             # TODO
             # This updates the temporal pooler
             #layer.temporal()
