@@ -1,6 +1,7 @@
 
 import numpy as np
 import math
+import random
 
 
 '''
@@ -136,75 +137,749 @@ THIS CLASS IS A REIMPLEMENTATION OF THE ORIGINAL CODE:
 
 
 class activeCellsCalculator():
-    def __init__(self, numColumns, cellsPerColumn):
+    def __init__(self, numColumns, cellsPerColumn, maxSegPerCell, maxSynPerSeg, minThreshold):
         self.numColumns = numColumns
         self.cellsPerColumn = cellsPerColumn
+        # Maximum number of segments per cell
+        self.maxSegPerCell = maxSegPerCell
+        # Maximum number of synapses per segment
+        self.maxSynPerSeg = maxSynPerSeg
+        # More then this many synapses in a segment must be active for the segment
+        # to be considered for an alternative sequence (to increment a cells score).
+        self.minThreshold = minThreshold
 
-        #self.prevColPotInputs = np.array([[-1 for x in range(self.numPotSynapses)] for y in range(self.numColumns)])
+        # self.prevColPotInputs = np.array([[-1 for x in range(self.numPotSynapses)] for y in range(self.numColumns)])
         self.prevActiveCols = np.array([-1 for i in range(self.numColumns)])
+        # An array storing for each column the cell index number for the cell who has the highest calculated score.
+        self.colArrayHighestScoredCell = np.array([-1 for j in range(self.numColumns)])
+        # The previous active cells. This is a 2D tensor.
+        # The 1st dimension stores the columns the 2nd is the cells in the columns.
+        # A 1 means the cell was previously active 0 if not.
+        self.prevActiveCells = np.array([[0 for x in range(self.cellsPerColumn)] for y in range(self.numColumns)])
+        # The previous timesteps distal Synapse connections and permanence values. This is a 5D tensor.
+        self.prevDistalSynapses = None
+        # A 2d tensor stroing for each columns cell a score value.
+        self.cellsScore = np.array([[0 for x in range(self.cellsPerColumn)] for y in range(self.numColumns)])
 
-    def getBestMatchingSegment(self, c, i, timeStep, onCell):
+    def segmentHighestScore(self, segment):
+        # Get the highest score of the previously active cell
+        # (one timestep ago) that is connected to the end of the synapses in the segment.
+        # segment is a 2d tensor, [syn1, syn2, syn3, ...] where
+        # syn1 = [columnIndex, cellIndex, permanence].
+        # Cells score are updated whenever they are in an
+        # active column. This prevents scores getting stale.
+        highestScoreCount = 0
+        for i in range(len(segment)):
+            columnInd = segment[i][0]
+            cellInd = segment[i][1]
+            if self.prevActiveCells[columnInd][cellInd] == 1:
+                currentCellScore = self.cellsScore[columnInd][cellInd]
+                if currentCellScore > highestScoreCount:
+                    highestScoreCount = currentCellScore
+        return highestScoreCount
+
+    def segmentNumSynapsesPrevActive(self, synapseMatrix):
+        # Find the number of active synapses for the previous timestep.
+        # Synapses whose end is on an active cell for the previous timestep.
+        # The synapseMatrix stores an array of synpases where
+        # each synapse stores the end connection of that synpase.
+        # The end of the synapse connects to a cell in a column.
+        # [columnIndex, cellIndex, permanence]
+        count = 0
+        for i in range(len(synapseMatrix)):
+            columnIndex = synapseMatrix[i][0]
+            cellIndex = synapseMatrix[i][1]
+            if self.prevActiveCells[columnIndex][cellIndex] == 1:
+                count += 1
+
+        return count
+
+    def getBestMatchingSegment(self, activeCells, segmentTensor):
         # This routine is agressive. The permanence value is allowed to be less
         # then connectedPermance and activationThreshold > number of active Synpses > minThreshold
         # We find the segment who was most predicting for the current timestep and call
         # this the best matching segment.
-        # This means we need to find synapses that where active at timeStep.
-        # Note that this function is already called with time timeStep-1
+        # The input activeCells is a 2d tensor storing the active state (1 active 0 not) of cells in each column .
+        # The segmentTensor is a 3d array holding all the segments for a particular cell.
+        # For each segment there is an array of synpases and for each synapse there is an
+        # array holding [columnIndex, cellIndex, permanence].
+        # This means we need to find synapses that where previously active.
         h = 0   # mostActiveSegmentIndex
+        mostActiveSegSynCount = None
         # Look through the segments for the one with the most active synapses
         # print "getBestMatchingSegment for x,y,c =
         # %s,%s,%s num segs = %s"%(c.pos_x,c.pos_y,i,len(c.cells[i].segments))
-        for g in range(len(c.cells[i].segments)):
-            # Find synapses that are active at timeStep
-            currentSegSynCount = self.segmentNumSynapsesActive(c.cells[i].segments[g], timeStep, onCell)
-            mostActiveSegSynCount = self.segmentNumSynapsesActive(c.cells[i].segments[h], timeStep, onCell)
-            if currentSegSynCount > mostActiveSegSynCount:
-                h = g
-                # print "\n new best matching segment found for h = %s\n"%h
-                # print "segIndex = %s num of syn = %s num active syn =
-                # "%(h,len(c.cells[i].segments[h].synapses),currentSegSynCount)
-                # print "segIndex = %s"%(h)
-        # Make sure the cell has at least one segment
-        if len(c.cells[i].segments) > 0:
-            if self.segmentNumSynapsesActive(c.cells[i].segments[h], timeStep, onCell) > self.minThreshold:
-                # print "returned the segment index (%s) which
-                # HAD MORE THAN THE MINTHRESHOLD SYNAPSES"%h
-                return h    # returns just the index to the
-                # most active segment in the cell
+        if (self.prevDistalSynapses is not None):
+            # Iterate through each segment g, for the cell i, in column c.
+            for g in range(len(segmentTensor)):
+                # Find in the current segment, synapses that where active for the previous timeStep.
+                currentSegSynCount = self.segmentNumSynapsesPrevActive(segmentTensor[g])
+                if currentSegSynCount > mostActiveSegSynCount or (mostActiveSegSynCount is None):
+                    h = g
+                    mostActiveSegSynCount = currentSegSynCount
+                    # print "\n new best matching segment found for h = %s\n"%h
+                    # print "synapses active in most active seg = %s" %(currentSegSynCount)
+                    # print "Most active segIndex = %s"%(h)
+            # Make sure the cell has at least one segment
+            if len(segmentTensor) > 0:
+                if mostActiveSegSynCount > self.minThreshold:
+                    # print "returned the segment index (%s) which
+                    # HAD MORE THAN THE MINTHRESHOLD SYNAPSES"%h
+                    return h    # returns just the index to the
+                    # most active segment in the cell
         # print "returned no segment. None had enough active synapses return -1"
-        return -1   # -1 means no segment was active
+        return None   # Means no segment was active
         # enough and a new one will be created.
 
-    def updateActiveCells(self, activeColumns):
-        # activeColumns is an array storing a bit indicating if the column is active (1) or not (0).
+    def updateActiveCells(self, activeColumns, activeCells, distalSynapses):
+
+        '''
+        Inputs:
+                1.  activeColumns is a 1D array storing a bit indicating if the column is active (1) or not (0).
+
+                2.  distalSynapses is a 5D tensor. The first dimmension stores the columns, the 2nd is the cells
+                    in the columns, 3rd stores the segments for each cell, 4th stores the synapses in each
+                    segment and the 5th stores the end connection of the synapse (column number, cell number, permanence).
+                    This tensor has a size of numberColumns * numCellsPerCol * maxNumSegmentsPerCell * maxNumSynPerSeg.
+                    It does not change size. Its size is fixed when this class is constructed.
+        '''
+
         # First we calculate the score for each cell in the active column
         for c in range(len(activeColumns)):
             # Only udate the scores for columns that have changed state from not active to active
             if (self.prevActiveCols[c] != activeColumns[c]) and (activeColumns[c] == 1):
-                highestScore = 0        # Remember the highest score in the column
-                c.highestScoredCell = None
+                print "updating score for active Column index = ", c
+                # Remember the highest score in the column
+                highestScore = 0
+                self.colArrayHighestScoredCell[c] = -1
                 # Remember the index of the cell with the highest score in the column
                 for i in range(self.cellsPerColumn):
                     # Check the cell to find a best matching
-                    # segment active due to active cells.
-                    bestMatchSeg = self.getBestMatchingSegment(c, i, timeStep-1, False)
+                    # segment active due to active cells. Returns an index to the best segment.
+                    bestMatchSeg = self.getBestMatchingSegment(activeCells, distalSynapses[c][i])
+                    if bestMatchSeg is not None:
+                        self.cellsScore[c][i] = 1+self.segmentHighestScore(distalSynapses[c][i][bestMatchSeg])
+                        # print"Cell x,y,i = %s,%s,%s bestSeg = %s score = %s"%(c.pos_x,c.pos_y,i,
+                        # bestMatchSeg,c.cells[i].score)
+                        if self.cellsScore[c][i] > highestScore:
+                            highestScore = self.cellsScore[c][i]
+                            self.colArrayHighestScoredCell[c] = i
+                    else:
+                        self.cellsScore[c][i] = 0
+
+        print "self.cellsScore= \n%s" % self.cellsScore
+        print "self.colArrayHighestScoredCell= \n%s" % self.colArrayHighestScoredCell
 
         self.prevActiveCols = activeColumns
+        self.prevActiveCells = activeCells
+        self.prevDistalSynapses = distalSynapses
 
+def updateActiveCols(numColumns):
+    activeColumns = np.random.randint(2, size=(numColumns))
+    return activeColumns
+
+def updateActiveCells(activeCols, cellsPerColumn):
+    # note active cells are only found in active columns
+    numColumns = len(activeCols)
+    activeCells = np.zeros((numColumns, cellsPerColumn))
+    for i in range(len(activeColumns)):
+        if activeColumns[i] == 1:
+            cellIndex = (random.randint(0, 3))
+            # Not bursting set one of the cells active in the column.
+            if cellIndex != 3:
+                activeCells[i][cellIndex] = 1
+            else:
+                # Bursting case, set all cells active.
+                activeCells[i][0:4] = 1
+    return activeCells
 
 if __name__ == '__main__':
     numRows = 4
     numCols = 4
     cellsPerColumn = 3
     numColumns = numRows * numCols
+    maxSegPerCell = 2
+    maxSynPerSeg = 4
+    minThreshold = 2
+
     # Create an array representing the active columns
-    activeColumns = np.random.randint(2, size=(numColumns))
+    activeColumns = updateActiveCols(numColumns)
+    # Create an array representing the active cells.
+    activeCells = updateActiveCells(activeColumns, cellsPerColumn)
+    # Create the distalSynapse 5d tensor holding the information of the distal synapses.
+    distalSynapses = np.zeros((numColumns, cellsPerColumn, maxSegPerCell, maxSynPerSeg, 3))
+    for index, x in np.ndenumerate(distalSynapses):
+        #print index, x
+        if index[4] == 2:
+            distalSynapses[index] = random.randint(0, 10) / 10.0
+        if index[4] == 1:
+            distalSynapses[index] = random.randint(0, cellsPerColumn-1)
+        if index[4] == 0:
+            distalSynapses[index] = random.randint(0, numColumns-1)
 
     print "activeColumns = \n%s" % activeColumns
+    print "activeCells = \n%s" % activeCells
+    #print "distalSynapses = \n%s" % distalSynapses
 
-    activeCellsCalc = activeCellsCalculator(numColumns, cellsPerColumn)
+    activeCellsCalc = activeCellsCalculator(numColumns, cellsPerColumn, maxSegPerCell, maxSynPerSeg, minThreshold)
+    # Run through once
+    activeCellsCalc.updateActiveCells(activeColumns, activeCells, distalSynapses)
 
-    colSynPerm = activeCellsCalc.updateActiveCells(activeColumns)
+    test_iterations = 10
+    for i in range(test_iterations):
+        # Change the active columns and active cells and run again.
+        activeColumns = updateActiveCols(numColumns)
+        activeCells = updateActiveCells(activeColumns, cellsPerColumn)
+        activeCellsCalc.updateActiveCells(activeColumns, activeCells, distalSynapses)
 
+
+
+# def getDistalSynapses():
+#     # Return this example of a distalSynapses tensor
+#     distalSynapses = np.array(
+#     [[[[[0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]],
+
+#        [[0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]]],
+
+
+#       [[[0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]],
+
+#        [[0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]]],
+
+
+#       [[[0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]],
+
+#        [[0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]]]],
+
+
+
+#      [[[[0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]],
+
+#        [[0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]]],
+
+
+#       [[[0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]],
+
+#        [[0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]]],
+
+
+#       [[[0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]],
+
+#        [[0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]]]],
+
+
+
+#      [[[[0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]],
+
+#        [[0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]]],
+
+
+#       [[[0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]],
+
+#        [[0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]]],
+
+
+#       [[[0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]],
+
+#        [[0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]]]],
+
+
+
+#      [[[[0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]],
+
+#        [[0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]]],
+
+
+#       [[[0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]],
+
+#        [[0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]]],
+
+
+#       [[[0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]],
+
+#        [[0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]]]],
+
+
+
+#      [[[[0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]],
+
+#        [[0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]]],
+
+
+#       [[[0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]],
+
+#        [[0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]]],
+
+
+#       [[[0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]],
+
+#        [[0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]]]],
+
+
+
+#      [[[[0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]],
+
+#        [[0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]]],
+
+
+#       [[[0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]],
+
+#        [[0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]]],
+
+
+#       [[[0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]],
+
+#        [[0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]]]],
+
+
+
+#      [[[[0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]],
+
+#        [[0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]]],
+
+
+#       [[[0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]],
+
+#        [[0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]]],
+
+
+#       [[[0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]],
+
+#        [[0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]]]],
+
+
+
+#      [[[[0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]],
+
+#        [[0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]]],
+
+
+#       [[[0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]],
+
+#        [[0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]]],
+
+
+#       [[[0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]],
+
+#        [[0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]]]],
+
+
+
+#      [[[[0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]],
+
+#        [[0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]]],
+
+
+#       [[[0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]],
+
+#        [[0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]]],
+
+
+#       [[[0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]],
+
+#        [[0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]]]],
+
+
+
+#      [[[[0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]],
+
+#        [[0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]]],
+
+
+#       [[[0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]],
+
+#        [[0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]]],
+
+
+#       [[[0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]],
+
+#        [[0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]]]],
+
+
+
+#      [[[[0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]],
+
+#        [[0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]]],
+
+
+#       [[[0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]],
+
+#        [[0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]]],
+
+
+#       [[[0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]],
+
+#        [[0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]]]],
+
+
+
+#      [[[[0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]],
+
+#        [[0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]]],
+
+
+#       [[[0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]],
+
+#        [[0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]]],
+
+
+#       [[[0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]],
+
+#        [[0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]]]],
+
+
+
+#      [[[[0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]],
+
+#        [[0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]]],
+
+
+#       [[[0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]],
+
+#        [[0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]]],
+
+
+#       [[[0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]],
+
+#        [[0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]]]],
+
+
+
+#      [[[[0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]],
+
+#        [[0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]]],
+
+
+#       [[[0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]],
+
+#        [[0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]]],
+
+
+#       [[[0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]],
+
+#        [[0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]]]],
+
+
+
+#      [[[[0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]],
+
+#        [[0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]]],
+
+
+#       [[[0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]],
+
+#        [[0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]]],
+
+
+#       [[[0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]],
+
+#        [[0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]]]],
+
+
+
+#      [[[[0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]],
+
+#        [[0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]]],
+
+
+#       [[[0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]],
+
+#        [[0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]]],
+
+
+#       [[[0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]],
+
+#        [[0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]
+#         [0., 0., 0.]]]]]
+#         )
+
+#     return distalSynapses
 
 
