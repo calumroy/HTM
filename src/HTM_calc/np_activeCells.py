@@ -152,46 +152,51 @@ class activeCellsCalculator():
         self.prevActiveCols = np.array([-1 for i in range(self.numColumns)])
         # An array storing for each column the cell index number for the cell who has the highest calculated score.
         self.colArrayHighestScoredCell = np.array([-1 for j in range(self.numColumns)])
-        # The active cells. This is a 2D tensor.
+        # The timeSteps when cells where active last. This is a 3D tensor.
         # The 1st dimension stores the columns the 2nd is the cells in the columns.
-        # Each element stores the timestep when this cell was active last.
-        self.activeCells = np.array([[-1 for x in range(self.cellsPerColumn)] for y in range(self.numColumns)])
-        # The predicting cells. This is a 2D tensor.
-        # The 1st dimension stores the columns the 2nd is the cells in the columns.
-        # Each element stores the timestep when this cell was last in the learn state.
-        self.predictCells = np.array([[-1 for x in range(self.cellsPerColumn)] for y in range(self.numColumns)])
-        # The learning cells. This is a 2D tensor.
+        # Each element stores the last 2 timestep when this cell was active last.
+        self.activeCellsTime = np.array([[[-1, -1] for x in range(self.cellsPerColumn)] for y in range(self.numColumns)])
+        # The timeSteps when cells where learning cells last. This is a 3D tensor.
         # The 1st dimension stores the columns the 2nd is the cells in the columns.
         # Each element stores the timestep when this cell was last in the learn state.
-        self.learnCells = np.array([[-1 for x in range(self.cellsPerColumn)] for y in range(self.numColumns)])
-        # The previous timesteps distal Synapse connections and permanence values. This is a 5D tensor.
-        self.prevDistalSynapses = None
+        self.learnCellsTime = np.array([[[-1, -1] for x in range(self.cellsPerColumn)] for y in range(self.numColumns)])
         # A 2d tensor storing for each columns cell a score value.
         self.cellsScore = np.array([[0 for x in range(self.cellsPerColumn)] for y in range(self.numColumns)])
+        # A 2d tensor for each cell holds [segIndex] indicating which segment to update.
+        # If the index is -2 this means create a new segment.
+        self.segIndUpdate = np.array([[-1 for x in range(self.cellsPerColumn)] for y in range(self.numColumns)])
+        # A 3d tensor for each cell holds a synpase list indicating which
+        # synapses in the segment (the segment index is stored in the segIndUpdate tensor)
+        # are active [activeSynList 0 or 1].
+        self.segActiveSyn = np.array([[[-1 for z in range(self.maxSynPerSeg)]
+                                     for x in range(self.cellsPerColumn)]
+                                     for y in range(self.numColumns)])
+        # A 4D tensor for each cell holds a synpase list of new synapses that are to be
+        # created if a new segment is too be made (indicated by segIndUpdate) [newSynapseList].
+        # Each place in the synapse list holds [column number, cell number, permanence]
+        self.segNewSyn = np.array([[[[-1, -1, 0.0] for z in range(self.maxSynPerSeg)]
+                                    for x in range(self.cellsPerColumn)]
+                                  for y in range(self.numColumns)])
 
-    def segmentActive(self, segmentSynList, activeCells, timeStep):
-        # In the segments list of synapses check if the number of
-        # synapses connected to active cells is larger then
-        # the self.activationThreshold. If so return the number
-        # of synpases with the state.
-        # The segment Synapse list is an input 2 D tensor where the
-        # first dimension stores a list of synapses with each synapse
-        # storing [columnIndex, cellIndex, permanence]. The column index
-        # and cell index store the location that the synapse connects to.
+    def getSegmentActiveSynapses(self, synapseList, timeStep):
+        # Find the synapse indicies of the active synapses for the timestep.
+        # Synapses whose end is on an active cell for the timestep.
+        # The synapseList stores an array of synpases where
+        # each synapse stores the end connection of that synpase.
+        # The end of the synapse connects to a cell in a column.
+        # [columnIndex, cellIndex, permanence]
         count = 0
-        for i in range(len(segmentSynList)):
-            # Only check synapses that have a large enough permanence
-            synPermanence = segmentSynList[i][2]
-            if synPermanence > self.connectPermanence:
-                colIndex = segmentSynList[i][0]
-                cellIndex = segmentSynList[i][0]
-                if activeCells[colIndex][cellIndex] == timeStep:
-                    count += 1
-        if count > self.activationThreshold:
-            # print"         %s synapses were active on segment"%count
-            return count
-        else:
-            return 0
+        for i in range(len(synapseList)):
+            columnIndex = synapseList[i][0]
+            cellIndex = synapseList[i][1]
+
+            # TODO
+            # Fix this need to return synapse indicies
+            # Also need to fix prevActiveCells and active cells.
+            # do they hold the timestep or a boolean. DO they just hold the last active timestep
+            # or more?
+            if self.prevActiveCells[columnIndex][cellIndex] == 1:
+                count += 1
 
     def getPrevActiveSegment(self, cellSegList, activeCells, activeSegList, timeStep):
         # Returns an active segment ("sequence segment") if there are none
@@ -216,7 +221,7 @@ class activeCellsCalculator():
         # on the previous timestep (all cells are active).
         count = 0
         for i in range(self.cellsPerColumn):
-            if self.activeCells[colIndex][i] == timeStep-1:
+            if self.checkCellActive(colIndex, i, timeStep-1) is True:
                 count += 1
             else:
                 return False
@@ -233,7 +238,7 @@ class activeCellsCalculator():
         # If all cells are active (ie bursting was occuring) then return
         # the first indicie.
         for i in range(self.cellsPerColumn):
-            if self.activeCells[colIndex][i] == timeStep-1:
+            if self.checkCellActive(colIndex, i, timeStep-1) is True:
                 return i
         # No cell was found to be active in the column.
         return None
@@ -242,12 +247,64 @@ class activeCellsCalculator():
         # Return the cell index that was in the learn state in the column with
         # the index colIndex for the previous timestep.
         for i in range(self.cellsPerColumn):
-            if self.learnCells[colIndex][i] == timeStep-1:
+            if self.checkCellLearn(colIndex, i, timeStep-1) is True:
                 return i
         # No cell was found to be in the learn state in the column.
         return None
 
-    def segmentHighestScore(self, segment):
+    def setActiveCell(self, colIndex, cellIndex, timeStep):
+        # Set the given cell at colIndex, cellIndex into an active state for the
+        # given timeStep.
+        # We need to check the activeCellsTime tensor which holds multiple
+        # previous timeSteps and set the oldest one to the given timeStep.
+        if self.activeCellsTime[colIndex][cellIndex][0] <= self.activeCellsTime[colIndex][cellIndex][1]:
+            self.activeCellsTime[colIndex][cellIndex][0] = timeStep
+        else:
+            self.activeCellsTime[colIndex][cellIndex][1] = timeStep
+        return False
+
+    def setlearnCell(self, colIndex, cellIndex, timeStep):
+        # Set the given cell at colIndex, cellIndex into a learn state for the
+        # given timeStep.
+        # We need to check the learnCellsTime tensor which holds multiple
+        # previous timeSteps and set the oldest one to the given timeStep.
+        if self.learnCellsTime[colIndex][cellIndex][0] <= self.learnCellsTime[colIndex][cellIndex][1]:
+            self.learnCellsTime[colIndex][cellIndex][0] = timeStep
+        else:
+            self.learnCellsTime[colIndex][cellIndex][1] = timeStep
+        return False
+
+    def checkCellActive(self, colIndex, cellIndex, timeStep):
+        # Check if the given cell was active at the timestep given.
+        # We need to check the activeCellsTime tensor which holds multiple
+        # previous timeSteps when each cell was last active.
+        if self.activeCellsTime[colIndex][cellIndex][0] == timeStep:
+            return True
+        if self.activeCellsTime[colIndex][cellIndex][1] == timeStep:
+            return True
+        return False
+
+    def checkCellLearn(self, colIndex, cellIndex, timeStep):
+        # Check if the given cell was learning at the timestep given.
+        # We need to check the learnCellsTime tensor which holds multiple
+        # previous timeSteps when each cell was last in the learn state.
+        if self.learnCellsTime[colIndex][cellIndex][0] == timeStep:
+            return True
+        if self.learnCellsTime[colIndex][cellIndex][1] == timeStep:
+            return True
+        return False
+
+    def checkCellPredicting(self, predictingCellsTensor, colIndex, cellIndex, timeStep):
+        # Check if the given cell was in the predicitng state at the timestep given.
+        # We check the 3D predictingCellsTensor tensor which holds multiple
+        # previous timeSteps when each cell was last in the predicitng state.
+        if predictingCellsTensor[colIndex][cellIndex][0] == timeStep:
+            return True
+        if predictingCellsTensor[colIndex][cellIndex][1] == timeStep:
+            return True
+        return False
+
+    def segmentHighestScore(self, segment, timeStep):
         # Get the highest score of the previously active cell
         # (one timestep ago) that is connected to the end of the synapses in the segment.
         # segment is a 2d tensor, [syn1, syn2, syn3, ...] where
@@ -256,15 +313,15 @@ class activeCellsCalculator():
         # active column. This prevents scores getting stale.
         highestScoreCount = 0
         for i in range(len(segment)):
-            columnInd = segment[i][0]
-            cellInd = segment[i][1]
-            if self.prevActiveCells[columnInd][cellInd] == 1:
-                currentCellScore = self.cellsScore[columnInd][cellInd]
+            columnIndex = segment[i][0]
+            cellIndex = segment[i][1]
+            if self.checkCellActive(columnIndex, cellIndex, timeStep-1) == True:
+                currentCellScore = self.cellsScore[columnIndex][cellIndex]
                 if currentCellScore > highestScoreCount:
                     highestScoreCount = currentCellScore
         return highestScoreCount
 
-    def segmentNumSynapsesPrevActive(self, synapseMatrix):
+    def segmentNumSynapsesActive(self, synapseMatrix, timeStep):
         # Find the number of active synapses for the previous timestep.
         # Synapses whose end is on an active cell for the previous timestep.
         # The synapseMatrix stores an array of synpases where
@@ -275,12 +332,12 @@ class activeCellsCalculator():
         for i in range(len(synapseMatrix)):
             columnIndex = synapseMatrix[i][0]
             cellIndex = synapseMatrix[i][1]
-            if self.prevActiveCells[columnIndex][cellIndex] == 1:
+            if self.checkCellActive(columnIndex, cellIndex, timeStep) == True:
                 count += 1
 
         return count
 
-    def getBestMatchingSegment(self, segmentTensor):
+    def getBestMatchingSegment(self, segmentTensor, timeStep):
         # We find the segment who was most predicting for the previous timestep and call
         # this the best matching segment. This means that segment has synapses whose ends are
         # connected to cells that where active in the previous timeStep.
@@ -298,30 +355,33 @@ class activeCellsCalculator():
         # Look through the segments for the one with the most active synapses
         # print "getBestMatchingSegment for x,y,c =
         # %s,%s,%s num segs = %s"%(c.pos_x,c.pos_y,i,len(c.cells[i].segments))
-        if (self.prevDistalSynapses is not None):
-            # Iterate through each segment g, for the cell i, in column c.
-            for g in range(len(segmentTensor)):
-                # Find in the current segment, synapses that where active for the previous timeStep.
-                currentSegSynCount = self.segmentNumSynapsesPrevActive(segmentTensor[g])
-                if currentSegSynCount > mostActiveSegSynCount or (mostActiveSegSynCount is None):
-                    h = g
-                    mostActiveSegSynCount = currentSegSynCount
-                    # print "New best matching segment found for segIndex h = %s\n"%h
-                    # print "Num synapses active in most active seg = %s" %(currentSegSynCount)
-                    # print "Most active segIndex = %s"%(h)
-            # Make sure the cell has at least one segment
-            if len(segmentTensor) > 0:
-                if mostActiveSegSynCount > self.minThreshold:
-                    #print "Best seg found index = %s" % h
-                    #print "     mostActiveSegSynCount = %s" % mostActiveSegSynCount
-                    #print "     synapse list = \n%s" % segmentTensor[h]
-                    return h    # returns just the index to the
-                    # most active segment in the cell
+        # Iterate through each segment g, for the cell i, in column c.
+        for g in range(len(segmentTensor)):
+            # Find in the current segment, synapses that where active for the previous timeStep.
+            currentSegSynCount = self.segmentNumSynapsesActive(segmentTensor[g], timeStep-1)
+            if currentSegSynCount > mostActiveSegSynCount or (mostActiveSegSynCount is None):
+                h = g
+                mostActiveSegSynCount = currentSegSynCount
+                # print "New best matching segment found for segIndex h = %s\n"%h
+                # print "Num synapses active in most active seg = %s" %(currentSegSynCount)
+                # print "Most active segIndex = %s"%(h)
+        # Make sure the cell has at least one segment
+        if len(segmentTensor) > 0:
+            if mostActiveSegSynCount > self.minThreshold:
+                # print "Best seg found index = %s" % h
+                # print "     mostActiveSegSynCount = %s" % mostActiveSegSynCount
+                # print "     synapse list = \n%s" % segmentTensor[h]
+                return h    # returns just the index to the
+                # most active segment in the cell
         # print "returned no segment. None had enough active synapses return -1"
         return None   # Means no segment was active
         # enough and a new one will be created.
 
-    def updateActiveCellScores(self, activeColumns, distalSynapses):
+    def updateActiveCellScores(self, activeColumns, distalSynapses, timeStep):
+        # Updates both the cells scores and the array holding the cell
+        # index with the highest score for each active column.
+        # A Cells score may be reset to zero and the highest scored cell
+        # for a column could be set to -1 indicating that no cell has a highest score.
         for c in range(len(activeColumns)):
             # Only udate the scores for columns that have changed state from not active to active
             if (self.prevActiveCols[c] == 0) and (activeColumns[c] == 1):
@@ -334,9 +394,9 @@ class activeCellsCalculator():
                     print "updating for cell = %s" % i
                     # Check the cell to find a best matching
                     # segment active due to active cells. Returns an index to the best segment.
-                    bestMatchSeg = self.getBestMatchingSegment(distalSynapses[c][i])
+                    bestMatchSeg = self.getBestMatchingSegment(distalSynapses[c][i], timeStep)
                     if bestMatchSeg is not None:
-                        self.cellsScore[c][i] = 1+self.segmentHighestScore(distalSynapses[c][i][bestMatchSeg])
+                        self.cellsScore[c][i] = 1+self.segmentHighestScore(distalSynapses[c][i][bestMatchSeg], timeStep)
                         # print"Cell x,y,i = %s,%s,%s bestSeg = %s score = %s"%(c.pos_x,c.pos_y,i,
                         # bestMatchSeg,c.cells[i].score)
                         if self.cellsScore[c][i] > highestScore:
@@ -348,7 +408,7 @@ class activeCellsCalculator():
     def updateActiveCells(self, timeStep, activeColumns, predictiveCells, activeSeg, distalSynapses):
 
         '''
-        This function calcualtes which cells should be set as active.
+        This function calculates which cells should be set as active.
         It also calculates which cells should be put into a learning state.
         The learning state updates a cells synapses incrementing or decrementing the permanence value.
 
@@ -358,8 +418,9 @@ class activeCellsCalculator():
 
                 2.  activeColumns is a 1D array storing a bit indicating if the column is active (1) or not (0).
 
-                3.  predictiveCells is a 2D tensor. The first dimension stores the columns the second is the cells
-                    in the columns. Each cell stores the timeStep of when that cell was last in the predictive state.
+                3.  predictiveCells is a 3D tensor. The first dimension stores the columns the second is the cells
+                    in the columns. Each cell stores the last to timeSteps when the cell was in a predictiveState.
+                    It must have the dimesions of self.numColumns * self.cellsPerColumn * 2.
 
                 4.  activeSeg is a 3D tensor. The first dimension is the columns, the second the cells and the 3rd is
                     the segment in the cells. For each segment a timeStep is stored indicating when the segment was
@@ -374,14 +435,23 @@ class activeCellsCalculator():
 
         Outputs:
                 1.  activeCells is a 2d tensor storing the active state (1 active 0 not) of cells in each column.
+        Updates
+                1. "learnCells" is a 2d tensor storing the learning state (1 learning 0 not) of cells in each column.
+                2. Three tensors storing information on which segments to update for a cell
+                     a. A 2D tensor "segIndUpdate" for each cell holds [segIndex] indicating which segment to update.
+                        If the index is -2 this means create a new segment. If the index is -1 don't update or create
+                        any new segments.
+                     b. A 3D tensor "segActiveSyn" for each cell holds a synpase list indicating which
+                        synapses in the segment (the segment index is stored in the segIndUpdate tensor)
+                        are active [activeSynList 0 or 1].
+                     c. A 4D tensor "segNewSyn" for each cell holds a synpase list of new synapses that are to be
+                        created if a new segment is too be made (indicated by segIndUpdate) [newSynapseList].
+                        Each place in the synapse list holds [column number, cell number, permanence]
 
         '''
 
-        # Intialize the new activeCell matrix with zeros. This matrix is updated by this function.
-        activeCells = np.zeros_like(self.prevActiveCells)
-
         # First we calculate the score for each cell in the active column
-        self.updateActiveCellScores(activeColumns, distalSynapses)
+        self.updateActiveCellScores(activeColumns, distalSynapses, timeStep)
 
         # Now we update the active and learning states of the cell.
         # This is only done for columns that are active now.
@@ -392,16 +462,16 @@ class activeCellsCalculator():
                 if (self.prevActiveCols[c] == 1):
                     if (self.checkColPrevBursting(c, timeStep) is False):
                         prevActiveCellIndex = self.findPrevActiveCell(c, timeStep)
-                        self.activeCells[c][prevActiveCellIndex] = timeStep
-                        self.learnCells[c][prevActiveCellIndex] = timeStep
+                        self.setActiveCell(c, prevActiveCellIndex, timeStep)
+                        self.setlearnCell(c, prevActiveCellIndex, timeStep)
                     else:
                         # The column bursted on the previous timestep.
                         # Leave all cells in the column active by updating the activeCells.
                         for i in range(self.cellsPerColumn):
-                                self.activeCells[c][i] = timeStep
+                                self.setActiveCell(c, i, timeStep)
                         # Leave the previous learn cell in the learn state
                         prevLearnCellIndex = self.findPrevLearnCell(c, timeStep)
-                        self.learnCells[c][prevLearnCellIndex] = timeStep
+                        self.setlearnCell(c, prevLearnCellIndex, timeStep)
                 else:
                     # For the columns that have changed state from not active to active,
                     # update their cells by setting new active and learn states.
@@ -411,18 +481,43 @@ class activeCellsCalculator():
                     learningCellChosen = False
                     for i in range(self.cellsPerColumn):
                         # Update the cells according to the CLA paper
-                        if predictiveCells[c][i] == timeStep-1:
-                            cellSegList = distalSynapses[c][i]
-                            activeSegList = activeSeg[c][i]
-                            s = self.getPrevActiveSegment(cellSegList, activeCells, activeSegList, timeStep)
-                            # If a segment was found then continue
-                            if s != -1:
+                        # Check if the cell was predicitng it would be active on the previous timeStep.
+                        if self.checkCellPredicting(predictiveCells, c, i, timeStep-1) is True:
+                            # If a segment was active on the previous timestep then this segment
+                            # was prediciting the cell would become active (its a "sequence segment").
+                            # Set this cell as active and as the learning cell.
+                            for s in activeSeg[c][i]:
+                                if s == timeStep-1:
+                                    activeCellChosen = True
+                                    self.setActiveCell(c, i, timeStep)
+                                    learningCellChosen = True
+                                    self.setlearnCell(c, i, timeStep)
+                    # Different to CLA paper
+                    # If the column is about to burst because no cell was predicting
+                    # check the cell with the highest score and see if it's larger then the min threshold.
+                    if self.colArrayHighestScoredCell[c] != -1:
+                        # Check the score value of the highest scored cell in the column.
+                        highCellInd = self.colArrayHighestScoredCell[c]
+                        if (activeCellChosen is False and
+                           (self.cellsScore[c][highCellInd] >= self.minScoreThreshold)):
+                            activeCellChosen = True
+                            self.setActiveCell(c, highCellInd, timeStep)
+                            learningCellChosen = True
+                            self.setlearnCell(c, highCellInd, timeStep)
+                            # Add a new Segment to the cell by creating a segment update element for that cell.
+                            # Set the segIndUpdate index to -2 indicating a new segment should be created.
+                            self.segIndUpdate[c][highCellInd] = -2
+                            self.segActiveSyn = self.getSegmentActiveSynapses()
+
+                            # TODO finish the segUpdate feature.
+                            sUpdate = self.getSegmentActiveSynapses(c, c.highestScoredCell, timeStep-1, -1, True)
+                            sUpdate['sequenceSegment'] = timeStep
+                            c.cells[c.highestScoredCell].segmentUpdateList.append(sUpdate)
 
 
         print "self.cellsScore= \n%s" % self.cellsScore
         print "self.colArrayHighestScoredCell= \n%s" % self.colArrayHighestScoredCell
         self.prevActiveCols = activeColumns
-        self.prevDistalSynapses = distalSynapses
 
 
 # Helper functions for the Main function.
