@@ -181,22 +181,23 @@ class activeCellsCalculator():
     def getSegmentActiveSynapses(self, synapseList, timeStep):
         # Find the synapse indicies of the active synapses for the timestep.
         # Synapses whose end is on an active cell for the timestep.
-        # The synapseList stores an array of synpases where
+        # The synapseList stores an array of synapses where
         # each synapse stores the end connection of that synpase.
         # The end of the synapse connects to a cell in a column.
         # [columnIndex, cellIndex, permanence]
-        count = 0
+        # Return an array of size len(synapseList) where a 1 indicates
+        # the synapse is active and a 0 indicates inactive.
+        activeSynapses = np.zeros(len(synapseList))
         for i in range(len(synapseList)):
             columnIndex = synapseList[i][0]
             cellIndex = synapseList[i][1]
 
-            # TODO
-            # Fix this need to return synapse indicies
-            # Also need to fix prevActiveCells and active cells.
-            # do they hold the timestep or a boolean. DO they just hold the last active timestep
-            # or more?
-            if self.prevActiveCells[columnIndex][cellIndex] == 1:
-                count += 1
+            if self.checkCellActive(columnIndex, cellIndex, timeStep) is True:
+                activeSynapses[i] == 1
+            else:
+                activeSynapses[i] == 0
+
+        return activeSynapses
 
     def getPrevActiveSegment(self, cellSegList, activeCells, activeSegList, timeStep):
         # Returns an active segment ("sequence segment") if there are none
@@ -216,12 +217,12 @@ class activeCellsCalculator():
                     mostActiveSegment = s
         return mostActiveSegment
 
-    def checkColPrevBursting(self, colIndex, timeStep):
+    def checkColBursting(self, colIndex, timeStep):
         # Check that the column with the index colIndex was not bursting
-        # on the previous timestep (all cells are active).
+        # on the timestep (all cells are active).
         count = 0
         for i in range(self.cellsPerColumn):
-            if self.checkCellActive(colIndex, i, timeStep-1) is True:
+            if self.checkCellActive(colIndex, i, timeStep) is True:
                 count += 1
             else:
                 return False
@@ -232,22 +233,22 @@ class activeCellsCalculator():
             print "     A Column should have only one or all cells active!"
             return False
 
-    def findPrevActiveCell(self, colIndex, timeStep):
+    def findActiveCell(self, colIndex, timeStep):
         # Return the cell index that was active in the column with
-        # the index colIndex for the previous timestep.
+        # the index colIndex for the timestep.
         # If all cells are active (ie bursting was occuring) then return
         # the first indicie.
         for i in range(self.cellsPerColumn):
-            if self.checkCellActive(colIndex, i, timeStep-1) is True:
+            if self.checkCellActive(colIndex, i, timeStep) is True:
                 return i
         # No cell was found to be active in the column.
         return None
 
-    def findPrevLearnCell(self, colIndex, timeStep):
+    def findLearnCell(self, colIndex, timeStep):
         # Return the cell index that was in the learn state in the column with
-        # the index colIndex for the previous timestep.
+        # the index colIndex for the timestep.
         for i in range(self.cellsPerColumn):
-            if self.checkCellLearn(colIndex, i, timeStep-1) is True:
+            if self.checkCellLearn(colIndex, i, timeStep) is True:
                 return i
         # No cell was found to be in the learn state in the column.
         return None
@@ -263,7 +264,7 @@ class activeCellsCalculator():
             self.activeCellsTime[colIndex][cellIndex][1] = timeStep
         return False
 
-    def setlearnCell(self, colIndex, cellIndex, timeStep):
+    def setLearnCell(self, colIndex, cellIndex, timeStep):
         # Set the given cell at colIndex, cellIndex into a learn state for the
         # given timeStep.
         # We need to check the learnCellsTime tensor which holds multiple
@@ -374,8 +375,7 @@ class activeCellsCalculator():
                 return h    # returns just the index to the
                 # most active segment in the cell
         # print "returned no segment. None had enough active synapses return -1"
-        return None   # Means no segment was active
-        # enough and a new one will be created.
+        return None   # Means no segment was active enough.
 
     def updateActiveCellScores(self, activeColumns, distalSynapses, timeStep):
         # Updates both the cells scores and the array holding the cell
@@ -437,16 +437,26 @@ class activeCellsCalculator():
                 1.  activeCells is a 2d tensor storing the active state (1 active 0 not) of cells in each column.
         Updates
                 1. "learnCells" is a 2d tensor storing the learning state (1 learning 0 not) of cells in each column.
-                2. Three tensors storing information on which segments to update for a cell
+                2. Four tensors storing information on which segments to update for a cell.
+                   The 4 tensors are needed because a segment can be updated by either changing permanence values of the
+                   current synapses or creating new synapses or a combination of both for a single segment.
+                   A cell can only store information about updating one segment at a time.
+                   The four tensors are outlined below, none of them change size.
+
                      a. A 2D tensor "segIndUpdate" for each cell holds [segIndex] indicating which segment to update.
-                        If the index is -2 this means create a new segment. If the index is -1 don't update or create
-                        any new segments.
+                        If the index is -1 don't update any segments.
                      b. A 3D tensor "segActiveSyn" for each cell holds a synpase list indicating which
                         synapses in the segment (the segment index is stored in the segIndUpdate tensor)
                         are active [activeSynList 0 or 1].
-                     c. A 4D tensor "segNewSyn" for each cell holds a synpase list of new synapses that are to be
-                        created if a new segment is too be made (indicated by segIndUpdate) [newSynapseList].
-                        Each place in the synapse list holds [column number, cell number, permanence]
+
+                     c. A 2D tensor "segIndNewSyn" for each cell holds [segIndex] indicating which segment new
+                        synapses should be created for. If the index is -1 don't create any new synapses.
+                     d. A 4D tensor "segNewSyn" for each cell holds a synapse list [newSynapseList] of new synapses
+                        that could possibly be created. Each position corresponds to a synapses in the segment
+                        with the index stored in the segIndNewSyn tensor.
+                        Each place in the newSynapseList holds [columnIndex, cellIndex, permanence]
+                        If permanence is -1 then this means don't create a new synapse for that synapse.
+
 
         '''
 
@@ -460,18 +470,18 @@ class activeCellsCalculator():
                 # Any columns that are still active from the last step keep the same
                 # state of cells ie. the learning and active cells stay the same.
                 if (self.prevActiveCols[c] == 1):
-                    if (self.checkColPrevBursting(c, timeStep) is False):
-                        prevActiveCellIndex = self.findPrevActiveCell(c, timeStep)
+                    if (self.checkColBursting(c, timeStep-1) is False):
+                        prevActiveCellIndex = self.findActiveCell(c, timeStep-1)
                         self.setActiveCell(c, prevActiveCellIndex, timeStep)
-                        self.setlearnCell(c, prevActiveCellIndex, timeStep)
+                        self.setLearnCell(c, prevActiveCellIndex, timeStep)
                     else:
                         # The column bursted on the previous timestep.
                         # Leave all cells in the column active by updating the activeCells.
                         for i in range(self.cellsPerColumn):
                                 self.setActiveCell(c, i, timeStep)
                         # Leave the previous learn cell in the learn state
-                        prevLearnCellIndex = self.findPrevLearnCell(c, timeStep)
-                        self.setlearnCell(c, prevLearnCellIndex, timeStep)
+                        prevLearnCellIndex = self.findLearnCell(c, timeStep-1)
+                        self.setLearnCell(c, prevLearnCellIndex, timeStep)
                 else:
                     # For the columns that have changed state from not active to active,
                     # update their cells by setting new active and learn states.
@@ -491,7 +501,7 @@ class activeCellsCalculator():
                                     activeCellChosen = True
                                     self.setActiveCell(c, i, timeStep)
                                     learningCellChosen = True
-                                    self.setlearnCell(c, i, timeStep)
+                                    self.setLearnCell(c, i, timeStep)
                     # Different to CLA paper
                     # If the column is about to burst because no cell was predicting
                     # check the cell with the highest score and see if it's larger then the min threshold.
@@ -503,11 +513,14 @@ class activeCellsCalculator():
                             activeCellChosen = True
                             self.setActiveCell(c, highCellInd, timeStep)
                             learningCellChosen = True
-                            self.setlearnCell(c, highCellInd, timeStep)
+                            self.setLearnCell(c, highCellInd, timeStep)
                             # Add a new Segment to the cell by creating a segment update element for that cell.
                             # Set the segIndUpdate index to -2 indicating a new segment should be created.
                             self.segIndUpdate[c][highCellInd] = -2
-                            self.segActiveSyn = self.getSegmentActiveSynapses()
+                            #TODO
+                            # Finsh the getSegmentActiveSynapses function
+                            # this involves making multiple sub functions
+                            self.segActiveSyn = self.getSegmentActiveSynapses(cellSy, highCellInd)
 
                             # TODO finish the segUpdate feature.
                             sUpdate = self.getSegmentActiveSynapses(c, c.highestScoredCell, timeStep-1, -1, True)
