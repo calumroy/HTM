@@ -173,13 +173,13 @@ class activeCellsCalculator():
         # An array storing for each column the cell index number for the cell who has the highest calculated score.
         self.colArrayHighestScoredCell = np.array([-1 for j in range(self.numColumns)])
         # A variable length list storing the column Index and cell index of the current active cells.
-        self.currentActiveCells = []
+        self.currentActiveCellsList = []
         # A variable length list storing the column Index and cell index of the active cells for the previous timeStep.
-        self.prevActiveCells = []
+        self.prevActiveCellsList = []
         # A variable length list storing the column Index and cell index of the current learn state cells.
-        self.currentLearnCells = []
+        self.currentLearnCellsList = []
         # A variable length list storing the column Index and cell index of the learning cells for the previous timeStep.
-        self.prevLearnCells = []
+        self.prevLearnCellsList = []
         # The timeSteps when cells where active last. This is a 3D tensor.
         # The 1st dimension stores the columns the 2nd is the cells in the columns.
         # Each element stores the last 2 timestep when this cell was active last.
@@ -226,9 +226,9 @@ class activeCellsCalculator():
             cellIndex = segSynapseList[i][1]
 
             if self.checkCellActive(columnIndex, cellIndex, timeStep) is True:
-                activeSynapses[i] == 1
+                activeSynapses[i] = 1
             else:
-                activeSynapses[i] == 0
+                activeSynapses[i] = 0
 
         return activeSynapses
 
@@ -286,7 +286,7 @@ class activeCellsCalculator():
         # that are connected with cells that where in the learn state one timeStep ago.
         # Each element in the synapseList contains (colIndex, cellIndex, permanence)
         for i in range(len(synapseList)):
-            newSynEnd = random.sample(self.prevLearnCells, 1)[0]
+            newSynEnd = random.sample(self.prevLearnCellsList, 1)[0]
             columnIndex = newSynEnd[0]
             #import ipdb; ipdb.set_trace()
             cellIndex = newSynEnd[1]
@@ -355,8 +355,8 @@ class activeCellsCalculator():
             self.activeCellsTime[colIndex][cellIndex][0] = timeStep
         else:
             self.activeCellsTime[colIndex][cellIndex][1] = timeStep
-        # Also save the cells indicies in the currentActiveCells list
-        self.currentActiveCells.append([colIndex, cellIndex])
+        # Also save the cells indicies in the currentActiveCellsList list
+        self.currentActiveCellsList.append([colIndex, cellIndex])
 
     def setLearnCell(self, colIndex, cellIndex, timeStep):
         # Set the given cell at colIndex, cellIndex into a learn state for the
@@ -367,8 +367,8 @@ class activeCellsCalculator():
             self.learnCellsTime[colIndex][cellIndex][0] = timeStep
         else:
             self.learnCellsTime[colIndex][cellIndex][1] = timeStep
-        # Also save the cell indicie in the currentLearnCells list
-        self.currentLearnCells.append([colIndex, cellIndex])
+        # Also save the cell indicie in the currentLearnCellsList list
+        self.currentLearnCellsList.append([colIndex, cellIndex])
 
     def checkCellActive(self, colIndex, cellIndex, timeStep):
         # Check if the given cell was active at the timestep given.
@@ -501,7 +501,7 @@ class activeCellsCalculator():
                         self.cellsScore[c][i] = 0
 
     @do_cprofile  # For profiling
-    def updateActiveCells(self, timeStep, activeColumns, predictiveCells, activeSeg, distalSynapses):
+    def updateActiveCells(self, timeStep, activeColumns, predictCellsTime, activeSeg, distalSynapses):
 
         '''
         This function calculates which cells should be set as active.
@@ -514,7 +514,7 @@ class activeCellsCalculator():
 
                 2.  activeColumns is a 1D array storing a bit indicating if the column is active (1) or not (0).
 
-                3.  predictiveCells is a 3D tensor. The first dimension stores the columns the second is the cells
+                3.  predictCellsTime is a 3D tensor. The first dimension stores the columns the second is the cells
                     in the columns. Each cell stores the last two timeSteps when the cell was in a predictiveState.
                     It must have the dimesions of self.numColumns * self.cellsPerColumn * 2.
 
@@ -530,16 +530,20 @@ class activeCellsCalculator():
                     It does not change size. Its size is fixed when this class is constructed.
 
         Updates:
-                1.  "currentActiveCells" is a 2d tensor storing the active cells in each column for the current timeStep.
+                1.  "activeCellsTime" This 3D tensor is returned by this function. It is the timeSteps when cells where
+                    active last. The 1st dimension stores the columns the 2nd is the cells in the columns.
+                    Each element stores the last 2 timestep when this cell was active last.
+
+                2.  "currentActiveCellsList" is a 2d tensor storing the active cells in each column for the current timeStep.
                     It is a variable length 2d array storing the columnIndex and cellIndex of cells currently active.
                     For example [9,3]. It is reset to an empty list at the start of each timeStep.
-                2.  "prevActiveCells" is a 2d tensor storing the active cells in each column for the previous timeStep.
-                3. "currentLearnCells" is a 2d tensor storing the learn state cells in each column for the current timeStep.
+                3.  "prevActiveCellsList" is a 2d tensor storing the active cells in each column for the previous timeStep.
+                4. "currentLearnCellsList" is a 2d tensor storing the learn state cells in each column for the current timeStep.
                     It is a variable length 2d array storing the columnIndex and cell index of cells currently in the learn
                     state. It is reset to an empty list at the start of each timeStep.
-                4.  "prevLearnCells" is a 2d tensor storing the active cells in each column for the previous timeStep.
+                5.  "prevLearnCellsList" is a 2d tensor storing the active cells in each column for the previous timeStep.
 
-                5. Four tensors storing information on which segments to update for a cell.
+                6. Four tensors storing information on which segments to update for a cell.
                    The 4 tensors are needed because a segment can be updated by either changing permanence values of the
                    current synapses or creating new synapses or a combination of both for a single segment.
                    A cell can only store information about updating one segment at a time.
@@ -562,11 +566,11 @@ class activeCellsCalculator():
         '''
 
         # Set the previous active Cells list to the current active
-        # cells list and then reset the currentActiveCells list.
-        self.prevActiveCells = self.currentActiveCells
-        self.currentActiveCells = []
-        self.prevLearnCells = self.currentLearnCells
-        self.currentLearnCells = []
+        # cells list and then reset the currentActiveCellsList list.
+        self.prevActiveCellsList = self.currentActiveCellsList
+        self.currentActiveCellsList = []
+        self.prevLearnCellsList = self.currentLearnCellsList
+        self.currentLearnCellsList = []
 
         # First we calculate the score for each cell in the active column
         self.updateActiveCellScores(activeColumns, distalSynapses, timeStep)
@@ -600,7 +604,7 @@ class activeCellsCalculator():
                     for i in range(self.cellsPerColumn):
                         # Update the cells according to the CLA paper
                         # Check if the cell was predicitng it would be active on the previous timeStep.
-                        if self.checkCellPredicting(predictiveCells, c, i, timeStep-1) is True:
+                        if self.checkCellPredicting(predictCellsTime, c, i, timeStep-1) is True:
                             # If a segment was active on the previous timestep then this segment
                             # was prediciting the cell would become active (its a "sequence segment").
                             # Set this cell as active and as the learning cell.
@@ -646,9 +650,20 @@ class activeCellsCalculator():
 
         # print "self.cellsScore= \n%s" % self.cellsScore
         # print "self.colArrayHighestScoredCell= \n%s" % self.colArrayHighestScoredCell
-        # print "self.currentActiveCells = \n%s" % self.currentActiveCells
+        # print "self.currentActiveCellsList = \n%s" % self.currentActiveCellsList
         # save the previous active columns array.
         self.prevActiveCols = activeColumns
+
+        return self.activeCellsTime
+
+    def getActiveCellsList(self):
+        # Return the list of active cells
+        return self.currentActiveCellsList
+
+    def getSegUpdates(self):
+        # Return the tensors storing information on which distal synapses
+        # in which segments learning should be performed on.
+        return self.segIndUpdate, self.segActiveSyn, self.segIndNewSyn, self.segNewSyn
 
 
 # Helper functions for the Main function.
@@ -676,7 +691,7 @@ def updateActiveCells(activeCols, cellsPerColumn):
 
 if __name__ == '__main__':
     # A main function to test and debug this class.
-    numRows = 400
+    numRows = 40
     numCols = 40
     cellsPerColumn = 10
     numColumns = numRows * numCols
@@ -702,9 +717,9 @@ if __name__ == '__main__':
         if index[4] == 0:
             distalSynapses[index] = random.randint(0, numColumns-1)
 
-    # Create the predicitve cells
-    predictiveCells = np.zeros((numColumns, cellsPerColumn, 2))
-    # for index, x in np.ndenumerate(predictiveCells):
+    # Create the predictive cells
+    predictCells = np.zeros((numColumns, cellsPerColumn, 2))
+    # for index, x in np.ndenumerate(predictCells):
 
     activeSeg = np.zeros((numColumns, cellsPerColumn, maxSegPerCell))
 
@@ -715,7 +730,7 @@ if __name__ == '__main__':
     activeCellsCalc = activeCellsCalculator(numColumns, cellsPerColumn, maxSegPerCell,
                                             maxSynPerSeg, minNumSynThreshold, minScoreThreshold, newSynPermanence)
     # Run through once
-    activeCells = activeCellsCalc.updateActiveCells(timeStep, activeColumns, predictiveCells, activeSeg, distalSynapses)
+    activeCells = activeCellsCalc.updateActiveCells(timeStep, activeColumns, predictCells, activeSeg, distalSynapses)
 
     test_iterations = 2
     for i in range(test_iterations):
@@ -724,557 +739,5 @@ if __name__ == '__main__':
             print timeStep
         # Change the active columns and active cells and run again.
         activeColumns = updateActiveCols(numColumns)
-        #activeCells = updateActiveCells(activeColumns, cellsPerColumn)
-        activeCells = activeCellsCalc.updateActiveCells(timeStep, activeColumns, predictiveCells, activeSeg, distalSynapses)
-
-
-
-# def getDistalSynapses():
-#     # Return this example of a distalSynapses tensor
-#     distalSynapses = np.array(
-#     [[[[[0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]],
-
-#        [[0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]]],
-
-
-#       [[[0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]],
-
-#        [[0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]]],
-
-
-#       [[[0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]],
-
-#        [[0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]]]],
-
-
-
-#      [[[[0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]],
-
-#        [[0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]]],
-
-
-#       [[[0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]],
-
-#        [[0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]]],
-
-
-#       [[[0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]],
-
-#        [[0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]]]],
-
-
-
-#      [[[[0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]],
-
-#        [[0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]]],
-
-
-#       [[[0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]],
-
-#        [[0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]]],
-
-
-#       [[[0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]],
-
-#        [[0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]]]],
-
-
-
-#      [[[[0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]],
-
-#        [[0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]]],
-
-
-#       [[[0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]],
-
-#        [[0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]]],
-
-
-#       [[[0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]],
-
-#        [[0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]]]],
-
-
-
-#      [[[[0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]],
-
-#        [[0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]]],
-
-
-#       [[[0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]],
-
-#        [[0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]]],
-
-
-#       [[[0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]],
-
-#        [[0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]]]],
-
-
-
-#      [[[[0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]],
-
-#        [[0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]]],
-
-
-#       [[[0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]],
-
-#        [[0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]]],
-
-
-#       [[[0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]],
-
-#        [[0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]]]],
-
-
-
-#      [[[[0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]],
-
-#        [[0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]]],
-
-
-#       [[[0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]],
-
-#        [[0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]]],
-
-
-#       [[[0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]],
-
-#        [[0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]]]],
-
-
-
-#      [[[[0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]],
-
-#        [[0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]]],
-
-
-#       [[[0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]],
-
-#        [[0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]]],
-
-
-#       [[[0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]],
-
-#        [[0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]]]],
-
-
-
-#      [[[[0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]],
-
-#        [[0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]]],
-
-
-#       [[[0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]],
-
-#        [[0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]]],
-
-
-#       [[[0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]],
-
-#        [[0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]]]],
-
-
-
-#      [[[[0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]],
-
-#        [[0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]]],
-
-
-#       [[[0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]],
-
-#        [[0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]]],
-
-
-#       [[[0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]],
-
-#        [[0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]]]],
-
-
-
-#      [[[[0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]],
-
-#        [[0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]]],
-
-
-#       [[[0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]],
-
-#        [[0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]]],
-
-
-#       [[[0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]],
-
-#        [[0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]]]],
-
-
-
-#      [[[[0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]],
-
-#        [[0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]]],
-
-
-#       [[[0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]],
-
-#        [[0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]]],
-
-
-#       [[[0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]],
-
-#        [[0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]]]],
-
-
-
-#      [[[[0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]],
-
-#        [[0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]]],
-
-
-#       [[[0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]],
-
-#        [[0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]]],
-
-
-#       [[[0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]],
-
-#        [[0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]]]],
-
-
-
-#      [[[[0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]],
-
-#        [[0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]]],
-
-
-#       [[[0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]],
-
-#        [[0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]]],
-
-
-#       [[[0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]],
-
-#        [[0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]]]],
-
-
-
-#      [[[[0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]],
-
-#        [[0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]]],
-
-
-#       [[[0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]],
-
-#        [[0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]]],
-
-
-#       [[[0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]],
-
-#        [[0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]]]],
-
-
-
-#      [[[[0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]],
-
-#        [[0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]]],
-
-
-#       [[[0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]],
-
-#        [[0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]]],
-
-
-#       [[[0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]],
-
-#        [[0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]
-#         [0., 0., 0.]]]]]
-#         )
-
-#     return distalSynapses
-
-
+        # activeCells = updateActiveCells(activeColumns, cellsPerColumn)
+        activeCells = activeCellsCalc.updateActiveCells(timeStep, activeColumns, predictCells, activeSeg, distalSynapses)
