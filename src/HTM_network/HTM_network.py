@@ -209,12 +209,13 @@ class HTMLayer:
         # The starting permanence of new cell synapses (sequence pooler synapses).
         # This is used to create new synapses.
         self.cellSynPermanence = params['cellSynPermanence']
+
         # Create matrix group variables. These variables store info about all
         # the columns, cells and synpases. This is done to improve the performance
         # since operations are just matrix manipulations.
         # These parameters come from the column class.
         # Just take the parameters for the first column.
-        #from PyQt4.QtCore import pyqtRemoveInputHook; import ipdb; pyqtRemoveInputHook(); ipdb.set_trace()
+
         self.potentialWidth = params['potentialWidth']
         self.potentialHeight = params['potentialHeight']
         self.minOverlap = params['minOverlap']
@@ -222,7 +223,8 @@ class HTMLayer:
         self.spatialPermanenceDec = params['spatialPermanenceDec']
         self.maxNumTempPoolPatterns = params['maxNumTempPoolPatterns']
         # Already active columns have their spatial synapses decremented by a different value in the spatial pooler.
-        self.activeColPermanenceDec = float(self.spatialPermanenceInc)/float(self.maxNumTempPoolPatterns)
+        self.activeColPermanenceDec = (float(self.spatialPermanenceInc) /
+                                       float(self.maxNumTempPoolPatterns))
         self.permanenceInc = params['permanenceInc']
         self.permanenceDec = params['permanenceDec']
         self.inputHeight = len(self.Input)
@@ -231,7 +233,8 @@ class HTMLayer:
         self.numColumns = self.height * self.width
         # Setup a matrix where each row represents a list of a columns
         # potential synapse permanence values
-        self.colPotSynPerm = np.array([[self.colSynPermanence for i in range(self.numPotSyn)] for j in range(self.numColumns)])
+        self.colPotSynPerm = np.array([[self.colSynPermanence for i in range(self.numPotSyn)]
+                                      for j in range(self.numColumns)])
         # Setup a matrix where each position represents a columns overlap.
         self.colOverlaps = np.empty([self.height, self.width])
         # Setup a matrix where each row represents a columns input values from its potential synapses.
@@ -240,7 +243,7 @@ class HTMLayer:
         # was active but not bursting last. Each position in the first dimension
         # represents a column. The matrix stores the last two times the column
         # was active but not bursting. The latest timeStep is stored in the first position.
-        # eg. self.colActNotBurstTimes[41][0] sotres the latest time that column 42 was active
+        # eg. self.colActNotBurstTimes[41][0] stores the latest time that column 42 was active
         # but not bursting. self.colActNotBurstTimes[41][1] stores the second last time that column
         # 42 was active but not bursting. The third place is a temporary position used to update
         # the other two positions.
@@ -251,6 +254,36 @@ class HTMLayer:
         self.colStopTempAtTime = np.zeros(self.numColumns)
         # Setup a vector where each element represents if a column is active 1 or not 0
         self.colActive = np.zeros(self.numColumns)
+
+        # The timeSteps when cells where active last. This is a 3D tensor.
+        # The 1st dimension stores the columns the 2nd is the cells in the columns.
+        # Each element stores the last 2 timestep when this cell was active last.
+        self.activeCellsTime = np.array([[[-1, -1] for x in range(self.cellsPerColumn)]
+                                        for y in range(self.numColumns)])
+
+        # Create the distalSynapse 5d tensor holding the information of the distal synapses.
+        # The first dimension stores the columns, the 2nd is the cells
+        # in the columns, 3rd stores the segments for each cell, 4th stores the synapses in each
+        # segment and the 5th stores the end connection of the synapse
+        # (column number, cell number, permanence). This tensor has a size of
+        # numberColumns * numCellsPerCol * maxNumSegmentsPerCell * maxNumSynPerSeg.
+        # It does not change size. Its size is fixed when this class is constructed.
+        self.distalSynapses = np.zeros((self.numColumns,
+                                        self.cellsPerColumn,
+                                        self.maxNumSegments,
+                                        self.newSynapseCount, 3))
+        # activeSeg is a 3D tensor. The first dimension is the columns, the second the
+        # cells and the 3rd is the segment in the cells. For each segment a timeStep is stored
+        # indicating when the segment was last in an active state. This means it was
+        # predicting that the cell would become active in the next timeStep.
+        # This is what the CLA paper calls a "SEQUENCE SEGMENT".
+        self.activeSeg = np.zeros((self.numColumns, self.cellsPerColumn, self.maxNumSegments))
+        # predictiveCells is a 3D tensor. The first dimension stores the columns the second
+        # is the cells in the columns. Each cell stores the last two timeSteps when
+        # the cell was in a predictiveState. It must have the dimesions of
+        # self.numColumns * self.cellsPerColumn * 2.
+        self.predictiveCells = np.zeros((self.numColumns,
+                                        self.cellsPerColumn, 2))
 
         # Create the array storing the columns
         self.columns = np.array([[]], dtype=object)
@@ -292,8 +325,13 @@ class HTMLayer:
                                                         self.spatialPermanenceDec,
                                                         self.activeColPermanenceDec)
 
-        self.activeCellsCalc = activeCells.activeCellsCalculator()
-
+        self.activeCellsCalc = activeCells.activeCellsCalculator(self.numColumns,
+                                                                 self.cellsPerColumn,
+                                                                 self.maxNumSegments,
+                                                                 self.newSynapseCount,
+                                                                 self.minThreshold,
+                                                                 self.minScoreThreshold,
+                                                                 self.cellSynPermanence)
 
         self.tempPoolCalc = temporal.TemporalPoolCalculator(self.potentialWidth,
                                                             self.potentialHeight,
@@ -1048,20 +1086,35 @@ class HTMLayer:
         '''
 
         self.colPotSynPerm = self.learningCalc.updatePermanenceValues(self.colPotSynPerm,
-                                                                        self.colPotInputs,
-                                                                        self.colActive)
+                                                                      self.colPotInputs,
+                                                                      self.colActive)
 
     def sequencePooler(self, timeStep):
         '''
         Calls the calculators that update the sequence pooler.
-        '''
-        # TODO
-        # self.activeCellsCalc.updateActiveCells(self.activeColumns)
+         1. update the active cells
+         2. update the predictive cells
+         3. perform learning on the selected distal synpases
 
+        '''
+
+        # Update the active cells and get the active Cells times from the calculator.
+        self.activeCellsTime = self.activeCellsCalc.updateActiveCells(timeStep,
+                                                                      self.colActive,
+                                                                      self.predictiveCells,
+                                                                      self.activeSeg,
+                                                                      self.distalSynapses)
+
+        # Get the update distal synapse tensors storing information on which
+        # distal synapses should be updated.
+        (self.segIndUpdate,
+         self.segActiveSyn,
+         self.segIndNewSyn,
+         self.segNewSyn) = self.activeCellsCalc.getSegUpdates()
 
     def updateActiveState(self, timeStep):
         # TODO
-        # Remove this function it goes in a  calcualtor class.
+        # Remove this function it goes in a calculator class.
         """
         First function called to update the sequence pooler.
         This function has been modified to the CLA whitepaper but it resembles
@@ -1242,20 +1295,20 @@ class HTMLayer:
         for k in range(len(self.columns)):
             for c in self.columns[k]:
                 for i in range(len(c.cells)):
-                    #print "predictiveStateArray for x,y,i =
-                    #%s,%s,%s is latest time = %s"%(c.pos_x,c.pos_y,i,
-                        #c.predictiveStateArray[i,0])
-                    if ((self.learnState(c, i, timeStep) is True)
-                            and (self.learnState(c, i, timeStep-1) is False)):
-                        #print "learn state for x,y,cell =
-                        #%s,%s,%s"%(c.pos_x,c.pos_y,i)
+                    # print "predictiveStateArray for x,y,i =
+                    # %s,%s,%s is latest time = %s"%(c.pos_x,c.pos_y,i,
+                        # c.predictiveStateArray[i,0])
+                    if ((self.learnState(c, i, timeStep) is True) and
+                        (self.learnState(c, i, timeStep-1) is False)):
+                        # print "learn state for x,y,cell =
+                        # %s,%s,%s"%(c.pos_x,c.pos_y,i)
                         self.adaptSegments(c, i, True)
                     # Trying a different method to the CLA white pages
                     #if self.activeState(c,i,timeStep) ==
                     #False and self.predictiveState(c,i,timeStep-1) is True:
-                    if ((self.predictiveState(c, i, timeStep-1) is True
-                            and self.predictiveState(c, i, timeStep) is False
-                            and self.activeState(c, i, timeStep) is False)):
+                    if ((self.predictiveState(c, i, timeStep-1) is True and
+                        self.predictiveState(c, i, timeStep) is False and
+                        self.activeState(c, i, timeStep) is False)):
                         #print "INCORRECT predictive
                         #state for x,y,cell = %s,%s,%s"%(c.pos_x,c.pos_y,i)
                         self.adaptSegments(c, i, False)
