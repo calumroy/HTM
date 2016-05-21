@@ -5,7 +5,7 @@ from PyQt4 import QtGui
 import sys
 import json
 from copy import deepcopy
-from HTM_Classes import np_inhibition
+from HTM_calc import np_inhibition
 
 class test_npInhibition:
     def setUp(self):

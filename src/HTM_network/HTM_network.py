@@ -20,6 +20,8 @@ from HTM_calc import np_inhibition as inhibition
 from HTM_calc import np_learning as learning
 
 from HTM_calc import np_activeCells as activeCells
+from HTM_calc import np_predictCells as predictCells
+
 
 
 ##Struct = {'field1': 'some val', 'field2': 'some val'}
@@ -261,6 +263,12 @@ class HTMLayer:
         self.activeCellsTime = np.array([[[-1, -1] for x in range(self.cellsPerColumn)]
                                         for y in range(self.numColumns)])
 
+        # The timeSteps when cells where in the predicitive state last. This is a 3D tensor.
+        # The 1st dimension stores the columns the 2nd is the cells in the columns.
+        # Each element stores the last 2 timestep when this cell was predicitng last.
+        self.predictCellsTime = np.array([[[-1, -1] for x in range(self.cellsPerColumn)]
+                                         for y in range(self.numColumns)])
+
         # Create the distalSynapse 5d tensor holding the information of the distal synapses.
         # The first dimension stores the columns, the 2nd is the cells
         # in the columns, 3rd stores the segments for each cell, 4th stores the synapses in each
@@ -284,6 +292,47 @@ class HTMLayer:
         # self.numColumns * self.cellsPerColumn * 2.
         self.predictiveCells = np.zeros((self.numColumns,
                                         self.cellsPerColumn, 2))
+
+        # A 2d tensor for each cell holds [segIndex] indicating which segment to update.
+        # This tensor stores segment update info from the active Cells calculator.
+        # If the index is -1 this means don't create a new segment.
+        self.segIndUpdateActive = np.array([[-1 for x in range(self.cellsPerColumn)] for y in range(self.numColumns)])
+        # A 3d tensor for each cell holds a synpase list indicating which
+        # synapses in the segment (the segment index is stored in the segIndUpdate tensor)
+        # are active [activeSynList 0 or 1].
+        # This tensor stores segment update info from the active Cells calculator.
+        self.segActiveSynActive = np.array([[[-1 for z in range(self.maxSynPerSeg)]
+                                            for x in range(self.cellsPerColumn)]
+                                            for y in range(self.numColumns)])
+        # A 2D tensor "segIndNewSyn" for each cell holds [segIndex] indicating which segment new
+        # synapses should be created for. If the index is -1 don't create any new synapses.
+        # This tensor stores segment update info from the active Cells calculator.
+        self.segIndNewSynActive = np.array([[-1 for x in range(self.cellsPerColumn)] for y in range(self.numColumns)])
+        # A 4D tensor "segNewSyn" for each cell holds a synapse list [newSynapseList] of new synapses
+        # that could possibly be created. Each position corresponds to a synapses in the segment
+        # with the index stored in the segNewSynActive tensor.
+        # Each place in the newSynapseList holds [columnIndex, cellIndex, permanence]
+        # If permanence is -1 then this means don't create a new synapse for that synapse.
+        # This tensor stores segment update info from the active Cells calculator.
+        self.segNewSynActive = np.array([[[[-1, -1, 0.0] for z in range(self.maxSynPerSeg)]
+                                        for x in range(self.cellsPerColumn)]
+                                        for y in range(self.numColumns)])
+        # A 2D tensor "segIndNewSynActive" for each cell holds [segIndex] indicating which segment new
+        # synapses should be created for. If the index is -1 don't create any new synapses.
+        # This tensor stores segment update info from the active Cells calculator.
+        self.segIndNewSynActive = np.array([[-1 for x in range(self.cellsPerColumn)] for y in range(self.numColumns)])
+
+        # A 2d tensor for each cell holds [segIndex] indicating which segment to update.
+        # This tensor stores segment update info from the predict Cells calculator.
+        # If the index is -1 this means don't create a new segment.
+        self.segIndUpdatePredict = np.array([[-1 for x in range(self.cellsPerColumn)] for y in range(self.numColumns)])
+        # A 3d tensor for each cell holds a synpase list indicating which
+        # synapses in the segment (the segment index is stored in the segIndUpdate tensor)
+        # are active [activeSynList 0 or 1].
+        # This tensor stores segment update info from the predictive Cells calculator.
+        self.segActiveSynPredict = np.array([[[-1 for z in range(self.maxSynPerSeg)]
+                                            for x in range(self.cellsPerColumn)]
+                                            for y in range(self.numColumns)])
 
         # Create the array storing the columns
         self.columns = np.array([[]], dtype=object)
@@ -332,6 +381,12 @@ class HTMLayer:
                                                                  self.minThreshold,
                                                                  self.minScoreThreshold,
                                                                  self.cellSynPermanence)
+
+        self.predictCellsCalc = predictCells.predictCellsCalculator(self.numColumns,
+                                                                    self.cellsPerColumn,
+                                                                    self.maxNumSegments,
+                                                                    self.newSynapseCount,
+                                                                    self.connectPermanence)
 
         self.tempPoolCalc = temporal.TemporalPoolCalculator(self.potentialWidth,
                                                             self.potentialHeight,
@@ -1050,7 +1105,6 @@ class HTMLayer:
         # limit the overlap values so they are larger then minOverlap
         self.colOverlaps = self.overlapCalc.removeSmallOverlaps(self.colOverlaps)
 
-
     def inhibition(self, timeStep):
         '''
         Phase two for the spatial pooler
@@ -1066,7 +1120,7 @@ class HTMLayer:
         potColOverlapsGrid = self.getPotentialOverlaps().reshape((self.height, self.width))
 
         self.colActive = self.inhibCalc.calculateWinningCols(colOverlapsGrid, potColOverlapsGrid)
-        #print "self.colActive = \n%s" % self.colActive
+        # print "self.colActive = \n%s" % self.colActive
 
         # Update the activeColumn list using the colActive vector.
         self.activeColumns = np.array([], dtype=object)
@@ -1098,6 +1152,7 @@ class HTMLayer:
 
         '''
 
+        # 1. CALCULATE ACTIVE CELLS
         # Update the active cells and get the active Cells times from the calculator.
         self.activeCellsTime = self.activeCellsCalc.updateActiveCells(timeStep,
                                                                       self.colActive,
@@ -1106,11 +1161,20 @@ class HTMLayer:
                                                                       self.distalSynapses)
 
         # Get the update distal synapse tensors storing information on which
-        # distal synapses should be updated.
-        (self.segIndUpdate,
-         self.segActiveSyn,
-         self.segIndNewSyn,
-         self.segNewSyn) = self.activeCellsCalc.getSegUpdates()
+        # distal synapses should be updated from the active cells calculator class.
+        (self.segIndUpdateActive,
+         self.segActiveSynActive,
+         self.segIndNewSynActive,
+         self.segNewSynActive) = self.activeCellsCalc.getSegUpdates()
+
+        # 2. CALCULATE PREDICTIVE CELLS
+        self.predictCellsTime = self.predictCellsCalc.updatePredictiveState(timeStep,
+                                                                            self.activeCellsTime,
+                                                                            self.distalSynapses)
+        # Get the update distal synapse tensors storing information on which
+        # distal synapses should be updated for the predictive cells calculator.
+        (self.segIndUpdatePredict,
+         self.segActiveSynPredict) = self.predictCellsCalc.getSegUpdates()
 
     def updateActiveState(self, timeStep):
         # TODO

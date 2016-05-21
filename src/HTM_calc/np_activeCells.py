@@ -21,9 +21,6 @@ def do_cprofile(func):
 '''
 A class used to activate cells
 
-This class requires as inputs:
-    *
-
 THIS CLASS IS A REIMPLEMENTATION OF THE ORIGINAL CODE:
         """
         First function called to update the sequence pooler.
@@ -561,7 +558,6 @@ class activeCellsCalculator():
                         with the index stored in the segIndNewSyn tensor.
                         Each place in the newSynapseList holds [columnIndex, cellIndex, permanence]
                         If permanence is -1 then this means don't create a new synapse for that synapse.
-
 
         '''
 

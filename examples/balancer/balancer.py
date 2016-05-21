@@ -5,12 +5,12 @@ This python script creates and runs the Balancer HTM simulation
 
 '''
 
-import GUI_HTM
 from PyQt4 import QtGui
 import sys
 import json
 import HTM_network as HTM_V
 import Inverted_Pendulum
+from HTM_GUI import GUI_HTM
 
 
 def main():

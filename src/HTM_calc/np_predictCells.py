@@ -17,56 +17,61 @@ def do_cprofile(func):
     return profiled_func
 
 '''
-def updatePredictiveState(self, timeStep):
-        # The second function call for the sequence pooler.
-        # Updates the predictive state of cells.
-        #print "\n       2nd SEQUENCE FUNCTION "
-        for k in range(len(self.columns)):
-            for c in self.columns[k]:
-                mostPredCellSynCount = 0
-                # This is a count of the largest number
-                #of synapses active on any segment on any cell in the column
-                mostPredCell = 0
-                # This is the cellIndex with the most
-                # mostPredCellSynCount. This cell is the
-                # highest predictor in the column.
-                mostPredSegment = 0
-                columnPredicting = False
-                for i in range(len(c.cells)):
-                    segIndex = 0
-                    for s in c.cells[i].segments:
-                        # This differs to the CLA.
-                        # When all cells are active in a
-                        # column this stops them from all causing predictions.
-                        # lcchosen will be correctly set when a
-                        # cell predicts and is activated by a group of learning cells.
-                        #activeState = 1
-                        #if self.segmentActive(s,timeStep,activeState) > 0:
-                        #learnState = 2
-                        # Use active state since a segment sets a cell into the predictive
-                        # state when it contains many synapses connected to currently active cells.
-                        activeState = 1
-                        predictionLevel = self.segmentActive(s, timeStep, activeState)
-                        #if predictionLevel > 0:
-                        #    print "x,y,cell = %s,%s,%s predLevel =
-                        #%s"%(c.pos_x,c.pos_y,i,predictionLevel)
-                        # Check that this cell is the highest
-                        #predictor so far for the column.
-                        if predictionLevel > mostPredCellSynCount:
-                            mostPredCellSynCount = predictionLevel
-                            mostPredCell = i
-                            mostPredSegment = segIndex
-                            columnPredicting = True
-                        segIndex = segIndex+1
-                        # Need this to hand to getSegmentActiveSynapses\
-                if columnPredicting is True:
-                    # Set the most predicting cell in
-                    # the column as the predicting cell.
-                    self.predictiveStateAdd(c, mostPredCell, timeStep)
-                    # Only create a new update structure if the cell wasn't already predicting
-                    if self.predictiveState(c, mostPredCell, timeStep-1) is False:
-                        activeUpdate = self.getSegmentActiveSynapses(c, mostPredCell, timeStep, mostPredSegment, False)
-                        c.cells[mostPredCell].segmentUpdateList.append(activeUpdate)
+A class used to set cells in a predictive state
+
+THIS CLASS IS A REIMPLEMENTATION OF THE ORIGINAL CODE:
+    """
+    def updatePredictiveState(self, timeStep):
+            # The second function call for the sequence pooler.
+            # Updates the predictive state of cells.
+            #print "\n       2nd SEQUENCE FUNCTION "
+            for k in range(len(self.columns)):
+                for c in self.columns[k]:
+                    mostPredCellSynCount = 0
+                    # This is a count of the largest number
+                    #of synapses active on any segment on any cell in the column
+                    mostPredCell = 0
+                    # This is the cellIndex with the most
+                    # mostPredCellSynCount. This cell is the
+                    # highest predictor in the column.
+                    mostPredSegment = 0
+                    columnPredicting = False
+                    for i in range(len(c.cells)):
+                        segIndex = 0
+                        for s in c.cells[i].segments:
+                            # This differs to the CLA.
+                            # When all cells are active in a
+                            # column this stops them from all causing predictions.
+                            # lcchosen will be correctly set when a
+                            # cell predicts and is activated by a group of learning cells.
+                            #activeState = 1
+                            #if self.segmentActive(s,timeStep,activeState) > 0:
+                            #learnState = 2
+                            # Use active state since a segment sets a cell into the predictive
+                            # state when it contains many synapses connected to currently active cells.
+                            activeState = 1
+                            predictionLevel = self.segmentActive(s, timeStep, activeState)
+                            #if predictionLevel > 0:
+                            #    print "x,y,cell = %s,%s,%s predLevel =
+                            #%s"%(c.pos_x,c.pos_y,i,predictionLevel)
+                            # Check that this cell is the highest
+                            #predictor so far for the column.
+                            if predictionLevel > mostPredCellSynCount:
+                                mostPredCellSynCount = predictionLevel
+                                mostPredCell = i
+                                mostPredSegment = segIndex
+                                columnPredicting = True
+                            segIndex = segIndex+1
+                            # Need this to hand to getSegmentActiveSynapses\
+                    if columnPredicting is True:
+                        # Set the most predicting cell in
+                        # the column as the predicting cell.
+                        self.predictiveStateAdd(c, mostPredCell, timeStep)
+                        # Only create a new update structure if the cell wasn't already predicting
+                        if self.predictiveState(c, mostPredCell, timeStep-1) is False:
+                            activeUpdate = self.getSegmentActiveSynapses(c, mostPredCell, timeStep, mostPredSegment, False)
+                            c.cells[mostPredCell].segmentUpdateList.append(activeUpdate)
+    """
 '''
 
 
@@ -180,6 +185,41 @@ class predictCellsCalculator():
     def updatePredictiveState(self, timeStep, activeCellsTime, distalSynapses):
     	'''
         This function calculates which cells should be set into the predictive state.
+        The predictive state is when a cell is predicting it will be active on the
+        next timestep becuase it currently has enough synpases in a segment group
+        which connect to currently active cells.
+
+        Inputs:
+                1.  timeStep is the number of iterations that the HTM has been through.
+                    It is just an incrementing integer used to keep track of time.
+
+                2.  activeCellsTime is a 3D tensor. The first dimension stores the columns the second is the cells
+                    in the columns. Each cell stores the last two timeSteps when the cell was in an active State.
+                    It must have the dimesions of self.numColumns * self.cellsPerColumn * 2.
+
+                3.  distalSynapses is a 5D tensor. The first dimension stores the columns, the 2nd is the cells
+                    in the columns, 3rd stores the segments for each cell, 4th stores the synapses in each
+                    segment and the 5th stores the end connection of the synapse (column number, cell number, permanence).
+                    This tensor has a size of numberColumns * numCellsPerCol * maxNumSegmentsPerCell * maxNumSynPerSeg.
+                    It does not change size. Its size is fixed when this class is constructed.
+
+        Updates:
+                1.  "predictCellsTime" This 3D tensor is returned by this function. It is the timeSteps when cells where
+                    in the predictive state last. The 1st dimension stores the columns the 2nd is the cells in the columns.
+                    Each element stores the last 2 timestep when this cell was in the predictive state.
+
+                2. Two tensors storing information on which segments to update for a cell.
+                   The two tensors are needed as one stores the segment index that is to be updated
+                   and the other stores which synpases where active when the segment index was calcualted.
+                   A cell can only store information about updating one segment at a time.
+                   The two tensors are outlined below, none of them change size.
+
+                     a. A 2D tensor "segIndUpdate" for each cell holds [segIndex] indicating which segment to update.
+                        If the index is -1 don't update any segments.
+                     b. A 3D tensor "segActiveSyn" for each cell holds a synpase list indicating which
+                        synapses in the segment (the segment index is stored in the segIndUpdate tensor)
+                        are active [activeSynList 0 or 1].
+
         '''
 
         for c in range(self.numColumns):
@@ -210,10 +250,10 @@ class predictCellsCalculator():
                     self.segActiveSyn[c][mostPredCell] = self.getSegmentActiveSynapses(distalSynapses[c][mostPredCell][mostPredSegment],
                                                                                        timeStep,
                                                                                        activeCellsTime)
-                    print "self.segActiveSyn[%s][%s] = %s" % (c, mostPredCell, self.segActiveSyn[c][mostPredCell])
+                    # print "self.segActiveSyn[%s][%s] = %s" % (c, mostPredCell, self.segActiveSyn[c][mostPredCell])
 
-        print "self.currentSegSynCount = \n%s" % self.currentSegSynCount
-        #print "self.predictCellsTime = \n%s" % self.predictCellsTime
+        # print "self.currentSegSynCount = \n%s" % self.currentSegSynCount
+        # print "self.predictCellsTime = \n%s" % self.predictCellsTime
 
         return self.predictCellsTime
 
