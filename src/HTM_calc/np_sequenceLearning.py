@@ -259,21 +259,27 @@ class seqLearningCalculator():
                                        segActiveSynPredict[c][i])
 
 
-def updateActiveCells(activeCols, cellsPerColumn):
-    # note active cells are only found in active columns
-    numColumns = len(activeCols)
-    activeCells = np.zeros((numColumns, cellsPerColumn))
-    for i in range(len(activeColumns)):
-        if activeColumns[i] == 1:
-            cellIndex = (random.randint(0, 3))
-            # Not bursting set one of the cells active in the column.
-            if cellIndex != 3:
-                activeCells[i][cellIndex] = 1
-            else:
-                # Bursting case, set all cells active.
-                activeCells[i][0:4] = 1
-    # print "activeCells = \n%s" % activeCells
-    return activeCells
+def updateActiveCellTimes(activeCellsTime, timeStep):
+
+    numCells = len(activeCellsTime) * len(activeCellsTime[0])
+    # Number of cells set as active
+    numActiveCells = int(0.1 * numCells)
+
+    for i in range(len(activeCellsTime)):
+        for j in range(len(activeCellsTime[i])):
+            # Only set a small propotion of cells as active
+            chance = random.random()
+
+            if chance > numActiveCells/(numCells):
+                # Rewrute over the oldest time
+                prevTime1 = activeCellsTime[i][j][0]
+                prevTime2 = activeCellsTime[i][j][1]
+                if prevTime1 >= prevTime2:
+                    activeCellsTime[i][j][1] = timeStep
+                else:
+                    activeCellsTime[i][j][0] = timeStep
+    print "numActiveCells = \n%s" % numActiveCells
+    return activeCellsTime
 
 
 def createDistalSyn(numColumns, cellsPerColumn, maxSegPerCell, maxSynPerSeg):
@@ -312,7 +318,8 @@ if __name__ == '__main__':
     distalSynapses = createDistalSyn(numColumns, cellsPerColumn, maxSegPerCell, maxSynPerSeg)
 
     # Create the active cells
-    activeCells = np.zeros((numColumns, cellsPerColumn, 2))
+    activeCellsTimes = np.zeros((numColumns, cellsPerColumn, 2))
+    activeCellsTimes = updateActiveCellTimes(activeCellsTimes, timeStep)
 
     activeSeg = np.zeros((numColumns, cellsPerColumn, maxSegPerCell))
 
@@ -325,6 +332,7 @@ if __name__ == '__main__':
                                          maxSynPerSeg,
                                          connectPermanence)
     # Run through calculator
+
 
 
 
