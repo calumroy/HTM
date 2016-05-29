@@ -74,10 +74,6 @@ class seqLearningCalculator():
         self.permanenceInc = permanenceInc
         # The amount of permanence to decrease a synapse by.
         self.permanenceDec = permanenceDec
-        # The timeSteps when cells where in the predicitive state last. This is a 3D tensor.
-        # The 1st dimension stores the columns the 2nd is the cells in the columns.
-        # Each element stores the last 2 timestep when this cell was predicitng last.
-        self.predictCellsTime = np.array([[[-1, -1] for x in range(self.cellsPerColumn)] for y in range(self.numColumns)])
 
     def addNewSegSyn(self, c, i,
                      segIndNewSyn,
@@ -85,6 +81,8 @@ class seqLearningCalculator():
                      distalSynapses):
         # Add new synapses to the selected segment.
         if segIndNewSyn != -1:
+            # print "Setting new c,i,segIndex = %s, %s, %s" % (c, i, segIndNewSyn)
+            # print "     segNewSynList = \n\t%s" % segNewSynList
             for s in range(len(segNewSynList)):
                 permanence = segNewSynList[s][2]
                 # If the permanence value equals -1 it means don't create a new synapse, otherwise do.
@@ -94,6 +92,7 @@ class seqLearningCalculator():
                     distalSynapses[c][i][segIndNewSyn][s][0] = segNewSynList[s][0]
                     distalSynapses[c][i][segIndNewSyn][s][1] = segNewSynList[s][1]
                     distalSynapses[c][i][segIndNewSyn][s][2] = permanence
+                    # print "     Set new syn = %s" % (segNewSynList[s])
         return distalSynapses
 
     def updateCurrentSegSyn(self, c, i,
@@ -110,12 +109,14 @@ class seqLearningCalculator():
                 if positiveReinforcement is True:
                     # Increment the permanence of the active synapse
                     if segActiveSynList[s] == 1:
+                        # print "Incrementing syn perm [%s,%s,%s,%s]" % (c, i, segIndUpdate, s)
                         distalSynapses[c][i][segIndUpdate][s][2] += self.permanenceInc
                         distalSynapses[c][i][segIndUpdate][s][2] = min(1.0,
                                                                        distalSynapses[c][i][segIndUpdate][s][2])
                 else:
                     # Decrement the permanence of the active synapse
                     if segActiveSynList[s] == 1:
+                        # print "Decrementing syn perm [%s,%s,%s,%s]" % (c, i, segIndUpdate, s)
                         distalSynapses[c][i][segIndUpdate][s][2] -= self.permanenceDec
                         distalSynapses[c][i][segIndUpdate][s][2] = max(0.0,
                                                                        distalSynapses[c][i][segIndUpdate][s][2])
@@ -257,41 +258,147 @@ class seqLearningCalculator():
                                        segNewSynActive[c][i],
                                        segIndUpdatePredict[c][i],
                                        segActiveSynPredict[c][i])
+        return distalSynapses
+
+
+# Helper functions for the Main function.
+def createNewSynStructs(segIndNewSynActive, segNewSynActive,
+                        numColumns, cellsPerColumn,
+                        maxSegPerCell, maxSynPerSeg):
+
+    # A 2D tensor "segIndNewSynActive" for each cell holds [segIndex] indicating which segment new
+    # synapses should be created for. If the index is -1 don't create any new synapses.
+    # A 4D tensor "segNewSynActive" for each cell holds a synapse list [newSynapseListActive]
+    # of new synapses that could possibly be created. Each position corresponds to a synapses
+    # in the segment with the index stored in the segIndNewSyn tensor.
+    # Each place in the new Synapse tensor holds [columnIndex, cellIndex, permanence]
+    # If permanence is -1 then this means don't create a new synapse for that synapse.
+
+    numCells = numColumns * cellsPerColumn
+    # Number of new segs made
+    numNewSegs = int(0.3 * numCells)
+    # Select a certain number of segment indicies to make new segments for.
+    for n in range(numNewSegs):
+        # Random cell chosen
+        i = random.randint(0, len(segIndNewSynActive)-1)
+        j = random.randint(0, len(segIndNewSynActive[0])-1)
+        randSegInd = random.randint(0, maxSegPerCell-1)
+        segIndNewSynActive[i][j] = randSegInd
+
+    for index, x in np.ndenumerate(segNewSynActive):
+        # print index, x
+        colInd = index[0]
+        cellInd = index[1]
+        segInd = index[2]
+        # Only set the synapse indicies to active if the corresponding segment index
+        # was selected as a new segment.
+        if segIndNewSynActive[colInd][cellInd] == segInd:
+            if index[0] == colInd:
+                if index[3] == 2:
+                    segNewSynActive[index] = float(random.randint(0, 10)) / float(10.0)
+                if index[3] == 1:
+                    segNewSynActive[index] = random.randint(0, cellsPerColumn-1)
+                if index[3] == 0:
+                    segNewSynActive[index] = random.randint(0, numColumns-1)
+                print "CREATED New Syn Struct for c,i,permanence = %s,%s,%s" % (int(segNewSynActive[index]), int(segNewSynActive[index]), segNewSynActive[index])
+
+    return segIndNewSynActive, segNewSynActive
+
+
+def createSynUpdateStructs(numColumns, cellsPerColumn, maxSegPerCell, maxSynPerSeg):
+    # Create some update distal synapse structures to test with
+    segIndUpdate = np.array([[-1 for x in range(cellsPerColumn)]
+                            for y in range(numColumns)])
+    segActiveSyn = np.array([[[-1 for z in range(maxSynPerSeg)]
+                             for x in range(cellsPerColumn)]
+                             for y in range(numColumns)])
+
+    numCells = numColumns * cellsPerColumn
+    # Number of new segs made
+    numNewUpdateSegs = int(0.3 * numCells)
+    # Select a certain number of segment indicies to make new segments for.
+    for n in range(numNewUpdateSegs):
+        # Random cell chosen
+        colInd = random.randint(0, len(segIndUpdate)-1)
+        cellInd = random.randint(0, len(segIndUpdate[0])-1)
+        randSegInd = random.randint(0, maxSegPerCell-1)
+        segIndUpdate[colInd][cellInd] = randSegInd
+
+    for index, x in np.ndenumerate(segIndUpdate):
+        # print index, x
+        colInd = index[0]
+        cellInd = index[1]
+        segInd = segIndUpdate[colInd][cellInd]
+        # Chance of adding a synapses to be updated.
+        chanceUpdateSyns = 0.5
+        # Only set the synapse indicies to active if the corresponding segment index
+        # was selected as a segment to udate.
+        if segInd != -1:
+            #import ipdb; ipdb.set_trace()
+            for synInd in range(maxSynPerSeg):
+                # Random synapse chosen
+                if random.random() > chanceUpdateSyns:
+                    segActiveSyn[colInd][cellInd][synInd] = 1
+                    print "CREATED Update Syn Struct for c,i,segInd,synInd = %s,%s,%s,%s" % (colInd, cellInd, segInd, synInd)
+                    print "     Active Synapses segActiveSyn[segInd] = %s" % segActiveSyn[colInd][cellInd]
+
+    return segIndUpdate, segActiveSyn
+
+
+def updateCellTimes(cellsTime, timeStep):
+    # Set a proportion of the cells times to the current timestep
+    numCells = np.prod(cellsTime.shape)
+    print "numCells = %s" % numCells
+    # Number of cells set
+    numSetCells = int(0.3 * numCells)
+
+    for n in range(numSetCells):
+        # Random cell chosen
+        i = random.randint(0, len(cellsTime)-1)
+        j = random.randint(0, len(cellsTime[0])-1)
+        # Rewrite over the oldest time
+        prevTime1 = cellsTime[i][j][0]
+        prevTime2 = cellsTime[i][j][1]
+        if prevTime1 >= prevTime2:
+            cellsTime[i][j][1] = timeStep
+        else:
+            cellsTime[i][j][0] = timeStep
+    print "numSetCells = \n%s" % numSetCells
+    return cellsTime
 
 
 def updateActiveCellTimes(activeCellsTime, timeStep):
-
-    numCells = len(activeCellsTime) * len(activeCellsTime[0])
+    # Set a proportion of the cells to active by setting the active times.
+    numCells = np.prod(activeCellsTime.shape)
+    print "numCells = %s" % numCells
     # Number of cells set as active
-    numActiveCells = int(0.1 * numCells)
+    numActiveCells = int(0.3 * numCells)
 
-    for i in range(len(activeCellsTime)):
-        for j in range(len(activeCellsTime[i])):
-            # Only set a small propotion of cells as active
-            chance = random.random()
-
-            if chance > numActiveCells/(numCells):
-                # Rewrute over the oldest time
-                prevTime1 = activeCellsTime[i][j][0]
-                prevTime2 = activeCellsTime[i][j][1]
-                if prevTime1 >= prevTime2:
-                    activeCellsTime[i][j][1] = timeStep
-                else:
-                    activeCellsTime[i][j][0] = timeStep
+    for n in range(numActiveCells):
+        # Random cell chosen
+        i = random.randint(0, len(activeCellsTime)-1)
+        j = random.randint(0, len(activeCellsTime[0])-1)
+        # Rewrite over the oldest time
+        prevTime1 = activeCellsTime[i][j][0]
+        prevTime2 = activeCellsTime[i][j][1]
+        if prevTime1 >= prevTime2:
+            activeCellsTime[i][j][1] = timeStep
+        else:
+            activeCellsTime[i][j][0] = timeStep
     print "numActiveCells = \n%s" % numActiveCells
     return activeCellsTime
 
 
-def createDistalSyn(numColumns, cellsPerColumn, maxSegPerCell, maxSynPerSeg):
-    distalSynapses = np.zeros((numColumns, cellsPerColumn, maxSegPerCell, maxSynPerSeg, 3))
-    for index, x in np.ndenumerate(distalSynapses):
-        # print index, x
-        if index[4] == 2:
-            distalSynapses[index] = random.randint(0, 10) / 10.0
-        if index[4] == 1:
-            distalSynapses[index] = random.randint(0, cellsPerColumn-1)
-        if index[4] == 0:
-            distalSynapses[index] = random.randint(0, numColumns-1)
+def createDistalSyn(distalSynapses, numColumns, cellsPerColumn, maxSegPerCell, maxSynPerSeg):
+    for col in range(len(distalSynapses)):
+        for cell in range(len(distalSynapses[0])):
+            for seg in range(len(distalSynapses[0][0])):
+                for syn in range(len(distalSynapses[0][0][0])):
+                    index = (col, cell, seg, syn)
+                    distalSynapses[index][2] = random.randint(0, 10) / 10.0
+                    distalSynapses[index][1] = random.randint(0, cellsPerColumn-1)
+                    distalSynapses[index][0] = random.randint(0, numColumns-1)
+    # print "distalSynapses = \n%s" % distalSynapses
     return distalSynapses
 
 
@@ -312,27 +419,85 @@ if __name__ == '__main__':
     maxSegPerCell = 3
     maxSynPerSeg = 3
     connectPermanence = 0.3
-    timeStep = 1
+    permanenceInc = 0.05
+    permanenceDec = 0.02
+    timeStep = 0
 
     # Create the distalSynapse 5d tensor holding the information of the distal synapses.
-    distalSynapses = createDistalSyn(numColumns, cellsPerColumn, maxSegPerCell, maxSynPerSeg)
+    distalSynapses = np.zeros((numColumns, cellsPerColumn, maxSegPerCell, maxSynPerSeg, 3))
+    distalSynapses = createDistalSyn(distalSynapses, numColumns, cellsPerColumn, maxSegPerCell, maxSynPerSeg)
 
     # Create the active cells
-    activeCellsTimes = np.zeros((numColumns, cellsPerColumn, 2))
-    activeCellsTimes = updateActiveCellTimes(activeCellsTimes, timeStep)
+    activeCellsTimes = np.array([[[-1, -1] for x in range(cellsPerColumn)] for y in range(numColumns)])
+    # Create the learn cell times
+    learnCellsTimes = np.array([[[-1, -1] for x in range(cellsPerColumn)] for y in range(numColumns)])
+    # Create the predict cell times
+    predictCellsTimes = np.array([[[-1, -1] for x in range(cellsPerColumn)] for y in range(numColumns)])
 
-    activeSeg = np.zeros((numColumns, cellsPerColumn, maxSegPerCell))
+    # Create the update synapse structures
+    (segIndUpdateActive,
+     segActiveSynActive) = createSynUpdateStructs(numColumns,
+                                                  cellsPerColumn,
+                                                  maxSegPerCell,
+                                                  maxSynPerSeg)
 
-    # print "activeCells = \n%s" % activeCells
-    print "distalSynapses = \n%s" % distalSynapses
+    (segIndUpdatePredict,
+     segActiveSynPredict) = createSynUpdateStructs(numColumns,
+                                                   cellsPerColumn,
+                                                   maxSegPerCell,
+                                                   maxSynPerSeg)
+    # Create the new synapse structure
+    # Create some new distal synapse structures to test with.
+    segIndNewSynActive = np.array([[-1 for x in range(cellsPerColumn)]
+                                  for y in range(numColumns)])
+    # Make sure the permanence is a float in the below tensor
+    segNewSynActive = np.array([[[[-1, -1, -1.0] for z in range(maxSynPerSeg)]
+                                for x in range(cellsPerColumn)]
+                               for y in range(numColumns)])
+    # Populate the structures with test data
+    (segIndNewSynActive,
+     segNewSynActive) = createNewSynStructs(segIndNewSynActive,
+                                            segNewSynActive,
+                                            numColumns,
+                                            cellsPerColumn,
+                                            maxSegPerCell,
+                                            maxSynPerSeg)
 
-    seqLearnCalc = seqLearningCalculator(numColumns,
-                                         cellsPerColumn,
-                                         maxSegPerCell,
-                                         maxSynPerSeg,
-                                         connectPermanence)
+    # print "distalSynapses = \n%s" % distalSynapses
+    print "segIndUpdateActive = \n%s" % segIndUpdateActive
+    print "segActiveSynActive = \n%s" % segActiveSynActive
+
+    seqLearnCalc = seqLearningCalculator(numColumns, cellsPerColumn,
+                                         maxSegPerCell, maxSynPerSeg,
+                                         connectPermanence,
+                                         permanenceInc, permanenceDec)
+
+    print "STARTING SEQUENCE LEARNING CALCULATOR"
     # Run through calculator
+    test_iterations = 2
+    for i in range(test_iterations):
+        timeStep += 1
+        # if timeStep % 20 == 0:
+        print "timeStep = %s" % timeStep
+        activeCellsTimes = updateActiveCellTimes(activeCellsTimes, timeStep)
+        predictCellsTimes = updateCellTimes(predictCellsTimes, timeStep)
+        learnCellsTimes = updateCellTimes(learnCellsTimes, timeStep)
+        # print "activeCellsTimes = \n%s" % activeCellsTimes
+        # print "predictCellsTimes = \n%s" % predictCellsTimes
+        # print "learnCellsTimes = \n%s" % learnCellsTimes
 
+        distalSynapses = seqLearnCalc.sequenceLearning(timeStep,
+                                                       activeCellsTimes,
+                                                       learnCellsTimes,
+                                                       predictCellsTimes,
+                                                       distalSynapses,
+                                                       segIndUpdateActive,
+                                                       segActiveSynActive,
+                                                       segIndNewSynActive,
+                                                       segNewSynActive,
+                                                       segIndUpdatePredict,
+                                                       segActiveSynPredict)
+        # print "updated distalSynapses = \n%s" % distalSynapses
 
 
 
