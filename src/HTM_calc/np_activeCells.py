@@ -1,9 +1,9 @@
 
 import numpy as np
-import math
 import random
-
 import cProfile
+
+
 # Profiling function
 def do_cprofile(func):
     def profiled_func(*args, **kwargs):
@@ -650,7 +650,7 @@ class activeCellsCalculator():
         # save the previous active columns array.
         self.prevActiveCols = activeColumns
 
-        return self.activeCellsTime
+        return self.activeCellsTime, self.learnCellsTime
 
     def getActiveCellsList(self):
         # Return the list of active cells
