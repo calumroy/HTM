@@ -6,26 +6,20 @@
 import cProfile
 import numpy as np
 import random
-import math
-#import pprint
 import copy
 from utilities import sdrFunctions as SDRFunct
 from reinforcement_learning import Thalamus
 
-from HTM_calc import theano_temporal as temporal
+# from HTM_calc import theano_temporal as temporal
 from HTM_calc import theano_overlap as overlap
-#from HTM_calc import theano_inhibition as inhibition
+# from HTM_calc import theano_inhibition as inhibition
 from HTM_calc import np_inhibition as inhibition
-#from HTM_calc import theano_learning as learning
-from HTM_calc import np_learning as learning
+# from HTM_calc import theano_learning as learning
+from HTM_calc import np_learning as spatLearning
 
 from HTM_calc import np_activeCells as activeCells
 from HTM_calc import np_predictCells as predictCells
-
-
-
-##Struct = {'field1': 'some val', 'field2': 'some val'}
-##myStruct = { 'num': 1}
+from HTM_calc import np_sequenceLearning as seqLearn
 
 SegmentUpdate = {'index': '-1',
                  'activeSynapses': '0',
@@ -65,35 +59,26 @@ class Segment:
     def __init__(self):
         self.predict = False
         self.index = -1
-        self.sequenceSegment = 0    # Stores the last time step that this segment was predicting activity
+        # Stores the last time step that this segment was predicting activity
+        self.sequenceSegment = 0
         # Stores the synapses that have been created and
-        #have a larger permenence than 0.0
+        # have a larger permenence than 0.0
         self.synapses = []
 
 
 class Cell:
     def __init__(self):
-        # dendrite segments
-        #self.numInitSegments = 1    # Must be greater then zero
         self.score = 0     # The current score for the cell.
         self.segments = []
-        #for i in range(self.numInitSegments):
-        #    self.segments = np.hstack((self.segments,[Segment()]))
         # Create a dictionary to store the segmentUpdate structures
         self.segmentUpdateList = []
         # Segment update stucture holds the updates for the cell.
-        #These updates are made later.
+        # These updates are made later.
         self.segmentUpdate = {'index': -1,
                               'activeSynapses': [],
                               'newSynapses': [],
                               'sequenceSegment': 0,
                               'createdAtTime': 0}
-        #for i in range(self.numInitSegments):
-        #    self.segmentUpdateList.append(self.segmentUpdate.copy())
-        #print self.segmentUpdateList
-##        # State of the cell
-##        self.active = False
-##        self.predict = False
 
 
 class Column:
@@ -106,7 +91,7 @@ class Column:
         self.minDutyCycle = params['minDutyCycle']   # The minimum firing rate of the column
         # Keeps track of when the column was active.
         # All columns start as active. It stores the
-        #numInhibition time when the column was active
+        # numInhibition time when the column was active
         self.activeDutyCycleArray = np.array([])
         self.activeDutyCycle = 0.0  # the firing rate of the column
         # The rate at which the overlap is larger then the min overlap
@@ -116,7 +101,7 @@ class Column:
         # How much to increase the boost by when boosting is needed.
         self.boostStep = params['boostStep']
         # This determines how many previous timeSteps are stored in
-        #actve predictive and learn state arrays.
+        # actve predictive and learn state arrays.
         self.historyLength = params['historyLength']
         self.highestScoredCell = None
 
@@ -269,6 +254,12 @@ class HTMLayer:
         self.predictCellsTime = np.array([[[-1, -1] for x in range(self.cellsPerColumn)]
                                          for y in range(self.numColumns)])
 
+        # The timeSteps when cells where in the learn state last. This is a 3D tensor.
+        # The 1st dimension stores the columns the 2nd is the cells in the columns.
+        # Each element stores the last 2 timestep when this cell was in the learn state last.
+        self.learnCellsTime = np.array([[[-1, -1] for x in range(self.cellsPerColumn)]
+                                       for y in range(self.numColumns)])
+
         # Create the distalSynapse 5d tensor holding the information of the distal synapses.
         # The first dimension stores the columns, the 2nd is the cells
         # in the columns, 3rd stores the segments for each cell, 4th stores the synapses in each
@@ -301,7 +292,7 @@ class HTMLayer:
         # synapses in the segment (the segment index is stored in the segIndUpdate tensor)
         # are active [activeSynList 0 or 1].
         # This tensor stores segment update info from the active Cells calculator.
-        self.segActiveSynActive = np.array([[[-1 for z in range(self.maxSynPerSeg)]
+        self.segActiveSynActive = np.array([[[-1 for z in range(self.newSynapseCount)]
                                             for x in range(self.cellsPerColumn)]
                                             for y in range(self.numColumns)])
         # A 2D tensor "segIndNewSyn" for each cell holds [segIndex] indicating which segment new
@@ -314,7 +305,7 @@ class HTMLayer:
         # Each place in the newSynapseList holds [columnIndex, cellIndex, permanence]
         # If permanence is -1 then this means don't create a new synapse for that synapse.
         # This tensor stores segment update info from the active Cells calculator.
-        self.segNewSynActive = np.array([[[[-1, -1, 0.0] for z in range(self.maxSynPerSeg)]
+        self.segNewSynActive = np.array([[[[-1, -1, 0.0] for z in range(self.newSynapseCount)]
                                         for x in range(self.cellsPerColumn)]
                                         for y in range(self.numColumns)])
         # A 2D tensor "segIndNewSynActive" for each cell holds [segIndex] indicating which segment new
@@ -330,7 +321,7 @@ class HTMLayer:
         # synapses in the segment (the segment index is stored in the segIndUpdate tensor)
         # are active [activeSynList 0 or 1].
         # This tensor stores segment update info from the predictive Cells calculator.
-        self.segActiveSynPredict = np.array([[[-1 for z in range(self.maxSynPerSeg)]
+        self.segActiveSynPredict = np.array([[[-1 for z in range(self.newSynapseCount)]
                                             for x in range(self.cellsPerColumn)]
                                             for y in range(self.numColumns)])
 
@@ -368,11 +359,11 @@ class HTMLayer:
                                                          self.minOverlap,
                                                          self.centerPotSynapses)
 
-        self.learningCalc = learning.LearningCalculator(self.numColumns,
-                                                        self.numPotSyn,
-                                                        self.spatialPermanenceInc,
-                                                        self.spatialPermanenceDec,
-                                                        self.activeColPermanenceDec)
+        self.spatLearningCalc = spatLearning.LearningCalculator(self.numColumns,
+                                                                self.numPotSyn,
+                                                                self.spatialPermanenceInc,
+                                                                self.spatialPermanenceDec,
+                                                                self.activeColPermanenceDec)
 
         self.activeCellsCalc = activeCells.activeCellsCalculator(self.numColumns,
                                                                  self.cellsPerColumn,
@@ -388,11 +379,17 @@ class HTMLayer:
                                                                     self.newSynapseCount,
                                                                     self.connectPermanence)
 
-        self.tempPoolCalc = temporal.TemporalPoolCalculator(self.potentialWidth,
-                                                            self.potentialHeight,
-                                                            self.minOverlap)
+        self.seqLearnCalc = seqLearn.seqLearningCalculator(self.numColumns,
+                                                           self.cellsPerColumn,
+                                                           self.maxNumSegments,
+                                                           self.newSynapseCount,
+                                                           self.connectPermanence,
+                                                           self.permanenceInc,
+                                                           self.permanenceDec)
 
-
+        # self.tempPoolCalc = temporal.TemporalPoolCalculator(self.potentialWidth,
+        #                                                     self.potentialHeight,
+        #                                                     self.minOverlap)
 
     def setupColumns(self, columnParams):
         # Get just the parameters for the columns
@@ -1099,7 +1096,6 @@ class HTMLayer:
         # print "len(self.input) = %s len(self.input[0]) = %s " % (len(self.Input), len(self.Input[0]))
         # print "len(colPotSynPerm) = %s len(colPotSynPerm[0]) = %s" % (len(self.colPotSynPerm), len(self.colPotSynPerm[0]))
         # print "self.colPotSynPerm = \n%s" % self.colPotSynPerm
-        #from PyQt4.QtCore import pyqtRemoveInputHook; import ipdb; pyqtRemoveInputHook(); ipdb.set_trace()
 
         self.colOverlaps, self.colPotInputs = self.overlapCalc.calculateOverlap(self.colPotSynPerm, self.Input)
         # limit the overlap values so they are larger then minOverlap
@@ -1132,16 +1128,16 @@ class HTMLayer:
                 self.columnActiveAdd(c, timeStep)
             indx += 1
 
-    def learning(self):
+    def spatialLearning(self):
         '''
         Phase three for the spatial pooler
 
         Update the column synapses permanence.
         '''
 
-        self.colPotSynPerm = self.learningCalc.updatePermanenceValues(self.colPotSynPerm,
-                                                                      self.colPotInputs,
-                                                                      self.colActive)
+        self.colPotSynPerm = self.spatLearningCalc.updatePermanenceValues(self.colPotSynPerm,
+                                                                          self.colPotInputs,
+                                                                          self.colActive)
 
     def sequencePooler(self, timeStep):
         '''
@@ -1153,12 +1149,14 @@ class HTMLayer:
         '''
 
         # 1. CALCULATE ACTIVE CELLS
-        # Update the active cells and get the active Cells times from the calculator.
-        self.activeCellsTime = self.activeCellsCalc.updateActiveCells(timeStep,
-                                                                      self.colActive,
-                                                                      self.predictiveCells,
-                                                                      self.activeSeg,
-                                                                      self.distalSynapses)
+        # Update the active cells and get the active Cells times and learn state times
+        # from the calculator.
+        (self.activeCellsTime,
+         self.learnCellsTime) = self.activeCellsCalc.updateActiveCells(timeStep,
+                                                                       self.colActive,
+                                                                       self.predictiveCells,
+                                                                       self.activeSeg,
+                                                                       self.distalSynapses)
 
         # Get the update distal synapse tensors storing information on which
         # distal synapses should be updated from the active cells calculator class.
@@ -1175,6 +1173,19 @@ class HTMLayer:
         # distal synapses should be updated for the predictive cells calculator.
         (self.segIndUpdatePredict,
          self.segActiveSynPredict) = self.predictCellsCalc.getSegUpdates()
+
+        # 3. CALCULATE THE UPDATED DISTAL SYNAPSES FOR SEQUENCE LEARNING
+        self.distalSynapses = self.seqLearnCalc.sequenceLearning(timeStep,
+                                                                 self.activeCellsTime,
+                                                                 self.learnCellsTime,
+                                                                 self.predictCellsTime,
+                                                                 self.distalSynapses,
+                                                                 self.segIndUpdateActive,
+                                                                 self.segActiveSynActive,
+                                                                 self.segIndNewSynActive,
+                                                                 self.segNewSynActive,
+                                                                 self.segIndUpdatePredict,
+                                                                 self.segActiveSynPredict)
 
     def updateActiveState(self, timeStep):
         # TODO
@@ -1566,7 +1577,7 @@ class HTMRegion:
             # This updates the spatial pooler
             layer.Overlap()
             layer.inhibition(layer.timeStep)
-            layer.learning()
+            layer.spatialLearning()
             # This updates the sequence pooler
             layer.sequencePooler(layer.timeStep)
             # layer.updateActiveState(layer.timeStep)

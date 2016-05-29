@@ -371,6 +371,9 @@ class activeCellsCalculator():
         # Check if the given cell was active at the timestep given.
         # We need to check the activeCellsTime tensor which holds multiple
         # previous timeSteps when each cell was last active.
+        # Change the indicies to ints.
+        colIndex = int(colIndex)
+        cellIndex = int(cellIndex)
         if self.activeCellsTime[colIndex][cellIndex][0] == timeStep:
             return True
         if self.activeCellsTime[colIndex][cellIndex][1] == timeStep:
@@ -406,8 +409,8 @@ class activeCellsCalculator():
         # active column. This prevents scores getting stale.
         highestScoreCount = 0
         for i in range(len(segment)):
-            columnIndex = segment[i][0]
-            cellIndex = segment[i][1]
+            columnIndex = int(segment[i][0])
+            cellIndex = int(segment[i][1])
             if self.checkCellActive(columnIndex, cellIndex, timeStep-1) == True:
                 currentCellScore = self.cellsScore[columnIndex][cellIndex]
                 if currentCellScore > highestScoreCount:
@@ -426,8 +429,8 @@ class activeCellsCalculator():
         # that end on a column that is active.
         count = 0
         for i in range(len(synapseMatrix)):
-            columnIndex = synapseMatrix[i][0]
-            cellIndex = synapseMatrix[i][1]
+            columnIndex = int(synapseMatrix[i][0])
+            cellIndex = int(synapseMatrix[i][1])
             if onCell is True:
                 if self.checkCellActive(columnIndex, cellIndex, timeStep-1) == True:
                     count += 1
@@ -497,7 +500,7 @@ class activeCellsCalculator():
                     else:
                         self.cellsScore[c][i] = 0
 
-    @do_cprofile  # For profiling
+    # @do_cprofile  # For profiling
     def updateActiveCells(self, timeStep, activeColumns, predictCellsTime, activeSeg, distalSynapses):
 
         '''

@@ -236,7 +236,7 @@ class inhibitionCalculator():
         return overlapsGrid
 
     def calcualteInhibition(self, colIndex, overlapScore):
-        i = colIndex
+        i = int(colIndex)
         # Make sure the column hasn't been inhibited
         if self.inhibitedCols[i] != 1:
             # # Get the columns position
@@ -251,14 +251,16 @@ class inhibitionCalculator():
             # These columns will be set active.
             numActiveNeighbours = 0
             for d in neighbourCols:
+                # Make sure d is an int to use as a indicie.
+                d_int = int(d)
                 # Don't include any -1 index values. These are only padding values.
                 if d >= 0:
-                    if (self.columnActive[d] == 1):
+                    if (self.columnActive[d_int] == 1):
                         numActiveNeighbours += 1
                         # In the active neighbours see if any already have the
                         # desired number of columns active in their neighbours group.
                         # If so this column should not be set active, inhibit it.
-                        if self.numColsActInNeigh[d] >= self.desiredLocalActivity:
+                        if self.numColsActInNeigh[d_int] >= self.desiredLocalActivity:
                             # print " Col index = %s has an active col with too many active neighbours" % i
                             self.inhibitedCols[i] = 1
 
@@ -266,10 +268,12 @@ class inhibitionCalculator():
             # column in its neighbours list. If one of these already has the desired
             # local activity number of active columns then the current one should be inhibited.
             for d in self.colInNeighboursLists[i]:
-                if (self.columnActive[d] == 1):
+                # Make sure d is an int to use as a indicie.
+                d_int = int(d)
+                if (self.columnActive[d_int] == 1):
                     # Don't include any -1 index values. These are only padding values.
                     if d >= 0:
-                        if self.numColsActInNeigh[d] >= self.desiredLocalActivity:
+                        if self.numColsActInNeigh[d_int] >= self.desiredLocalActivity:
                             self.inhibitedCols[i] = 1
 
             # Store the number of active columns in this columns
@@ -285,9 +289,10 @@ class inhibitionCalculator():
                 # This column is activated so the numColsActInNeigh must be
                 # updated for the columns with this column in their neighbours list.
                 for c in self.colInNeighboursLists[i]:
+                    c_int = int(c)
                     # Don't include any -1 index values. These are only padding values.
                     if c >= 0:
-                        self.numColsActInNeigh[c] += 1
+                        self.numColsActInNeigh[c_int] += 1
             else:
                 # Inhibit this columns. It will not become active
                 self.inhibitedCols[i] = 1

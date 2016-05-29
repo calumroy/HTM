@@ -157,6 +157,8 @@ class predictCellsCalculator():
         # We need to check the activeCellsTime tensor which holds multiple
         # previous timeSteps when each cell was last active.
         # import ipdb; ipdb.set_trace()
+        colIndex = int(colIndex)
+        cellIndex = int(cellIndex)
         if activeCellsTime[colIndex][cellIndex][0] == timeStep:
             return True
         if activeCellsTime[colIndex][cellIndex][1] == timeStep:
