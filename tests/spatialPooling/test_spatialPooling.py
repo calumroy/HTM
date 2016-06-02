@@ -120,13 +120,7 @@ class test_spatialPooling:
         # get the active columns in a 2d array form.
         # The grid should contain only ones and zeros corresponding to
         # a columns location. One if that column is active zero otherwise.
-        activeCols = htm.regionArray[level].layerArray[layer].activeColumns
-        width = htm.regionArray[level].layerArray[layer].width
-        height = htm.regionArray[level].layerArray[layer].height
-        activeColGrid = np.array([[0 for i in range(width)] for j in range(height)])
-
-        for column in activeCols:
-            activeColGrid[column.pos_y][column.pos_x] = 1
+        activeColGrid = htm.regionArray[level].layerArray[layer].getActiveColumnsGrid()
 
         return activeColGrid
 

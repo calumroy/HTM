@@ -1,8 +1,8 @@
 # from mock import MagicMock
 # from mock import patch
-from HTM_network import *
+from HTM_network import HTM_network
 import numpy as np
-import GUI_HTM
+from HTM_GUI import GUI_HTM
 from PyQt4 import QtGui
 import sys
 from copy import deepcopy
@@ -143,10 +143,10 @@ class test_temporalPooling:
         inputHeight = 2*params['HTM']['columnArrayHeight']
 
         self.InputCreator = svli.simpleVerticalLineInputs(inputWidth, inputHeight, numInputs)
-        #self.htmlayer = HTMLayer(self.inputs[0], self.width, self.height, self.cellsPerColumn)
-        self.htm = HTM(self.InputCreator.createSimGrid(),
-                       params
-                       )
+        # self.htmlayer = HTMLayer(self.inputs[0], self.width, self.height, self.cellsPerColumn)
+        self.htm = HTM_network.HTM(self.InputCreator.createSimGrid(),
+                                   params
+                                   )
 
         # Measure the temporal pooling
         self.temporalPooling = mtp.measureTemporalPooling()

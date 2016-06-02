@@ -477,9 +477,8 @@ class HTMGridViewer(QtGui.QGraphicsView):
         brush = QtGui.QBrush(pen.color().darker(150))
         for x in range(cols):
                 for y in range(rows):
-                    column = layer.columns[y][x]
-                    # Check if the column is active now
-                    value = layer.columnActiveState(column, layer.timeStep)
+                    # Check if the column at position x, y is active now
+                    value = layer.columnActiveStateNow(x, y)
                     if value is False:
                             brush.setColor(QtCore.Qt.red)
                     if value is True:
@@ -552,9 +551,9 @@ class HTMGridViewer(QtGui.QGraphicsView):
             self.columnItems[i].setBrush(brush)
             #self.columnItems[i].setPen(pen)
 
-    def drawSingleCell(self, pos_x, pos_y, cell, segment):
+    def drawSingleCell(self, pos_x, pos_y, cellInd, segmentInd):
         # Draw the cells connected to the selected segment
-        print"pos_x,pos_y,cell,seg = %s,%s,%s,%s" % (pos_x, pos_y, cell, segment)
+        print"pos_x,pos_y,cell,seg = %s,%s,%s,%s" % (pos_x, pos_y, cellInd, segmentInd)
         print "Segment Synapse permanence"
         transp = QtGui.QColor(0, 0, 0, 0)
         pen = QtGui.QPen(transp, 0, QtCore.Qt.SolidLine)
@@ -571,17 +570,22 @@ class HTMGridViewer(QtGui.QGraphicsView):
             cell_pos_x = self.cellItems[i].pos_x
             cell_pos_y = self.cellItems[i].pos_y
             cell_cell = self.cellItems[i].cell
-            column = self.htm.regionArray[self.level].layerArray[self.layer].columns[pos_y][pos_x]
-            brush = QtGui.QBrush(transpBlue)   # Have to create a brush with a color
+
+            currentLayer = self.htm.regionArray[self.level].layerArray[self.layer]
+            selectedColumn = currentLayer.columns[pos_y][pos_x]
+            # A brush must be created with a color
+            brush = QtGui.QBrush(transpBlue)
             # Check each synapse and draw the connected cells.
-            for syn in column.cells[cell].segments[segment].synapses:
+            synList = currentLayer.getConnectedCellsSegSyns(selectedColumn, cellInd, segmentInd)
+            for syn in synList:
+
                 # Save the synapses end cells active times so they can be displayed.
                 synEndColumn = self.htm.regionArray[self.level].layerArray[self.layer].columns[syn.pos_y][syn.pos_x]
                 if syn.pos_x == cell_pos_x and syn.pos_y == cell_pos_y and syn.cell == cell_cell:
                     print "     syn x,y,cell= %s,%s,%s Permanence = %s, active times = %s" % (cell_pos_x, cell_pos_y, cell_cell, syn.permanence, synEndColumn.activeStateArray[syn.cell])
                     brush.setColor(blue)
                 # Set this cells color to white to indicate it was selected.
-                if pos_x == cell_pos_x and pos_y == cell_pos_y and cell == cell_cell:
+                if pos_x == cell_pos_x and pos_y == cell_pos_y and cellInd == cell_cell:
                     brush.setColor(white)
             self.cellItems[i].setBrush(brush)
             self.cellItems[i].setPen(pen)
@@ -602,7 +606,7 @@ class HTMGridViewer(QtGui.QGraphicsView):
             for col in neighbourColumns:
 
                 if col.pos_x == colItem_pos_x and col.pos_y == colItem_pos_y:
-                    value = htmlayer.columnActiveState(col, htmlayer.timeStep)
+                    value = htmlayer.columnActiveStateNow(col.pos_x, col.pos_y)
                     color = QtGui.QColor(0xFF, 0, 0, 0xFF)
                     brush = QtGui.QBrush(QtCore.Qt.red)
                     if (value is False):
@@ -619,9 +623,8 @@ class HTMGridViewer(QtGui.QGraphicsView):
             brush.setStyle(QtCore.Qt.SolidPattern)
             pos_x = self.columnItems[i].pos_x
             pos_y = self.columnItems[i].pos_y
-            column = layer.columns[pos_y][pos_x]
-            # Check if the column is active now
-            value = layer.columnActiveState(column, layer.timeStep)
+            # Check if the column at pos_x, pos_y is active now
+            value = layer.columnActiveStateNow(pos_x, pos_y)
             if value is False:
                     brush.setColor(QtCore.Qt.red)
                     self.columnItems[i].setBrush(brush)
@@ -679,6 +682,7 @@ class HTMGridViewer(QtGui.QGraphicsView):
     def mousePressEvent(self, event):
 
         if event.buttons() == QtCore.Qt.LeftButton:
+            layer = self.htm.regionArray[self.level].layerArray[self.layer]
             item = self.itemAt(event.x(), event.y())
             self._mousePressed = True
 
@@ -698,7 +702,7 @@ class HTMGridViewer(QtGui.QGraphicsView):
             if item.__class__.__name__ == "HTMCell":
                 print "cell"
                 print "pos_x,pos_y,cell = %s,%s,%s" % (item.pos_x, item.pos_y, item.cell)
-                numSegments = len(self.htm.regionArray[self.level].layerArray[self.layer].columns[item.pos_y][item.pos_x].cells[item.cell].segments)
+                numSegments = layer.getNumSegments(item.pos_x, item.pos_y, item.cell)
                 self.selectedItem = item
                 item_pos = item.pos()
                 popup_pos_x = item_pos.x()+self.x()

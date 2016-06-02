@@ -6,6 +6,7 @@
 import cProfile
 import numpy as np
 import random
+import math
 import copy
 from utilities import sdrFunctions as SDRFunct
 from reinforcement_learning import Thalamus
@@ -168,7 +169,6 @@ class HTMLayer:
         # The output is a 2D grid representing the cells states.
         # It is larger then the input by a factor of the number of cells per column
         self.output = np.array([[0 for i in range(self.width * self.cellsPerColumn)] for j in range(self.height)])
-        self.activeColumns = np.array([], dtype=object)
         # The starting permanence of new column synapses (spatial pooler synapses).
         # This is used to create new synapses.
         self.colSynPermanence = params['colSynPermanence']
@@ -250,18 +250,12 @@ class HTMLayer:
                                         self.cellsPerColumn,
                                         self.maxNumSegments,
                                         self.newSynapseCount, 3))
-        # activeSeg is a 3D tensor. The first dimension is the columns, the second the
+        # activeSegsTime is a 3D tensor. The first dimension is the columns, the second the
         # cells and the 3rd is the segment in the cells. For each segment a timeStep is stored
         # indicating when the segment was last in an active state. This means it was
         # predicting that the cell would become active in the next timeStep.
         # This is what the CLA paper calls a "SEQUENCE SEGMENT".
-        self.activeSeg = np.zeros((self.numColumns, self.cellsPerColumn, self.maxNumSegments))
-        # predictiveCells is a 3D tensor. The first dimension stores the columns the second
-        # is the cells in the columns. Each cell stores the last two timeSteps when
-        # the cell was in a predictiveState. It must have the dimesions of
-        # self.numColumns * self.cellsPerColumn * 2.
-        self.predictiveCells = np.zeros((self.numColumns,
-                                        self.cellsPerColumn, 2))
+        self.activeSegsTime = np.zeros((self.numColumns, self.cellsPerColumn, self.maxNumSegments))
 
         # A 2d tensor for each cell holds [segIndex] indicating which segment to update.
         # This tensor stores segment update info from the active Cells calculator.
@@ -352,7 +346,8 @@ class HTMLayer:
                                                                     self.cellsPerColumn,
                                                                     self.maxNumSegments,
                                                                     self.newSynapseCount,
-                                                                    self.connectPermanence)
+                                                                    self.connectPermanence,
+                                                                    self.activationThreshold)
 
         self.seqLearnCalc = seqLearn.seqLearningCalculator(self.numColumns,
                                                            self.cellsPerColumn,
@@ -381,6 +376,12 @@ class HTMLayer:
                                 for i in range(self.width)] for
                                 j in range(self.height)], dtype=object)
 
+    def getActiveColumnsGrid(self):
+        # Return a matrix with the same dimensions as the 2d htm layer,
+        # where each element represents a column. 1 means the column is active 0 it is not.
+        activeColumns = self.colActive.reshape((self.width, self.height))
+        return activeColumns
+
     def columnActiveNotBursting(self, col, timeStep):
         # Calculate which cell in a given column at the given time was active but not bursting.
         cellsActive = 0
@@ -397,29 +398,78 @@ class HTMLayer:
         else:
             return None
 
-    def activeNotBurstCellGrid(self):
-        # Return a grid representing the cells in the columns which are active but
-        # not bursting. Cells in a column are placed in adjacent grid cells right of each other.
-        # Eg. A HTM layer with 10 rows, 5 columns and 3 cells per column would produce an
-        # activeCellGrid of 10*3 = 15 columns and 10 rows.
-        output = np.array([[0 for i in range(self.width*self.cellsPerColumn)]
-                          for j in range(self.height)])
-        for c in self.activeColumns:
-            x = c.pos_x
-            y = c.pos_y
-            cellsActive = 0
-            cellNumber = None
-            for k in range(len(c.cells)):
-                # Count the number of cells in the column that where active.
-                if c.activeStateArray[k][0] == self.timeStep:
-                    cellsActive += 1
-                    cellNumber = k
-                if cellsActive > 1:
+    # def activeNotBurstCellGrid(self):
+    #     # Return a grid representing the cells in the columns which are active but
+    #     # not bursting. Cells in a column are placed in adjacent grid cells right of each other.
+    #     # Eg. A HTM layer with 10 rows, 5 columns and 3 cells per column would produce an
+    #     # activeCellGrid of 10*3 = 15 columns and 10 rows.
+    #     output = np.array([[0 for i in range(self.width*self.cellsPerColumn)]
+    #                       for j in range(self.height)])
+    #     for c in self.activeColumns:
+    #         x = c.pos_x
+    #         y = c.pos_y
+    #         cellsActive = 0
+    #         cellNumber = None
+    #         for k in range(len(c.cells)):
+    #             # Count the number of cells in the column that where active.
+    #             if c.activeStateArray[k][0] == self.timeStep:
+    #                 cellsActive += 1
+    #                 cellNumber = k
+    #             if cellsActive > 1:
+    #                 break
+    #         if cellsActive == 1 and cellNumber is not None:
+    #             output[y][x*self.cellsPerColumn+cellNumber] = 1
+    #     #print "output = ", output
+    #     return output
+
+    def getNumSegments(self, pos_x, pos_y, cellInd):
+        # Get the number of segments for a cell in the column at position
+        # pos_x, pos_y with index cellInd.
+        colInd = pos_y * self.width + pos_x
+
+        segList = self.distalSynapses[colInd][cellInd]
+
+        # Now we need to check if the segment has been created yet or if
+        # the segment is just a placeholder and has never been activated.
+        # Check that self.distalSynapse tensor for segments that contain any
+        # synpases with permanence values larger then a zero permanence value.
+        numSegments = 0
+        for segInd in range(len(segList)):
+            synList = self.distalSynapses[colInd][cellInd][segInd]
+            for synInd in range(len(synList)):
+                synPermanence = synList[synInd][2]
+                if synPermanence > 0:
+                    # This segment contains initialised synapses.
+                    numSegments += 1
                     break
-            if cellsActive == 1 and cellNumber is not None:
-                output[y][x*self.cellsPerColumn+cellNumber] = 1
-        #print "output = ", output
-        return output
+        return numSegments
+
+    def getConnectedCellsSegSyns(self, column, cellInd, segInd):
+        # Return an array of synpases objects that represent the distal synapses
+        # in a particular segment.
+        # The column is an object the cellInd, and segInd anr indicies.
+        # get the columns index in the self.distalSynapses tensor (5d tensor).
+        # Each synapse stores (column number, cell number, permanence)
+        colInd = column.pos_y * self.width + column.pos_x
+
+        synList = self.distalSynapses[colInd][cellInd][segInd]
+
+        # Now we need to check if the synapse is connected.
+        connectedSynList = []
+        for syn in synList:
+            synPermanence = syn[2]
+            if synPermanence > self.connectPermanence:
+                # Create a synapse object to represent this synapse.
+                # Convert the column index to a column x, y position
+                endColInd = syn[0]
+                endCellInd = syn[1]
+                col_pos_y = math.floor(int(endColInd) / int(self.width))
+                col_pos_x = endCellInd - col_pos_y * self.width
+
+                newSynObj = Synapse(col_pos_x, col_pos_y, endCellInd, synPermanence)
+                connectedSynList.append(newSynObj)
+
+        return connectedSynList
 
     def predictiveCellGrid(self):
         # Return a grid representing the cells in the columns which are predicting.
@@ -432,27 +482,8 @@ class HTMLayer:
                     # Count the number of cells in the column that are predicting now
                     if c.predictiveStateArray[k][0] == self.timeStep:
                         output[y][x*self.cellsPerColumn+k] = 1
-        #print "output = ", output
+        # print "output = ", output
         return output
-
-    def updateOutput(self):
-        # Update the output array.
-        # The output array is the output from all the cells. The cells form a new 2d input grid
-        # this way temporal information is not lost between layers and levels.
-        # Initialise all outputs as zero first then set the cells as 1.
-        for i in range(len(self.output)):
-            for j in range(len(self.output[i])):
-                self.output[i][j] = 0
-        for c in self.activeColumns:
-            x = c.pos_x
-            y = c.pos_y
-            # If the column is active now
-            if self.columnActiveState(c, self.timeStep) is True:
-                for i in range(self.cellsPerColumn):
-                    # The first element is the last time the cells was active.
-                    # If it equals the current time then the cell is active now.
-                    if c.activeStateArray[i][0] == self.timeStep:
-                        self.output[y][x*self.cellsPerColumn+i] = 1
 
     def getConnectedSynapses(self, column):
         # Create a list of the columns connected Synapses.
@@ -505,15 +536,6 @@ class HTMLayer:
             self.colActNotBurstTimes[columnIndex][2] = timeStep
             self.colActNotBurstTimes[columnIndex][0] = self.colActNotBurstTimes[columnIndex][1]
 
-    def columnActiveAdd(self, c, timeStep):
-        # We add the new time to the start of the array
-        # then delete the time at the end of the array.
-        # All the times should be in order from
-        # most recent to oldest.
-        newArray = np.insert(c.columnActive, 0, timeStep)
-        newArray = np.delete(newArray, len(newArray)-1)
-        c.columnActive = newArray
-
     def activeStateAdd(self, c, i, timeStep):
         # We add the new time to the start of
         # the array then delete the time at the end of the array.
@@ -544,12 +566,11 @@ class HTMLayer:
         newArray = np.delete(newArray, len(newArray)-1)
         c.learnStateArray[i] = newArray
 
-    def columnActiveState(self, c, timeStep):
-        # Search the history of the column Active times to find if the
-        # column was active at time timeStep
-        for j in range(len(c.columnActive)):
-            if c.columnActive[j] == timeStep:
-                return True
+    def columnActiveStateNow(self, pos_x, pos_y):
+        # look at the colActive array to see if a column is active at the moment.
+        columnIndex = pos_y * self.width + pos_x
+        if self.colActive[columnIndex] == 1:
+            return True
         return False
 
     def activeState(self, c, i, timeStep):
@@ -588,7 +609,7 @@ class HTMLayer:
 
     def updateInput(self, newInput):
         # Update the input
-        #Check to see if this input is the same size as the last and is a 2d numpy array
+        # Check to see if this input is the same size as the last and is a 2d numpy array
         if type(newInput) == np.ndarray and len(newInput.shape) == 2:
             if newInput.shape != self.Input.shape:
                 print "         New input size width,height = %s, %s" % (len(newInput[0]), len(newInput))
@@ -635,16 +656,6 @@ class HTMLayer:
         self.colActive = self.inhibCalc.calculateWinningCols(colOverlapsGrid, potColOverlapsGrid)
         # print "self.colActive = \n%s" % self.colActive
 
-        # Update the activeColumn list using the colActive vector.
-        self.activeColumns = np.array([], dtype=object)
-        allColumns = self.columns.flatten().tolist()
-        indx = 0
-        for c in allColumns:
-            if self.colActive[indx] == 1:
-                self.activeColumns = np.append(self.activeColumns, c)
-                self.columnActiveAdd(c, timeStep)
-            indx += 1
-
     def spatialLearning(self):
         '''
         Phase three for the spatial pooler
@@ -671,8 +682,8 @@ class HTMLayer:
         (self.activeCellsTime,
          self.learnCellsTime) = self.activeCellsCalc.updateActiveCells(timeStep,
                                                                        self.colActive,
-                                                                       self.predictiveCells,
-                                                                       self.activeSeg,
+                                                                       self.predictCellsTime,
+                                                                       self.activeSegsTime,
                                                                        self.distalSynapses)
 
         # Get the update distal synapse tensors storing information on which
@@ -686,6 +697,8 @@ class HTMLayer:
         self.predictCellsTime = self.predictCellsCalc.updatePredictiveState(timeStep,
                                                                             self.activeCellsTime,
                                                                             self.distalSynapses)
+        # Get the timeSteps for which each segment was last active
+        self.activeSegsTime = self.predictCellsCalc.getActiveSegTimes()
         # Get the update distal synapse tensors storing information on which
         # distal synapses should be updated for the predictive cells calculator.
         (self.segIndUpdatePredict,

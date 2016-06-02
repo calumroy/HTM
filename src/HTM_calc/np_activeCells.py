@@ -285,15 +285,14 @@ class activeCellsCalculator():
         for i in range(len(synapseList)):
             newSynEnd = random.sample(self.prevLearnCellsList, 1)[0]
             columnIndex = newSynEnd[0]
-            #import ipdb; ipdb.set_trace()
             cellIndex = newSynEnd[1]
             synapseList[i] = [columnIndex, cellIndex, self.newSynPermanence]
 
-    def findLeastUsedSeg(self, cellsActiveSegTimes, returnTimestep=False):
+    def findLeastUsedSeg(self, cellsActiveSegTimes, returnTimeStep=False):
         # Find the most unused segment from the given cells list
         # of previous active times for each segment.
         # Returns the index of the least used segment and the timeStep
-        # the least used segment was last active at if requeied by returnTimeStep.
+        # the least used segment was last active at if required by returnTimeStep.
         leastUsedSeg = None
         oldestTime = None
 
@@ -302,7 +301,7 @@ class activeCellsCalculator():
             if ((lastActiveTime < oldestTime) or oldestTime is None):
                 oldestTime = lastActiveTime
                 leastUsedSeg = s
-        if returnTimestep is True:
+        if returnTimeStep is True:
             return leastUsedSeg, oldestTime
         else:
             return leastUsedSeg
