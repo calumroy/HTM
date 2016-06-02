@@ -76,7 +76,7 @@ THIS CLASS IS A REIMPLEMENTATION OF THE ORIGINAL CODE:
 
 
 class predictCellsCalculator():
-    def __init__(self, numColumns, cellsPerColumn, maxSegPerCell, maxSynPerSeg, connectPermanence):
+    def __init__(self, numColumns, cellsPerColumn, maxSegPerCell, maxSynPerSeg, connectPermanence, activationThreshold):
         self.numColumns = numColumns
         self.cellsPerColumn = cellsPerColumn
         # Maximum number of segments per cell
@@ -86,6 +86,9 @@ class predictCellsCalculator():
         # The minimum required permanence value required by a synapse for it
         # to be connected.
         self.connectPermanence = connectPermanence
+        # More than this many synapses on a segment must be active for
+        # the segment to be active.
+        self.activationThreshold = activationThreshold
         # A tensor storing for each cells segments the number of synapses connected to active cells.
         self.currentSegSynCount = np.zeros((self.numColumns,
                                             self.cellsPerColumn,
@@ -103,6 +106,18 @@ class predictCellsCalculator():
         self.segActiveSyn = np.array([[[-1 for z in range(self.maxSynPerSeg)]
                                      for x in range(self.cellsPerColumn)]
                                      for y in range(self.numColumns)])
+
+        # activeSegsTime is a 3D tensor. The first dimension is the columns, the second the
+        # cells and the 3rd is the segment in the cells. For each segment a timeStep is stored
+        # indicating when the segment was last in an active state. This means it was
+        # predicting that the cell would become active in the next timeStep.
+        # This is what the CLA paper calls a "SEQUENCE SEGMENT".
+        self.activeSegsTime = np.zeros((self.numColumns, self.cellsPerColumn, self.maxSegPerCell))
+
+    def getActiveSegTimes(self):
+        # Return the activeSegsTime tensor which holds only the most recent
+        # timeSteps that each segment was active for.
+        return self.activeSegsTime
 
     def getSegUpdates(self):
         # Return the tensors storing information on which distal synapses
@@ -151,6 +166,13 @@ class predictCellsCalculator():
             self.predictCellsTime[colIndex][cellIndex][0] = timeStep
         else:
             self.predictCellsTime[colIndex][cellIndex][1] = timeStep
+
+    def setActiveSeg(self, colIndex, cellIndex, segIndex, timeStep):
+        # Set the given segment at colIndex, cellIndex, segInde into an active state for the
+        # given timeStep.
+        # We need to check the activeSegsTime tensor which holds only the most recent
+        # timeSteps that each segment was active for.
+        self.activeSegsTime[colIndex][cellIndex][segIndex] = timeStep
 
     def checkCellActive(self, colIndex, cellIndex, timeStep, activeCellsTime):
         # Check if the given cell was active at the timestep given.
@@ -222,6 +244,12 @@ class predictCellsCalculator():
                         synapses in the segment (the segment index is stored in the segIndUpdate tensor)
                         are active [activeSynList 0 or 1].
 
+                3. "activeSegsTime" is a 3D tensor. The first dimension is the columns, the second the cells and the 3rd is
+                    the segment in the cells. For each segment a timeStep is stored indicating when the segment was
+                    last in an active state. This means it was predicting that the cell would become active in the
+                    next timeStep. This is what the CLA paper calls a "SEQUENCE SEGMENT".
+                    This tensor is updated on each call of this function.
+
         '''
 
         for c in range(self.numColumns):
@@ -237,11 +265,15 @@ class predictCellsCalculator():
                                                                     activeCellsTime)
 
                     self.currentSegSynCount[c][i][g] = predictionLevel
-                    if predictionLevel > mostPredCellSynCount:
-                            mostPredCellSynCount = predictionLevel
-                            mostPredCell = i
-                            mostPredSegment = g
-                            columnPredicting = True
+                    if predictionLevel > self.activationThreshold:
+                        # Update the activeSegsTime tensor as this segment is active.
+                        self.setActiveSeg(c, i, g, timeStep)
+                        # Check if this is the most predicting for the cells in the column.
+                        if predictionLevel > mostPredCellSynCount:
+                                mostPredCellSynCount = predictionLevel
+                                mostPredCell = i
+                                mostPredSegment = g
+                                columnPredicting = True
             if columnPredicting is True:
                 # Set the most predicting cell in the column as the predicting cell.
                 self.setPredictCell(c, mostPredCell, timeStep)
@@ -277,6 +309,7 @@ if __name__ == '__main__':
     maxSegPerCell = 3
     maxSynPerSeg = 3
     connectPermanence = 0.3
+    activationThreshold = 1
     timeStep = 1
 
     # Create the distalSynapse 5d tensor holding the information of the distal synapses.
@@ -302,7 +335,8 @@ if __name__ == '__main__':
                                            cellsPerColumn,
                                            maxSegPerCell,
                                            maxSynPerSeg,
-                                           connectPermanence)
+                                           connectPermanence,
+                                           activationThreshold)
     # Run through calculator
 
     test_iterations = 2
@@ -319,6 +353,8 @@ if __name__ == '__main__':
         segIndUpdate, segActiveSyn = predCellsCalc.getSegUpdates()
         print "segIndUpdate = \n%s" % (segIndUpdate)
         print "segActiveSyn = \n%s" % (segActiveSyn)
+        activeSegsTime = predCellsCalc.getActiveSegTimes()
+        print "activeSegsTime = \n%s" % (activeSegsTime)
 
 
 
