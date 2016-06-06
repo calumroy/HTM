@@ -211,6 +211,21 @@ class activeCellsCalculator():
                                     for x in range(self.cellsPerColumn)]
                                   for y in range(self.numColumns)])
 
+    def findNumSegs(self, cellDistalSynapses):
+        # Find the number of segments in a cell.
+        # The segments must have at least one synapses with a permenance above zero.
+        # Returns the number of segments.
+        numSegments = 0
+
+        for segInd in range(len(cellDistalSynapses)):
+            for synInd in range(len(cellDistalSynapses[segInd])):
+                synPermanence = cellDistalSynapses[segInd][synInd][2]
+                if synPermanence > 0:
+                    # This segment contains initialised synapses.
+                    numSegments += 1
+                    break
+        return numSegments
+
     def getSegmentActiveSynapses(self, segSynapseList, timeStep):
         # Find the synapse indicies of the active synapses for the timestep.
         # Synapses whose end is on an active cell for the timestep.
@@ -248,6 +263,8 @@ class activeCellsCalculator():
         numActSynBestSeg = 0
         # The cell index of the cell with the least used segment
         cellIndLeastUsedSeg = 0
+        # The number of segments for cell with the fewest number of segments.
+        fewestSegsNum = 0
         # The segment index of the least used segment.
         segIndLeastUsedSeg = 0
         # The timeStep when the least used segment was lat active.
@@ -255,15 +272,25 @@ class activeCellsCalculator():
         # h is the SegmentIndex of the most active segment for the current cell i
         h = 0
         for i in range(self.cellsPerColumn):
-            # TODO
             # Need to find the cell with the fewest segments first.
-
-            # Find the cell index with the least used segment.
-            segInd, lastTimeStep = self.findLeastUsedSeg(colActiveSegTimes[i], True)
-            if lastTimeStep < leastUsedTimeStep and (segInd is not None):
+            numSegs = self.findNumSegs(colDistalSynapses[i])
+            if i == 0 or numSegs < fewestSegsNum:
                 cellIndLeastUsedSeg = i
+                fewestSegsNum = numSegs
+                # Find the segment index for the least used segment.
+                segInd, lastTimeStep = self.findLeastUsedSeg(colActiveSegTimes[i], True)
                 segIndLeastUsedSeg = segInd
                 leastUsedTimeStep = lastTimeStep
+            # If 2 cells have the same number of segments then use the cell containing
+            # the least used segment from them.
+            if numSegs == fewestSegsNum:
+                # Find the segment index for the least used segment.
+                segInd, lastTimeStep = self.findLeastUsedSeg(colActiveSegTimes[i], True)
+                if lastTimeStep < leastUsedTimeStep and (segInd is not None):
+                    cellIndLeastUsedSeg = i
+                    segIndLeastUsedSeg = segInd
+                    leastUsedTimeStep = lastTimeStep
+            # Try to find a segment that was predicting the most for the previous input.
             onCell = True
             h = self.getBestMatchingSegment(colDistalSynapses[i], timeStep, onCell)
             if h is not None:
@@ -293,7 +320,7 @@ class activeCellsCalculator():
         for i in range(len(newSynapseList)):
             # if the keepConnectedSyn option is false then create new synapses for all
             # the synapses in the segment.
-            if keepConnectedSyn is True:
+            if keepConnectedSyn is False:
                 if len(self.prevLearnCellsList) > 0:
                     newSynEnd = random.sample(self.prevLearnCellsList, 1)[0]
                     columnIndex = newSynEnd[0]
@@ -304,12 +331,13 @@ class activeCellsCalculator():
                 # overwriting weak synapses (low permenance values).
                 curPermenance = curSynapseList[i][2]
                 if curPermenance < self.connectPermanence:
-                    # from PyQt4.QtCore import pyqtRemoveInputHook; import ipdb; pyqtRemoveInputHook(); ipdb.set_trace()
+                    #from PyQt4.QtCore import pyqtRemoveInputHook; import ipdb; pyqtRemoveInputHook(); ipdb.set_trace()
                     if len(self.prevLearnCellsList) > 0:
                         newSynEnd = random.sample(self.prevLearnCellsList, 1)[0]
                         columnIndex = newSynEnd[0]
                         cellIndex = newSynEnd[1]
                         newSynapseList[i] = [columnIndex, cellIndex, self.newSynPermanence]
+                        print "Update struct created new syn ending at [%s,%s] new Perm = %s" % (columnIndex, cellIndex, self.newSynPermanence)
 
     def findLeastUsedSeg(self, cellsActiveSegTimes, returnTimeStep=False):
         # Find the most unused segment from the given cells list
@@ -657,6 +685,7 @@ class activeCellsCalculator():
                             self.segIndNewSyn[c][highCellInd] = updateSegInd
                             # Create new synapses for the selected segment. The new synapses are stored in the
                             # segNewSyn tensor, they connect to a random sample of learning cells one timeStep ago.
+                            print "Creating entire new set of synapses for col, cell, seg = %s,%s,%s" % (c, highCellInd, updateSegInd)
                             self.newRandomPrevActiveSynapses(self.segNewSyn[c][highCellInd])
                     # According to the CLA paper
                     if activeCellChosen is False:
@@ -666,8 +695,6 @@ class activeCellsCalculator():
                     if learningCellChosen is False:
                         # print " Getting the best matching cell to set as learning cell"
                         # The best matching cell whose segment was most active and hence was most predicting.
-                        if timeStep > 40:
-                            from PyQt4.QtCore import pyqtRemoveInputHook; import ipdb; pyqtRemoveInputHook(); ipdb.set_trace()
                         (cell, s) = self.getBestMatchingCell(distalSynapses[c], activeSeg[c], timeStep)
                         print "Got the best matching seg to be learn col, cell, seg = %s, %s, %s" % (c, cell, s)
                         self.setLearnCell(c, cell, timeStep)
@@ -678,7 +705,8 @@ class activeCellsCalculator():
                         # Create new synapses that where active for the previous timestep.
                         # Create these new synapases by deleting weak synapses in the segment.
                         self.segIndNewSyn[c][cell] = s
-                        self.newRandomPrevActiveSynapses(self.segNewSyn[c][cell], distalSynapses[c][cell][s], False)
+                        print "Creating maybe some new synapses for col, cell, seg = %s,%s,%s" % (c, cell, s)
+                        self.newRandomPrevActiveSynapses(self.segNewSyn[c][cell], distalSynapses[c][cell][s], True)
 
         # print "self.cellsScore= \n%s" % self.cellsScore
         # print "self.colArrayHighestScoredCell= \n%s" % self.colArrayHighestScoredCell
