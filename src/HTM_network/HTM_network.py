@@ -97,24 +97,6 @@ class Column:
         # The possible feed forward Synapse connections for the column
         self.potentialSynapses = np.array([], dtype=object)
 
-        # An array storing when each of the cells in the column were last in a predictive state.
-        self.predictiveStateArray = np.array([0 for i in range(self.historyLength)])
-        for i in range(length-1):   # Minus one since the first entry is already there
-            self.predictiveStateArray = np.vstack((self.predictiveStateArray, [0 for i in range(self.historyLength)]))
-        # An array storing the timestep when each cell in the column was last in
-        # an active state. This means the column has
-        # feedforward input and the cell has a temporal context indicated by
-        # active segments.
-        self.activeStateArray = np.array([0 for i in range(self.historyLength)])
-        for i in range(length-1):
-            self.activeStateArray = np.vstack((self.activeStateArray, [0 for i in range(self.historyLength)]))
-        # An array storing when each of the cells in the column were last in a learn state.
-        self.learnStateArray = np.array([0 for i in range(self.historyLength)])
-        for i in range(length-1):
-            self.learnStateArray = np.vstack((self.learnStateArray, [0 for i in range(self.historyLength)]))
-        # An array storing the last timeSteps when the column was active.
-        self.columnActive = np.array([0 for i in range(self.historyLength)])
-
     def updateBoost(self):
         if self.activeDutyCycle < self.minDutyCycle:
             self.boost = self.boost+self.boostStep
@@ -340,7 +322,8 @@ class HTMLayer:
                                                                  self.newSynapseCount,
                                                                  self.minThreshold,
                                                                  self.minScoreThreshold,
-                                                                 self.cellSynPermanence)
+                                                                 self.cellSynPermanence,
+                                                                 self.connectPermanence)
 
         self.predictCellsCalc = predictCells.predictCellsCalculator(self.numColumns,
                                                                     self.cellsPerColumn,
@@ -422,6 +405,39 @@ class HTMLayer:
     #     #print "output = ", output
     #     return output
 
+    def checkCellActive(self, pos_x, pos_y, cellIndex, timeStep):
+        # Find if the given cell is active at the given timeStep
+        # We check the self.activeCellsTime tensor which stores the last 2
+        # times each cell was active.
+        colIndex = pos_y * self.width + pos_x
+        if self.activeCellsTime[colIndex][cellIndex][0] == timeStep:
+            return True
+        if self.activeCellsTime[colIndex][cellIndex][1] == timeStep:
+            return True
+        return False
+
+    def checkCellPredict(self, pos_x, pos_y, cellIndex, timeStep):
+        # Find if the given cell is in the predictive state at the given timeStep
+        # We check the self.predictCellsTime tensor which stores the last 2
+        # times each cell was active.
+        colIndex = pos_y * self.width + pos_x
+        if self.predictCellsTime[colIndex][cellIndex][0] == timeStep:
+            return True
+        if self.predictCellsTime[colIndex][cellIndex][1] == timeStep:
+            return True
+        return False
+
+    def checkCellLearn(self, pos_x, pos_y, cellIndex, timeStep):
+        # Find if the given cell is in the learn state at the given timeStep
+        # We check the self.learnCellsTime tensor which stores the last 2
+        # times each cell was active.
+        colIndex = pos_y * self.width + pos_x
+        if self.learnCellsTime[colIndex][cellIndex][0] == timeStep:
+            return True
+        if self.learnCellsTime[colIndex][cellIndex][1] == timeStep:
+            return True
+        return False
+
     def getNumSegments(self, pos_x, pos_y, cellInd):
         # Get the number of segments for a cell in the column at position
         # pos_x, pos_y with index cellInd.
@@ -434,6 +450,7 @@ class HTMLayer:
         # Check that self.distalSynapse tensor for segments that contain any
         # synpases with permanence values larger then a zero permanence value.
         numSegments = 0
+        # from PyQt4.QtCore import pyqtRemoveInputHook; import ipdb; pyqtRemoveInputHook(); ipdb.set_trace()
         for segInd in range(len(segList)):
             synList = self.distalSynapses[colInd][cellInd][segInd]
             for synInd in range(len(synList)):
@@ -461,10 +478,11 @@ class HTMLayer:
             if synPermanence > self.connectPermanence:
                 # Create a synapse object to represent this synapse.
                 # Convert the column index to a column x, y position
+                #from PyQt4.QtCore import pyqtRemoveInputHook; import ipdb; pyqtRemoveInputHook(); ipdb.set_trace()
                 endColInd = syn[0]
                 endCellInd = syn[1]
                 col_pos_y = math.floor(int(endColInd) / int(self.width))
-                col_pos_x = endCellInd - col_pos_y * self.width
+                col_pos_x = endColInd - col_pos_y * self.width
 
                 newSynObj = Synapse(col_pos_x, col_pos_y, endCellInd, synPermanence)
                 connectedSynList.append(newSynObj)
@@ -536,65 +554,11 @@ class HTMLayer:
             self.colActNotBurstTimes[columnIndex][2] = timeStep
             self.colActNotBurstTimes[columnIndex][0] = self.colActNotBurstTimes[columnIndex][1]
 
-    def activeStateAdd(self, c, i, timeStep):
-        # We add the new time to the start of
-        # the array then delete the time at the end of the array.
-        # All the times should be in order from
-        # most recent to oldest.
-        # The colActNotBurstTimes matrix is updated as well.
-        columnIndex = c.pos_y * self.width + c.pos_x
-        self.updateColActNotBurstTimes(columnIndex, timeStep)
-        newArray = np.insert(c.activeStateArray[i], 0, timeStep)
-        newArray = np.delete(newArray, len(newArray)-1)
-        c.activeStateArray[i] = newArray
-
-    def predictiveStateAdd(self, c, i, timeStep):
-        # We add the new time to the start of the array
-        # then delete the time at the end of the array.
-        # All the times should be in order from
-        # most recent to oldest.
-        newArray = np.insert(c.predictiveStateArray[i], 0, timeStep)
-        newArray = np.delete(newArray, len(newArray)-1)
-        c.predictiveStateArray[i] = newArray
-
-    def learnStateAdd(self, c, i, timeStep):
-        # We add the new time to the start of the
-        # array then delete the time at the end of the array.
-        # All the times should be in order from
-        # most recent to oldest.
-        newArray = np.insert(c.learnStateArray[i], 0, timeStep)
-        newArray = np.delete(newArray, len(newArray)-1)
-        c.learnStateArray[i] = newArray
-
     def columnActiveStateNow(self, pos_x, pos_y):
         # look at the colActive array to see if a column is active at the moment.
         columnIndex = pos_y * self.width + pos_x
         if self.colActive[columnIndex] == 1:
             return True
-        return False
-
-    def activeState(self, c, i, timeStep):
-        # Search the history of the activeStateArray to find if the
-        # cell was active at time timeStep
-        for j in range(len(c.activeStateArray[i])):
-            if c.activeStateArray[i, j] == timeStep:
-                return True
-        return False
-
-    def predictiveState(self, c, i, timeStep):
-        # Search the history of the predictiveStateArray to find if the
-        # cell was predicting at time timeStep
-        for j in range(len(c.predictiveStateArray[i])):
-            if c.predictiveStateArray[i, j] == timeStep:
-                return True
-        return False
-
-    def learnState(self, c, i, timeStep):
-        # Search the history of the learnStateArray to find if the
-        # cell was learning at time timeStep
-        for j in range(len(c.learnStateArray[i])):
-            if c.learnStateArray[i, j] == timeStep:
-                return True
         return False
 
     def findLearnCell(self, c, timeStep):

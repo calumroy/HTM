@@ -334,7 +334,7 @@ class test_temporalPoolingSuite2:
         self.InputCreator.changePattern(0)
 
         gui.startHtmGui(self.htm, self.InputCreator)
-        self.nSteps(150)
+        self.nSteps(100)
 
         # # Measure the temporal pooling for each layer. This requires
         # # a temporal pooling measuring class per layer.
@@ -357,7 +357,7 @@ class test_temporalPoolingSuite2:
 
         self.InputCreator.changePattern(2)
         gui.startHtmGui(self.htm, self.InputCreator)
-        #self.nSteps(150)
+        # self.nSteps(150)
 
         # # Measure the temporal pooling for each layer. This requires
         # # a temporal pooling measuring class per layer.

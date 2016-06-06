@@ -92,6 +92,7 @@ class seqLearningCalculator():
                     distalSynapses[c][i][segIndNewSyn][s][0] = segNewSynList[s][0]
                     distalSynapses[c][i][segIndNewSyn][s][1] = segNewSynList[s][1]
                     distalSynapses[c][i][segIndNewSyn][s][2] = permanence
+                    # from PyQt4.QtCore import pyqtRemoveInputHook; import ipdb; pyqtRemoveInputHook(); ipdb.set_trace()
                     # print "     Set new syn = %s" % (segNewSynList[s])
         return distalSynapses
 
@@ -109,6 +110,7 @@ class seqLearningCalculator():
                 if positiveReinforcement is True:
                     # Increment the permanence of the active synapse
                     if segActiveSynList[s] == 1:
+                        # from PyQt4.QtCore import pyqtRemoveInputHook; import ipdb; pyqtRemoveInputHook(); ipdb.set_trace()
                         # print "Incrementing syn perm [%s,%s,%s,%s]" % (c, i, segIndUpdate, s)
                         distalSynapses[c][i][segIndUpdate][s][2] += self.permanenceInc
                         distalSynapses[c][i][segIndUpdate][s][2] = min(1.0,

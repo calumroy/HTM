@@ -566,6 +566,7 @@ class HTMGridViewer(QtGui.QGraphicsView):
         blue = QtGui.QColor(0x40, 0x30, 0xFF, 0xFF)
 
         # Go through each cell. If it is in the synapse list draw it otherwise don't
+        print "Synapses start in col x,y = %s, %s" % (pos_x, pos_y)
         for i in range(len(self.cellItems)):
             cell_pos_x = self.cellItems[i].pos_x
             cell_pos_y = self.cellItems[i].pos_y
@@ -576,13 +577,14 @@ class HTMGridViewer(QtGui.QGraphicsView):
             # A brush must be created with a color
             brush = QtGui.QBrush(transpBlue)
             # Check each synapse and draw the connected cells.
+            # from PyQt4.QtCore import pyqtRemoveInputHook; import ipdb; pyqtRemoveInputHook(); ipdb.set_trace()
             synList = currentLayer.getConnectedCellsSegSyns(selectedColumn, cellInd, segmentInd)
-            for syn in synList:
 
+            for syn in synList:
                 # Save the synapses end cells active times so they can be displayed.
-                synEndColumn = self.htm.regionArray[self.level].layerArray[self.layer].columns[syn.pos_y][syn.pos_x]
+                # synEndColumn = self.htm.regionArray[self.level].layerArray[self.layer].columns[syn.pos_y][syn.pos_x]
                 if syn.pos_x == cell_pos_x and syn.pos_y == cell_pos_y and syn.cell == cell_cell:
-                    print "     syn x,y,cell= %s,%s,%s Permanence = %s, active times = %s" % (cell_pos_x, cell_pos_y, cell_cell, syn.permanence, synEndColumn.activeStateArray[syn.cell])
+                    print "     syn x,y,cell= %s,%s,%s Permanence = %s" % (cell_pos_x, cell_pos_y, cell_cell, syn.permanence)
                     brush.setColor(blue)
                 # Set this cells color to white to indicate it was selected.
                 if pos_x == cell_pos_x and pos_y == cell_pos_y and cellInd == cell_cell:
@@ -636,8 +638,9 @@ class HTMGridViewer(QtGui.QGraphicsView):
         self.updateInfo()
 
     def updateCells(self):
+        currentLayer = self.htm.regionArray[self.level].layerArray[self.layer]
         # Redraw the cells.
-        timeStep = self.htm.regionArray[self.level].layerArray[self.layer].timeStep
+        timeStep = currentLayer.timeStep
         transp = QtGui.QColor(0, 0, 0, 0)
         pen = QtGui.QPen(transp, 0, QtCore.Qt.SolidLine)
         #transpRed = QtGui.QColor(0xFF, 0, 0, 0x20)
@@ -653,17 +656,17 @@ class HTMGridViewer(QtGui.QGraphicsView):
             cell = self.cellItems[i].cell
             brush = QtGui.QBrush(transp)  # Make the non existent cells faint
             if self.showActiveCells is True:
-                if int(self.htm.regionArray[self.level].layerArray[self.layer].columns[pos_y][pos_x].activeStateArray[cell,0]) == timeStep:
+                if currentLayer.checkCellActive(pos_x, pos_y, cell, timeStep) is True:
                     brush.setColor(blue)
                 else:
                     brush.setColor(transpBlue)
             if self.showPredictCells is True:
-                if int(self.htm.regionArray[self.level].layerArray[self.layer].columns[pos_y][pos_x].predictiveStateArray[cell,0]) == timeStep:
+                if currentLayer.checkCellPredict(pos_x, pos_y, cell, timeStep) is True:
                     brush.setColor(black)
                 else:
                     brush.setColor(transpBlue)
             if self.showLearnCells is True:
-                if int(self.htm.regionArray[self.level].layerArray[self.layer].columns[pos_y][pos_x].learnStateArray[cell,0]) == timeStep:
+                if currentLayer.checkCellLearn(pos_x, pos_y, cell, timeStep) is True:
                     brush.setColor(darkGreen)
                 else:
                     brush.setColor(transpBlue)

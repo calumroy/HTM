@@ -68,7 +68,7 @@ class LearningCalculator():
         # Check if the input that this
         # synapses is connected to is active.
         if colPotInputs[c][s] == 1:
-        # Only handles binary input sources
+            # Only handles binary input sources
             colSynPerm[c][s] += incPerm
             colSynPerm[c][s] = min(1.0, colSynPerm[c][s])
         else:
