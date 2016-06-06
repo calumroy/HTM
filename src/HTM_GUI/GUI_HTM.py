@@ -584,7 +584,7 @@ class HTMGridViewer(QtGui.QGraphicsView):
                 # Save the synapses end cells active times so they can be displayed.
                 # synEndColumn = self.htm.regionArray[self.level].layerArray[self.layer].columns[syn.pos_y][syn.pos_x]
                 if syn.pos_x == cell_pos_x and syn.pos_y == cell_pos_y and syn.cell == cell_cell:
-                    print "     syn x,y,cell= %s,%s,%s Permanence = %s" % (cell_pos_x, cell_pos_y, cell_cell, syn.permanence)
+                    print "     syn x,y,cell= %s,%s,%s Permanence = %s" % (syn.pos_x, syn.pos_y, syn.cell, syn.permanence)
                     brush.setColor(blue)
                 # Set this cells color to white to indicate it was selected.
                 if pos_x == cell_pos_x and pos_y == cell_pos_y and cellInd == cell_cell:

@@ -470,15 +470,16 @@ class HTMLayer:
         colInd = column.pos_y * self.width + column.pos_x
 
         synList = self.distalSynapses[colInd][cellInd][segInd]
+        # print "synList = \n%s" % (synList)
 
         # Now we need to check if the synapse is connected.
         connectedSynList = []
+        #from PyQt4.QtCore import pyqtRemoveInputHook; import ipdb; pyqtRemoveInputHook(); ipdb.set_trace()
         for syn in synList:
             synPermanence = syn[2]
             if synPermanence > self.connectPermanence:
                 # Create a synapse object to represent this synapse.
                 # Convert the column index to a column x, y position
-                #from PyQt4.QtCore import pyqtRemoveInputHook; import ipdb; pyqtRemoveInputHook(); ipdb.set_trace()
                 endColInd = syn[0]
                 endCellInd = syn[1]
                 col_pos_y = math.floor(int(endColInd) / int(self.width))

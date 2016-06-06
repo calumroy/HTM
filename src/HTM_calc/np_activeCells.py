@@ -310,7 +310,7 @@ class activeCellsCalculator():
         else:
             # Return the first index of the cell and the
             # index of the least used segment in that cell.
-            print "Returning least used segment cellInd = %s segINd = %s" % (cellIndLeastUsedSeg, segIndLeastUsedSeg)
+            # print "Returning least used segment cellInd = %s segINd = %s" % (cellIndLeastUsedSeg, segIndLeastUsedSeg)
             return (cellIndLeastUsedSeg, segIndLeastUsedSeg)
 
     def newRandomPrevActiveSynapses(self, newSynapseList, curSynapseList=None, keepConnectedSyn=False):
@@ -337,7 +337,7 @@ class activeCellsCalculator():
                         columnIndex = newSynEnd[0]
                         cellIndex = newSynEnd[1]
                         newSynapseList[i] = [columnIndex, cellIndex, self.newSynPermanence]
-                        print "Update struct created new syn ending at [%s,%s] new Perm = %s" % (columnIndex, cellIndex, self.newSynPermanence)
+                        # print "Update struct created new syn ending at [%s,%s] new Perm = %s" % (columnIndex, cellIndex, self.newSynPermanence)
 
     def findLeastUsedSeg(self, cellsActiveSegTimes, returnTimeStep=False):
         # Find the most unused segment from the given cells list
@@ -685,7 +685,7 @@ class activeCellsCalculator():
                             self.segIndNewSyn[c][highCellInd] = updateSegInd
                             # Create new synapses for the selected segment. The new synapses are stored in the
                             # segNewSyn tensor, they connect to a random sample of learning cells one timeStep ago.
-                            print "Creating entire new set of synapses for col, cell, seg = %s,%s,%s" % (c, highCellInd, updateSegInd)
+                            # print "Creating entire new set of synapses for col, cell, seg = %s,%s,%s" % (c, highCellInd, updateSegInd)
                             self.newRandomPrevActiveSynapses(self.segNewSyn[c][highCellInd])
                     # According to the CLA paper
                     if activeCellChosen is False:
@@ -696,7 +696,7 @@ class activeCellsCalculator():
                         # print " Getting the best matching cell to set as learning cell"
                         # The best matching cell whose segment was most active and hence was most predicting.
                         (cell, s) = self.getBestMatchingCell(distalSynapses[c], activeSeg[c], timeStep)
-                        print "Got the best matching seg to be learn col, cell, seg = %s, %s, %s" % (c, cell, s)
+                        # print "Got the best matching seg to be learn col, cell, seg = %s, %s, %s" % (c, cell, s)
                         self.setLearnCell(c, cell, timeStep)
                         # Update the segment s by adding to the update tensors. The update happens in the future.
                         # Increment any active synapses in the chosen segment.
@@ -705,7 +705,7 @@ class activeCellsCalculator():
                         # Create new synapses that where active for the previous timestep.
                         # Create these new synapases by deleting weak synapses in the segment.
                         self.segIndNewSyn[c][cell] = s
-                        print "Creating maybe some new synapses for col, cell, seg = %s,%s,%s" % (c, cell, s)
+                        # print "Creating maybe some new synapses for col, cell, seg = %s,%s,%s" % (c, cell, s)
                         self.newRandomPrevActiveSynapses(self.segNewSyn[c][cell], distalSynapses[c][cell][s], True)
 
         # print "self.cellsScore= \n%s" % self.cellsScore

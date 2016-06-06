@@ -89,6 +89,8 @@ class seqLearningCalculator():
                 if permanence != -1:
                     # Set the synapse to the new synapses values.
                     # Set the end column, end cell and the permanence value of the new synapse.
+                    #print "Creating new syn starting in [%s,%s,%s,%s]" % (c, i, segIndNewSyn, s)
+                    #print "     Ending in [%s,%s] New permanence = %s" % (segNewSynList[s][0], segNewSynList[s][1], permanence)
                     distalSynapses[c][i][segIndNewSyn][s][0] = segNewSynList[s][0]
                     distalSynapses[c][i][segIndNewSyn][s][1] = segNewSynList[s][1]
                     distalSynapses[c][i][segIndNewSyn][s][2] = permanence
@@ -118,15 +120,17 @@ class seqLearningCalculator():
                 else:
                     # Decrement the permanence of the active synapse
                     if segActiveSynList[s] == 1:
-                        # print "Decrementing syn perm [%s,%s,%s,%s]" % (c, i, segIndUpdate, s)
+                        # print "Decrementing syn starting in [%s,%s,%s,%s]" % (c, i, segIndUpdate, s)
                         distalSynapses[c][i][segIndUpdate][s][2] -= self.permanenceDec
                         distalSynapses[c][i][segIndUpdate][s][2] = max(0.0,
                                                                        distalSynapses[c][i][segIndUpdate][s][2])
+                        # print "     Decremented permenance syn perm = %s" % distalSynapses[c][i][segIndUpdate][s][2]
                 # Decrement the permanence of all synapses in the synapse list,
                 # whether they were active or not.
                 distalSynapses[c][i][segIndUpdate][s][2] -= self.permanenceDec
                 distalSynapses[c][i][segIndUpdate][s][2] = max(0.0,
                                                                distalSynapses[c][i][segIndUpdate][s][2])
+        #from PyQt4.QtCore import pyqtRemoveInputHook; import ipdb; pyqtRemoveInputHook(); ipdb.set_trace()
         # Return the updated distal synapses tensor.
         return distalSynapses
 
@@ -207,7 +211,9 @@ class seqLearningCalculator():
                     This tensor has a size of numberColumns * numCellsPerCol * maxNumSegmentsPerCell * maxNumSynPerSeg.
                     It does not change size. Its size is fixed when this class is constructed.
 
+        Updated Inputs:
                 6. Six tensors storing information on which segments to update for a cell.
+                   These update tensors are updated by this function.
                    The 6 tensors are needed because a segment can be updated by either changing permanence values of the
                    current synapses or creating new synapses or a combination of both for a single segment.
                    A cell can only store information about updating one segment at a time. There are
@@ -248,6 +254,11 @@ class seqLearningCalculator():
                                        segNewSynActive[c][i],
                                        segIndUpdatePredict[c][i],
                                        segActiveSynPredict[c][i])
+                    # Now set the segment Indicies from the update structures to -1. This indicates
+                    # that the update has been performed and it won't occur for the next timestep.
+                    segIndUpdateActive[c][i] = -1
+                    segIndNewSynActive[c][i] = -1
+                    segIndUpdatePredict[c][i] = -1
                 # Trying a different method to the CLA white pages
                 if ((self.checkCellTime(timeStep-1, c, i, predictCellsTime) is True) and
                     (self.checkCellTime(timeStep, c, i, predictCellsTime) is False) and
@@ -260,6 +271,11 @@ class seqLearningCalculator():
                                        segNewSynActive[c][i],
                                        segIndUpdatePredict[c][i],
                                        segActiveSynPredict[c][i])
+                    # Now set the segment Indicies from the update structures to -1. This indicates
+                    # that the update has been performed and it won't occur for the next timestep.
+                    segIndUpdateActive[c][i] = -1
+                    segIndNewSynActive[c][i] = -1
+                    segIndUpdatePredict[c][i] = -1
         return distalSynapses
 
 
