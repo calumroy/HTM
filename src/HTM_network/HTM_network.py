@@ -67,50 +67,22 @@ class Cell:
         self.score = 0     # The current score for the cell.
         self.segments = []
 
+
 class Column:
     def __init__(self, length, pos_x, pos_y, params):
         self.cells = [Cell() for i in range(length)]
         self.pos_x = pos_x
         self.pos_y = pos_y
         self.overlap = 0.0  # As defined by the numenta white paper
-        self.boost = params['boost']
-        self.minDutyCycle = params['minDutyCycle']   # The minimum firing rate of the column
-        # Keeps track of when the column was active.
-        # All columns start as active. It stores the
-        # numInhibition time when the column was active
-        self.activeDutyCycleArray = np.array([])
-        self.activeDutyCycle = 0.0  # the firing rate of the column
-        # The rate at which the overlap is larger then the min overlap
-        self.overlapDutyCycle = 0.0
-        # Keeps track of when the colums overlap was larger then the minoverlap
-        self.overlapDutyCycleArray = np.array([0])
-        # How much to increase the boost by when boosting is needed.
-        self.boostStep = params['boostStep']
-        # This determines how many previous timeSteps are stored in
-        # actve predictive and learn state arrays.
-        self.historyLength = params['historyLength']
-        self.highestScoredCell = None
-
         # An array storing the synapses with a permanence greater then the connectPermanence.
         self.connectedSynapses = np.array([], dtype=object)
-
         # The possible feed forward Synapse connections for the column
         self.potentialSynapses = np.array([], dtype=object)
-
-    def updateBoost(self):
-        if self.activeDutyCycle < self.minDutyCycle:
-            self.boost = self.boost+self.boostStep
-        else:
-            #print "activeDutyCycle %s > minDutyCycle %s"
-            # %(self.activeDutyCycle,self.minDutyCycle)
-            self.boost = 1.0
-        #print self.boost
 
 
 class HTMLayer:
     def __init__(self, input, columnArrayWidth, columnArrayHeight, cellsPerColumn, params):
-        # The columns are in a 2 dimensional array columnArrayWidth by
-        #columnArrayHeight.
+        # The columns are in a 2 dimensional array columnArrayWidth by columnArrayHeight.
         self.width = columnArrayWidth
         self.height = columnArrayHeight
         self.Input = input
@@ -289,6 +261,10 @@ class HTMLayer:
         # spatial, temporal and sequence pooling.
         self.setupCalculators()
 
+        # Initialise the columns potential synapses.
+        # Work out the potential feedforward connections each column could make to the input.
+        self.setupPotentialSynapses(self.inputWidth, self.inputHeight)
+
     def setupCalculators(self):
         # Setup the theano calculator classes used to calculate
         # efficiently the spatial, temporal and sequence pooling.
@@ -358,6 +334,20 @@ class HTMLayer:
                                          )
                                 for i in range(self.width)] for
                                 j in range(self.height)], dtype=object)
+
+    def neighbours(self, c):
+        # returns a list of the columns that are within the inhibitionRadius of c
+        # Request from the inhibition calculator the neighbours of a particular
+        # column. Return all the column that are neighbours
+        columnIndex = c.pos_y * self.width + c.pos_x
+        colIndicieList = self.inhibCalc.getColInhibitionList(columnIndex)
+        print "colIndicieList = %s" % colIndicieList
+        closeColumns = []
+        allColumns = self.columns.flatten().tolist()
+        for i in colIndicieList:
+            # Convert the colIndicieList values from floats to ints.
+            closeColumns.append(allColumns[int(i)])
+        return np.array(closeColumns)
 
     def getActiveColumnsGrid(self):
         # Return a matrix with the same dimensions as the 2d htm layer,
@@ -503,6 +493,33 @@ class HTMLayer:
                         output[y][x*self.cellsPerColumn+k] = 1
         # print "output = ", output
         return output
+
+    def setupPotentialSynapses(self, inputWidth, inputHeight):
+        # setup the locations of the potential synapses for every column.
+        # Don't use this function to change the potential synapse list it
+        # won't work as the theano class uses the intial parameters to
+        # setup theano functions which workout the potential list.
+        # Call the theano overlap class with the parameters
+        # to obtain a list of x and y positions in the input that each
+        # column can connect a potential synapse to.
+        columnPotSynPositions = self.overlapCalc.getPotentialSynapsePos(inputWidth, inputHeight)
+
+        # If the columns potential Width or height has changed then its
+        # length of potential synapses will have changed. If not just change
+        # each synpases parameters.
+        cInd = 0
+        for k in range(len(self.columns)):
+            for c in self.columns[k]:
+                numPotSynapse = self.potentialHeight * self.potentialWidth
+                assert numPotSynapse == len(columnPotSynPositions[0][0])
+                c.potentialSynapses = np.array([])
+                for i in range(numPotSynapse):
+                    y = columnPotSynPositions[0][cInd][i]
+                    x = columnPotSynPositions[1][cInd][i]
+                    c.potentialSynapses = np.append(c.potentialSynapses,
+                                                    [Synapse(x, y, -1, self.colSynPermanence)])
+                cInd += 1
+
 
     def getConnectedSynapses(self, column):
         # Create a list of the columns connected Synapses.
@@ -823,7 +840,7 @@ class HTMRegion:
         return self.layerArray[layer].output
 
     def regionOutput(self):
-        # Return the output form the entire region.
+        # Return the output from the entire region.
         # This will be the output from the highest layer.
         highestLayer = self.numLayers - 1
         return self.layerOutput(highestLayer)

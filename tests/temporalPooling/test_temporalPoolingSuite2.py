@@ -10,8 +10,7 @@ from utilities import startHtmGui as gui
 
 
 testParameters = {
-                    'HTM':
-                        {
+                  'HTM': {
                         'numLevels': 1,
                         'columnArrayWidth': 10,
                         'columnArrayHeight': 30,
@@ -44,12 +43,6 @@ testParameters = {
                                 'dutyCycleAverageLength': 1000,
                                 'colSynPermanence': 0.1,
                                 'cellSynPermanence': 0.4,
-
-                                'Columns': [{
-                                    'boost': 1,
-                                    'minDutyCycle': 0.01,
-                                    'boostStep': 0,
-                                    'historyLength': 2
                                 }]
                             },
                             {
@@ -74,13 +67,6 @@ testParameters = {
                                 'dutyCycleAverageLength': 1000,
                                 'colSynPermanence': 0.1,
                                 'cellSynPermanence': 0.4,
-
-                                'Columns': [{
-                                    'boost': 1,
-                                    'minDutyCycle': 0.01,
-                                    'boostStep': 0,
-                                    'historyLength': 2
-                                }]
                             },
                             {
                                 'desiredLocalActivity': 1,
@@ -103,18 +89,10 @@ testParameters = {
                                 'activationThreshold': 6,
                                 'dutyCycleAverageLength': 1000,
                                 'colSynPermanence': 0.1,
-                                'cellSynPermanence': 0.4,
-
-                                'Columns': [{
-                                    'boost': 1,
-                                    'minDutyCycle': 0.01,
-                                    'boostStep': 0,
-                                    'historyLength': 2
-                                }]
+                                'cellSynPermanence': 0.4
                             }]
-                        }]
+                        }
                     }
-                }
 
 
 class test_temporalPoolingSuite2:
@@ -357,7 +335,9 @@ class test_temporalPoolingSuite2:
 
         self.InputCreator.changePattern(2)
         gui.startHtmGui(self.htm, self.InputCreator)
-        # self.nSteps(150)
+        self.nSteps(150)
+        self.InputCreator.changePattern(0)
+        gui.startHtmGui(self.htm, self.InputCreator)
 
         # # Measure the temporal pooling for each layer. This requires
         # # a temporal pooling measuring class per layer.

@@ -246,6 +246,11 @@ class HTMInput(QtGui.QGraphicsView):
         green = QtGui.QColor(0, 0xFF, 0, 0xFF)
         darkGreen = QtGui.QColor(0, 0x80, 0x40, 0xFF)
 
+        # Get the selected columns synpases from the htm layer.
+        selectedColumn = currentLayer.columns[pos_y][pos_x]
+        #from PyQt4.QtCore import pyqtRemoveInputHook; import ipdb; pyqtRemoveInputHook(); ipdb.set_trace()
+        colSynList = currentLayer.getConnectedSynapses(selectedColumn)
+
         #blue = QtGui.QColor(0x40, 0x30, 0xFF, 0xFF)
         # Go through each column. If it is in the synapse list draw it otherwise don't
         for col in self.columnItems:
@@ -256,8 +261,7 @@ class HTMInput(QtGui.QGraphicsView):
             # Check each synapse and draw the connected columns
             # Get the list of the selected columns connected synapses.
 
-            selectedColumn = currentLayer.columns[pos_y][pos_x]
-            for syn in currentLayer.getConnectedSynapses(selectedColumn):
+            for syn in colSynList:
                 if syn.pos_x == col.pos_x and syn.pos_y == col.pos_y:
                     print "     syn x, y= %s,%s Permanence = %s" % (col.pos_x, col.pos_y, syn.permanence)
                     inputConnected = True
