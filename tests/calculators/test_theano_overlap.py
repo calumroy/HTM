@@ -1,11 +1,11 @@
 
 import numpy as np
-import GUI_HTM
+from HTM_GUI import GUI_HTM
 from PyQt4 import QtGui
 import sys
 import json
 from copy import deepcopy
-from HTM_Classes import theano_overlap
+from HTM_calc import theano_overlap
 
 
 class test_theanoOverlap:

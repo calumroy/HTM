@@ -211,6 +211,15 @@ class activeCellsCalculator():
                                     for x in range(self.cellsPerColumn)]
                                   for y in range(self.numColumns)])
 
+    def getActiveCellsList(self):
+        # Return the list of active cells
+        return self.currentActiveCellsList
+
+    def getSegUpdates(self):
+        # Return the tensors storing information on which distal synapses
+        # in which segments learning should be performed on.
+        return self.segIndUpdate, self.segActiveSyn, self.segIndNewSyn, self.segNewSyn
+
     def findNumSegs(self, cellDistalSynapses):
         # Find the number of segments in a cell.
         # The segments must have at least one synapses with a permenance above zero.
@@ -715,15 +724,6 @@ class activeCellsCalculator():
         self.prevActiveCols = activeColumns
         #from PyQt4.QtCore import pyqtRemoveInputHook; import ipdb; pyqtRemoveInputHook(); ipdb.set_trace()
         return self.activeCellsTime, self.learnCellsTime
-
-    def getActiveCellsList(self):
-        # Return the list of active cells
-        return self.currentActiveCellsList
-
-    def getSegUpdates(self):
-        # Return the tensors storing information on which distal synapses
-        # in which segments learning should be performed on.
-        return self.segIndUpdate, self.segActiveSyn, self.segIndNewSyn, self.segNewSyn
 
 
 # Helper functions for the Main function.

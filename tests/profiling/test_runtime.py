@@ -1,8 +1,7 @@
-from mock import MagicMock
-from mock import patch
-from HTM_network import HTM
+
+from HTM_network import HTM_network
 import numpy as np
-import GUI_HTM
+from HTM_GUI import GUI_HTM
 from PyQt4 import QtGui
 import sys
 import json
@@ -32,6 +31,7 @@ testParameters = {
                                 'potentialHeight': 3,
                                 'spatialPermanenceInc': 0.1,
                                 'spatialPermanenceDec': 0.02,
+                                'maxNumTempPoolPatterns': 3,
                                 'permanenceInc': 0.1,
                                 'permanenceDec': 0.02,
                                 'connectPermanence': 0.3,
@@ -42,14 +42,7 @@ testParameters = {
                                 'activationThreshold': 6,
                                 'dutyCycleAverageLength': 1000,
                                 'colSynPermanence': 0.2,
-                                'cellSynPermanence': 0.4,
-
-                                'Columns': [{
-                                    'boost': 1,
-                                    'minDutyCycle': 0.01,
-                                    'boostStep': 0,
-                                    'historyLength': 2
-                                }]
+                                'cellSynPermanence': 0.4
                             }]
                         }]
                     }
@@ -65,8 +58,8 @@ class test_RunTime:
 
         '''
 
-            # Open and import the parameters .json file
-        #with open('testSpatialPooling.json', 'r') as paramsFile:
+        # Open and import the parameters .json file
+        # with open('testSpatialPooling.json', 'r') as paramsFile:
         params = testParameters
 
         # Create an array of input which will be fed to the htm so it
@@ -77,9 +70,7 @@ class test_RunTime:
 
         self.InputCreator = svli.simpleVerticalLineInputs(inputWidth, inputHeight, numInputs)
 
-        self.htm = HTM(self.InputCreator.createSimGrid(),
-                       params
-                       )
+        self.htm = HTM_network.HTM(self.InputCreator.createSimGrid(), params)
 
         # Setup some parameters of the HTM
         self.setupParameters()

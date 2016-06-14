@@ -1,9 +1,8 @@
 
 import numpy as np
-# import GUI_HTM
 from PyQt4 import QtGui
 import sys
-from HTM_Classes import void_inhibition
+from HTM_calc import void_inhibition
 
 
 class test_voidInhibition:

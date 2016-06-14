@@ -40,14 +40,12 @@ testParameters = {
                                 'newSynapseCount': 10,
                                 'maxNumSegments': 10,
                                 'activationThreshold': 6,
-                                'dutyCycleAverageLength': 1000,
                                 'colSynPermanence': 0.1,
-                                'cellSynPermanence': 0.4,
-                                }]
-                            },
-                            {
+                                'cellSynPermanence': 0.4
+                                },
+                                {
                                 'desiredLocalActivity': 1,
-                                'minOverlap': 3,
+                                'minOverlap': 2,
                                 'inhibitionWidth': 8,
                                 'inhibitionHeight': 2,
                                 'centerPotSynapses': 1,
@@ -59,16 +57,15 @@ testParameters = {
                                 'permanenceInc': 0.1,
                                 'permanenceDec': 0.02,
                                 'connectPermanence': 0.3,
-                                'minThreshold': 5,
+                                'minThreshold': 3,
                                 'minScoreThreshold': 5,
                                 'newSynapseCount': 10,
                                 'maxNumSegments': 10,
                                 'activationThreshold': 6,
-                                'dutyCycleAverageLength': 1000,
                                 'colSynPermanence': 0.1,
-                                'cellSynPermanence': 0.4,
-                            },
-                            {
+                                'cellSynPermanence': 0.4
+                                },
+                                {
                                 'desiredLocalActivity': 1,
                                 'minOverlap': 2,
                                 'inhibitionWidth': 20,
@@ -87,9 +84,9 @@ testParameters = {
                                 'newSynapseCount': 10,
                                 'maxNumSegments': 10,
                                 'activationThreshold': 6,
-                                'dutyCycleAverageLength': 1000,
                                 'colSynPermanence': 0.1,
                                 'cellSynPermanence': 0.4
+                                }]
                             }]
                         }
                     }

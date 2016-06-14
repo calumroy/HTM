@@ -1,8 +1,6 @@
-from mock import MagicMock
-from mock import patch
-from HTM_network import HTM
+from HTM_network import HTM_network
 import numpy as np
-import GUI_HTM
+from HTM_GUI import GUI_HTM
 from PyQt4 import QtGui
 import sys
 import json
@@ -11,46 +9,39 @@ from utilities import simpleVerticalLineInputs as svli
 from utilities import sdrFunctions as SDRFunct
 
 testParameters = {
-                    'HTM':
-                        {
-                        'numLevels': 1,
-                        'columnArrayWidth': 10,
-                        'columnArrayHeight': 30,
-                        'cellsPerColumn': 3,
+                'HTM': {
+                    'numLevels': 1,
+                    'columnArrayWidth': 10,
+                    'columnArrayHeight': 30,
+                    'cellsPerColumn': 3,
 
-                        'HTMRegions': [{
-                            'numLayers': 1,
-                            'enableHigherLevFb': 0,
-                            'enableCommandFeedback': 0,
+                    'HTMRegions': [{
+                        'numLayers': 1,
+                        'enableHigherLevFb': 0,
+                        'enableCommandFeedback': 0,
 
-                            'HTMLayers': [{
-                                'desiredLocalActivity': 2,
-                                'minOverlap': 3,
-                                'inhibitionWidth': 3,
-                                'inhibitionHeight': 3,
-                                'centerPotSynapses': 1,
-                                'potentialWidth': 4,
-                                'potentialHeight': 4,
-                                'spatialPermanenceInc': 0.1,
-                                'spatialPermanenceDec': 0.02,
-                                'permanenceInc': 0.1,
-                                'permanenceDec': 0.02,
-                                'connectPermanence': 0.3,
-                                'minThreshold': 5,
-                                'minScoreThreshold': 5,
-                                'newSynapseCount': 10,
-                                'maxNumSegments': 10,
-                                'activationThreshold': 6,
-                                'dutyCycleAverageLength': 1000,
-                                'colSynPermanence': 0.2,
-                                'cellSynPermanence': 0.4,
-
-                                'Columns': [{
-                                    'boost': 1,
-                                    'minDutyCycle': 0.01,
-                                    'boostStep': 0,
-                                    'historyLength': 2
-                                }]
+                        'HTMLayers': [{
+                            'desiredLocalActivity': 2,
+                            'minOverlap': 3,
+                            'inhibitionWidth': 3,
+                            'inhibitionHeight': 3,
+                            'centerPotSynapses': 1,
+                            'potentialWidth': 4,
+                            'potentialHeight': 4,
+                            'spatialPermanenceInc': 0.1,
+                            'spatialPermanenceDec': 0.02,
+                            'maxNumTempPoolPatterns': 3,
+                            'permanenceInc': 0.1,
+                            'permanenceDec': 0.02,
+                            'connectPermanence': 0.3,
+                            'minThreshold': 5,
+                            'minScoreThreshold': 5,
+                            'newSynapseCount': 10,
+                            'maxNumSegments': 10,
+                            'activationThreshold': 6,
+                            'dutyCycleAverageLength': 1000,
+                            'colSynPermanence': 0.2,
+                            'cellSynPermanence': 0.4
                             }]
                         }]
                     }
@@ -82,9 +73,7 @@ class test_spatialPooling:
 
         self.InputCreator = svli.simpleVerticalLineInputs(inputWidth, inputHeight, numInputs)
 
-        self.htm = HTM(self.InputCreator.createSimGrid(),
-                       params
-                       )
+        self.htm = HTM_network.HTM(self.InputCreator.createSimGrid(), params)
 
         # Setup some parameters of the HTM
         self.setupParameters()

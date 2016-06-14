@@ -1,7 +1,7 @@
 
-from HTM_network import HTM
+from HTM_network import HTM_network
 import numpy as np
-import GUI_HTM
+from HTM_GUI import GUI_HTM
 from PyQt4 import QtGui
 import sys
 import json
@@ -33,6 +33,7 @@ testParameters = {
                                 'potentialHeight': 4,
                                 'spatialPermanenceInc': 0.15,
                                 'spatialPermanenceDec': 0.05,
+                                'maxNumTempPoolPatterns': 3,
                                 'permanenceInc': 0.1,
                                 'permanenceDec': 0.02,
                                 'connectPermanence': 0.3,
@@ -73,9 +74,7 @@ class test_spatialPoolingSuite3:
 
         self.InputCreator = seqInputs.customSDRInputs(self.inputWidth, self.inputHeight, numInputs)
 
-        self.htm = HTM(self.InputCreator.createSimGrid(),
-                       params
-                       )
+        self.htm = HTM_network.HTM(self.InputCreator.createSimGrid(), params)
 
         # Setup some parameters of the HTM
         self.setupParameters()

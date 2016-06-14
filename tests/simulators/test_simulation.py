@@ -1,6 +1,6 @@
 from mock import MagicMock
 from mock import patch
-from Inverted_Pendulum import InvertedPendulum
+from Simulators import Inverted_Pendulum
 import numpy as np
 
 

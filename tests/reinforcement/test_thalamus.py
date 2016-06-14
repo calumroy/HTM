@@ -1,6 +1,5 @@
-from mock import MagicMock
-from mock import patch
-from Thalamus import Thalamus
+
+from reinforcement_learning import Thalamus
 import numpy as np
 
 

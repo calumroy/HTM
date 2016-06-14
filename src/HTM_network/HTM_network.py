@@ -69,7 +69,7 @@ class Cell:
 
 
 class Column:
-    def __init__(self, length, pos_x, pos_y, params):
+    def __init__(self, length, pos_x, pos_y):
         self.cells = [Cell() for i in range(length)]
         self.pos_x = pos_x
         self.pos_y = pos_y
@@ -118,11 +118,10 @@ class HTMLayer:
         # More than this many synapses on a segment must be active for
         # the segment to be active
         self.activationThreshold = params['activationThreshold']
-        self.dutyCycleAverageLength = params['dutyCycleAverageLength']
         self.timeStep = 0
         # The output is a 2D grid representing the cells states.
         # It is larger then the input by a factor of the number of cells per column
-        self.output = np.array([[0 for i in range(self.width * self.cellsPerColumn)] for j in range(self.height)])
+        self.output = np.zeros((self.height, self.width * self.cellsPerColumn))
         # The starting permanence of new column synapses (spatial pooler synapses).
         # This is used to create new synapses.
         self.colSynPermanence = params['colSynPermanence']
@@ -222,7 +221,7 @@ class HTMLayer:
         self.segActiveSynActive = np.array([[[-1 for z in range(self.newSynapseCount)]
                                             for x in range(self.cellsPerColumn)]
                                             for y in range(self.numColumns)])
-        # A 2D tensor "segIndNewSyn" for each cell holds [segIndex] indicating which segment new
+        # A 2D tensor "segIndNewSynActive" for each cell holds [segIndex] indicating which segment new
         # synapses should be created for. If the index is -1 don't create any new synapses.
         # This tensor stores segment update info from the active Cells calculator.
         self.segIndNewSynActive = np.array([[-1 for x in range(self.cellsPerColumn)] for y in range(self.numColumns)])
@@ -235,11 +234,6 @@ class HTMLayer:
         self.segNewSynActive = np.array([[[[-1, -1, 0.0] for z in range(self.newSynapseCount)]
                                         for x in range(self.cellsPerColumn)]
                                         for y in range(self.numColumns)])
-        # A 2D tensor "segIndNewSynActive" for each cell holds [segIndex] indicating which segment new
-        # synapses should be created for. If the index is -1 don't create any new synapses.
-        # This tensor stores segment update info from the active Cells calculator.
-        self.segIndNewSynActive = np.array([[-1 for x in range(self.cellsPerColumn)] for y in range(self.numColumns)])
-
         # A 2d tensor for each cell holds [segIndex] indicating which segment to update.
         # This tensor stores segment update info from the predict Cells calculator.
         # If the index is -1 this means don't create a new segment.
@@ -255,7 +249,7 @@ class HTMLayer:
         # Create the array storing the columns
         self.columns = np.array([[]], dtype=object)
         # Setup the columns array.
-        self.setupColumns(params['Columns'])
+        self.setupColumns()
 
         # Setup the theano classes used for calculating
         # spatial, temporal and sequence pooling.
@@ -320,18 +314,13 @@ class HTMLayer:
         #                                                     self.potentialHeight,
         #                                                     self.minOverlap)
 
-    def setupColumns(self, columnParams):
+    def setupColumns(self):
         # Get just the parameters for the columns
         # Note: The parameters can come in a list of dictionaries,
         # one for each column or a shorter list specifying only some columns.
         # If only one or a few columns have parameters specified then all the
         # rest of the columns get the same last parameters specified.
-        numColParams = len(columnParams)
-        self.columns = np.array([[Column(self.cellsPerColumn,
-                                         i,
-                                         j,
-                                         columnParams[min(i*self.width+j, numColParams-1)]
-                                         )
+        self.columns = np.array([[Column(self.cellsPerColumn, i, j)
                                 for i in range(self.width)] for
                                 j in range(self.height)], dtype=object)
 
@@ -520,7 +509,6 @@ class HTMLayer:
                                                     [Synapse(x, y, -1, self.colSynPermanence)])
                 cInd += 1
 
-
     def getConnectedSynapses(self, column):
         # Create a list of the columns connected Synapses.
         column.connectedSynapses = np.array([], dtype=object)
@@ -599,6 +587,28 @@ class HTMLayer:
             self.Input = newInput
         else:
             print "New Input is not a 2D numpy array!"
+
+    def updateOutput(self):
+        # Update the output array.
+        # The output array is the output from all the cells. The cells form a new 2d input grid
+        # this way temporal information is not lost between layers and levels.
+        # Initialise all outputs as zero first then set the cells as 1.
+        self.output = np.zeros((self.height, self.width * self.cellsPerColumn))
+        # Use the active cells from the activeCells calculator.
+        # Set the corresponding bit in the output to true if the cell is currently active.
+        # Active cells list returns a list of column indicies and cell indices which are active
+        # [colInd, cellInd]
+        activeCellsList = self.activeCellsCalc.getActiveCellsList()
+
+        for activeCellPos in activeCellsList:
+            colInd = activeCellPos[0]
+            cellInd = activeCellPos[1]
+
+            col_pos_y = int(math.floor(int(colInd) / int(self.width)))
+            col_pos_x = colInd - col_pos_y * self.width
+            # Output is a 2d grid where each location represents a cell.
+            # Set the cell respective element in the output to 1 if that cell is active.
+            self.output[col_pos_y][int(col_pos_x*self.cellsPerColumn+cellInd)] = 1
 
     def getPotentialOverlaps(self):
         # Get the potential overlap scores for each column.
@@ -883,12 +893,11 @@ class HTMRegion:
             layer.spatialLearning()
             # This updates the sequence pooler
             layer.sequencePooler(layer.timeStep)
-            # layer.updateActiveState(layer.timeStep)
-            # layer.updatePredictiveState(layer.timeStep)
-            # layer.sequenceLearning(layer.timeStep)
             # TODO
             # This updates the temporal pooler
             #layer.temporal()
+            # Update the output grid for the layer.
+            layer.updateOutput()
 
 
 class HTM:

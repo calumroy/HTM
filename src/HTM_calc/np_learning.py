@@ -15,7 +15,7 @@ This class requires as inputs:
     * A list of the active columns.
     * How much to increment or decrement synapse values.
 
-THIS THEANO LEARNING CLASS IS A REIMPLEMENTATION OF THE ORIGINAL CODE:
+THIS CLASS IS A REIMPLEMENTATION OF THE ORIGINAL CODE:
     for c in self.activeColumns:
         for s in c.potentialSynapses:
             # Check if the input that this
@@ -52,7 +52,7 @@ class LearningCalculator():
         self.spatialPermanenceInc = spatialPermanenceInc
         self.spatialPermanenceDec = spatialPermanenceDec
         # This parameter is another value used to decrement synapses permance values by.
-        # It is required since already active columsn decrement their synapses by a
+        # It is required since already active columns decrement their synapses by a
         # different value as compared to columns that just become active.
         self.activeColPermanenceDec = activeColPermanenceDec
 
