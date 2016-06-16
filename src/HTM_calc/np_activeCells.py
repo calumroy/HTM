@@ -211,6 +211,11 @@ class activeCellsCalculator():
                                     for x in range(self.cellsPerColumn)]
                                   for y in range(self.numColumns)])
 
+    def getCellsScore(self, colIndex, cellIndex):
+        # Get the score of the selected cell
+        cellsScore = self.cellsScore[colIndex][cellIndex]
+        return cellsScore
+
     def getActiveCellsList(self):
         # Return the list of active cells
         return self.currentActiveCellsList
@@ -346,7 +351,6 @@ class activeCellsCalculator():
                         columnIndex = newSynEnd[0]
                         cellIndex = newSynEnd[1]
                         newSynapseList[i] = [columnIndex, cellIndex, self.newSynPermanence]
-                        # print "Update struct created new syn ending at [%s,%s] new Perm = %s" % (columnIndex, cellIndex, self.newSynPermanence)
 
     def findLeastUsedSeg(self, cellsActiveSegTimes, returnTimeStep=False):
         # Find the most unused segment from the given cells list
@@ -365,6 +369,14 @@ class activeCellsCalculator():
             return leastUsedSeg, oldestTime
         else:
             return leastUsedSeg
+
+    def checkColPrevActive(self, colIndex):
+        # Check that the column with the index colIndex was active
+        # one timeStep ago.
+        if self.prevActiveCols[colIndex] == 1:
+            return True
+        else:
+            return False
 
     def checkColBursting(self, colIndex, timeStep):
         # Check that the column with the index colIndex was not bursting
@@ -460,7 +472,7 @@ class activeCellsCalculator():
         return False
 
     def segmentHighestScore(self, segment, timeStep):
-        # Get the highest score of the previously active cell
+        # Get the highest score of the cell in the previously active column
         # (one timestep ago) that is connected to the end of the synapses in the segment.
         # segment is a 2d tensor, [syn1, syn2, syn3, ...] where
         # syn1 = [columnIndex, cellIndex, permanence].
@@ -470,7 +482,7 @@ class activeCellsCalculator():
         for i in range(len(segment)):
             columnIndex = int(segment[i][0])
             cellIndex = int(segment[i][1])
-            if self.checkCellActive(columnIndex, cellIndex, timeStep-1) == True:
+            if self.checkColPrevActive(columnIndex) == True:
                 currentCellScore = self.cellsScore[columnIndex][cellIndex]
                 if currentCellScore > highestScoreCount:
                     highestScoreCount = currentCellScore
@@ -599,7 +611,9 @@ class activeCellsCalculator():
                 2.  "currentActiveCellsList" is a 2d tensor storing the active cells in each column for the current timeStep.
                     It is a variable length 2d array storing the columnIndex and cellIndex of cells currently active.
                     For example [9,3]. It is reset to an empty list at the start of each timeStep.
+
                 3.  "prevActiveCellsList" is a 2d tensor storing the active cells in each column for the previous timeStep.
+
                 4. "currentLearnCellsList" is a 2d tensor storing the learn state cells in each column for the current timeStep.
                     It is a variable length 2d array storing the columnIndex and cell index of cells currently in the learn
                     state. It is reset to an empty list at the start of each timeStep.
@@ -681,6 +695,7 @@ class activeCellsCalculator():
                     if self.colArrayHighestScoredCell[c] != -1:
                         # Check the score value of the highest scored cell in the column.
                         highCellInd = self.colArrayHighestScoredCell[c]
+                        #print "highest scored cell index in active columns = %s" % highCellInd
                         if (activeCellChosen is False and
                            (self.cellsScore[c][highCellInd] >= self.minScoreThreshold)):
                             activeCellChosen = True
