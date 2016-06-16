@@ -330,10 +330,13 @@ class test_temporalPoolingSuite2:
         #     # of the topmost layer after the second pattern has been learnt.
         #     topGridOutputPat1 = self.htm.regionArray[0].layerOutput(self.numLayers-1)
 
-        self.InputCreator.changePattern(2)
+        self.InputCreator.changePattern(3)
         gui.startHtmGui(self.htm, self.InputCreator)
         self.nSteps(150)
         self.InputCreator.changePattern(0)
+        gui.startHtmGui(self.htm, self.InputCreator)
+        self.nSteps(150)
+        self.InputCreator.changePattern(3)
         gui.startHtmGui(self.htm, self.InputCreator)
 
         # # Measure the temporal pooling for each layer. This requires
