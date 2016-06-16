@@ -26,6 +26,7 @@
                 "potentialHeight": 4,
                 "spatialPermanenceInc": 0.1,
                 "spatialPermanenceDec": 0.02,
+                "maxNumTempPoolPatterns": 3,
                 "permanenceInc": 0.1,
                 "permanenceDec": 0.02,
                 "connectPermanence": 0.3,
@@ -36,14 +37,7 @@
                 "activationThreshold": 4,
                 "dutyCycleAverageLength": 1000,
                 "colSynPermanence": 0.4,
-                "cellSynPermanence": 0.4,
-
-                "Columns": [{
-                    "boost": 1,
-                    "minDutyCycle": 0.01 ,
-                    "boostStep": 0,
-                    "historyLength": 2
-                }]
+                "cellSynPermanence": 0.4
             },
             {
                 "desiredLocalActivity": 1,
@@ -55,6 +49,7 @@
                 "potentialHeight": 2,
                 "spatialPermanenceInc": 0.1,
                 "spatialPermanenceDec": 0.0,
+                "maxNumTempPoolPatterns": 3,
                 "permanenceInc": 0.1,
                 "permanenceDec": 0.02,
                 "connectPermanence": 0.3,
@@ -65,15 +60,7 @@
                 "activationThreshold": 8,
                 "dutyCycleAverageLength": 1000,
                 "colSynPermanence": 0.4,
-                "cellSynPermanence": 0.4,
-
-                "Columns": [{
-
-                    "boost": 1,
-                    "minDutyCycle": 0.01 ,
-                    "boostStep": 0,
-                    "historyLength": 2
-                }]
+                "cellSynPermanence": 0.4
             }]
         },
         {
@@ -97,6 +84,7 @@
                 "potentialHeight": 8,
                 "spatialPermanenceInc": 0.1,
                 "spatialPermanenceDec": 0.02,
+                "maxNumTempPoolPatterns": 3,
                 "permanenceInc": 0.1,
                 "permanenceDec": 0.02,
                 "connectPermanence": 0.3,
@@ -107,14 +95,7 @@
                 "activationThreshold": 6,
                 "dutyCycleAverageLength": 1000,
                 "colSynPermanence": 0.4,
-                "cellSynPermanence": 0.4,
-
-                "Columns": [{
-                    "boost": 1,
-                    "minDutyCycle": 0.01 ,
-                    "boostStep": 0,
-                    "historyLength": 2
-                }]
+                "cellSynPermanence": 0.4
             },
             {
                 "desiredLocalActivity": 1,
@@ -126,6 +107,7 @@
                 "potentialHeight": 2,
                 "spatialPermanenceInc": 0.1,
                 "spatialPermanenceDec": 0.0,
+                "maxNumTempPoolPatterns": 3,
                 "permanenceInc": 0.1,
                 "permanenceDec": 0.02,
                 "connectPermanence": 0.3,
@@ -136,14 +118,7 @@
                 "activationThreshold": 6,
                 "dutyCycleAverageLength": 1000,
                 "colSynPermanence": 0.4,
-                "cellSynPermanence": 0.4,
-
-                "Columns": [{
-                    "boost": 1,
-                    "minDutyCycle": 0.01 ,
-                    "boostStep": 0,
-                    "historyLength": 2
-                }]
+                "cellSynPermanence": 0.4
             }]
         }]
     }

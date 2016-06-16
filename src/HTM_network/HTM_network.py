@@ -330,7 +330,7 @@ class HTMLayer:
         # column. Return all the column that are neighbours
         columnIndex = c.pos_y * self.width + c.pos_x
         colIndicieList = self.inhibCalc.getColInhibitionList(columnIndex)
-        print "colIndicieList = %s" % colIndicieList
+        print "Columns Neighbours list = %s" % colIndicieList
         closeColumns = []
         allColumns = self.columns.flatten().tolist()
         for i in colIndicieList:
@@ -417,6 +417,12 @@ class HTMLayer:
             return True
         return False
 
+    def getCellsScore(self, pos_x, pos_y, cellInd):
+        # Get the score of the selected cell from the activeCells calculator
+        colInd = pos_y * self.width + pos_x
+        cellsScore = self.activeCellsCalc.getCellsScore(colInd, cellInd)
+        return cellsScore
+
     def getNumSegments(self, pos_x, pos_y, cellInd):
         # Get the number of segments for a cell in the column at position
         # pos_x, pos_y with index cellInd.
@@ -443,7 +449,7 @@ class HTMLayer:
     def getConnectedCellsSegSyns(self, column, cellInd, segInd):
         # Return an array of synpases objects that represent the distal synapses
         # in a particular segment.
-        # The column is an object the cellInd, and segInd anr indicies.
+        # The column is an object the cellInd, and segInd are indicies.
         # get the columns index in the self.distalSynapses tensor (5d tensor).
         # Each synapse stores (column number, cell number, permanence)
         colInd = column.pos_y * self.width + column.pos_x
@@ -477,8 +483,8 @@ class HTMLayer:
             for x in range(len(self.columns[i])):
                 c = self.columns[y][x]
                 for k in range(len(c.cells)):
-                    # Count the number of cells in the column that are predicting now
-                    if c.predictiveStateArray[k][0] == self.timeStep:
+                    # Set the cells in the column that are predicting now
+                    if self.checkCellPredict(x, y, k, self.timeStep):
                         output[y][x*self.cellsPerColumn+k] = 1
         # print "output = ", output
         return output

@@ -558,7 +558,6 @@ class HTMGridViewer(QtGui.QGraphicsView):
     def drawSingleCell(self, pos_x, pos_y, cellInd, segmentInd):
         # Draw the cells connected to the selected segment
         print"pos_x,pos_y,cell,seg = %s,%s,%s,%s" % (pos_x, pos_y, cellInd, segmentInd)
-        print "Segment Synapse permanence"
         transp = QtGui.QColor(0, 0, 0, 0)
         pen = QtGui.QPen(transp, 0, QtCore.Qt.SolidLine)
         #transpRed = QtGui.QColor(0xFF, 0, 0, 0x20)
@@ -709,6 +708,10 @@ class HTMGridViewer(QtGui.QGraphicsView):
             if item.__class__.__name__ == "HTMCell":
                 print "cell"
                 print "pos_x,pos_y,cell = %s,%s,%s" % (item.pos_x, item.pos_y, item.cell)
+                # Print out the cells current score.
+                currentLayer = self.htm.regionArray[self.level].layerArray[self.layer]
+                cellsScore = currentLayer.getCellsScore(item.pos_x, item.pos_y, item.cell)
+                print "     Cells Score = %s" % cellsScore
                 numSegments = layer.getNumSegments(item.pos_x, item.pos_y, item.cell)
                 self.selectedItem = item
                 item_pos = item.pos()
