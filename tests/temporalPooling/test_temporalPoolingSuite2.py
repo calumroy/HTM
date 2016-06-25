@@ -31,6 +31,7 @@ testParameters = {
                                 'potentialHeight': 4,
                                 'spatialPermanenceInc': 0.1,
                                 'spatialPermanenceDec': 0.02,
+                                'activeColPermanenceDec': 0.02,
                                 'maxNumTempPoolPatterns': 3,
                                 'permanenceInc': 0.1,
                                 'permanenceDec': 0.02,
@@ -52,7 +53,8 @@ testParameters = {
                                 'potentialWidth': 8,
                                 'potentialHeight': 8,
                                 'spatialPermanenceInc': 0.2,
-                                'spatialPermanenceDec': 0.05,
+                                'spatialPermanenceDec': 0.02,
+                                'activeColPermanenceDec': 0.02,
                                 'maxNumTempPoolPatterns': 3,
                                 'permanenceInc': 0.1,
                                 'permanenceDec': 0.02,
@@ -68,15 +70,16 @@ testParameters = {
                                 {
                                 'desiredLocalActivity': 1,
                                 'minOverlap': 2,
-                                'inhibitionWidth': 20,
+                                'inhibitionWidth': 15,
                                 'inhibitionHeight': 2,
                                 'centerPotSynapses': 1,
                                 'connectPermanence': 0.3,
-                                'potentialWidth': 30,
+                                'potentialWidth': 20,
                                 'potentialHeight': 10,
                                 'spatialPermanenceInc': 0.2,
-                                'spatialPermanenceDec': 0.05,
-                                'maxNumTempPoolPatterns': 3,
+                                'spatialPermanenceDec': 0.02,
+                                'activeColPermanenceDec': 0.02,
+                                'maxNumTempPoolPatterns': 10,
                                 'permanenceInc': 0.15,
                                 'permanenceDec': 0.05,
                                 'minThreshold': 5,
@@ -330,13 +333,15 @@ class test_temporalPoolingSuite2:
         #     # of the topmost layer after the second pattern has been learnt.
         #     topGridOutputPat1 = self.htm.regionArray[0].layerOutput(self.numLayers-1)
 
-        self.InputCreator.changePattern(3)
+        self.InputCreator.changePattern(2)
         gui.startHtmGui(self.htm, self.InputCreator)
         self.nSteps(150)
         self.InputCreator.changePattern(0)
         gui.startHtmGui(self.htm, self.InputCreator)
         self.nSteps(150)
-        self.InputCreator.changePattern(3)
+        self.InputCreator.changePattern(2)
+        gui.startHtmGui(self.htm, self.InputCreator)
+        self.InputCreator.changePattern(0)
         gui.startHtmGui(self.htm, self.InputCreator)
 
         # # Measure the temporal pooling for each layer. This requires

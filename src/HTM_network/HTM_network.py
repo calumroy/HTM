@@ -142,8 +142,7 @@ class HTMLayer:
         self.spatialPermanenceDec = params['spatialPermanenceDec']
         self.maxNumTempPoolPatterns = params['maxNumTempPoolPatterns']
         # Already active columns have their spatial synapses decremented by a different value in the spatial pooler.
-        self.activeColPermanenceDec = (float(self.spatialPermanenceInc) /
-                                       float(self.maxNumTempPoolPatterns))
+        self.activeColPermanenceDec = params['activeColPermanenceDec']
         self.permanenceInc = params['permanenceInc']
         self.permanenceDec = params['permanenceDec']
         self.inputHeight = len(self.Input)

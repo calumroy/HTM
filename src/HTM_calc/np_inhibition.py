@@ -304,6 +304,18 @@ class inhibitionCalculator():
         '''
         The Main function for this class.
 
+        Inputs:
+                1.  overlapsGrid a 2d grid (2d tensor) storing for each column the number of
+                    active inputs that connected proximal (column synapses) are attached to.
+
+                2.  potOverlapsGrid a 2d grid (2d tensor) storing for each column the number of
+                    active inputs that potential proximal (column synapses) are attached to.
+        Outputs:
+                1.  columnActive 1d array. This is an array storing 1 (active) or 0 (inactive)
+                    for all the columns.
+
+        Function:
+
         Take a matrix holding all the overlap values for every column
         and calculate the active columns and the inhibitied (inactive) columns.
         To setup for the inhibiton calcualtor a tie breaker is added to all overlap values.
@@ -349,7 +361,7 @@ class inhibitionCalculator():
         biasPrevActiveCols = True
         overlapsGrid = self.addTieBreaker(overlapsGrid, self.prevActiveColsGrid, biasPrevActiveCols)
         # Do the same for the potential Overlaps Grid.
-        biasPrevActiveCols = True
+        biasPrevActiveCols = False
         potOverlapsGrid = self.addTieBreaker(potOverlapsGrid, self.prevActiveColsGrid, biasPrevActiveCols)
 
         allColsOverlaps = overlapsGrid.flatten().tolist()

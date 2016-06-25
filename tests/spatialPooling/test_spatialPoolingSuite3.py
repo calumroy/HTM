@@ -33,6 +33,7 @@ testParameters = {
                                 'potentialHeight': 4,
                                 'spatialPermanenceInc': 0.15,
                                 'spatialPermanenceDec': 0.05,
+                                'activeColPermanenceDec': 0.02,
                                 'maxNumTempPoolPatterns': 3,
                                 'permanenceInc': 0.1,
                                 'permanenceDec': 0.02,
