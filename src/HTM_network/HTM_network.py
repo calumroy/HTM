@@ -11,7 +11,7 @@ import copy
 from utilities import sdrFunctions as SDRFunct
 from reinforcement_learning import Thalamus
 
-# from HTM_calc import theano_temporal as temporal
+from HTM_calc import np_temporal as temporal
 from HTM_calc import theano_overlap as overlap
 # from HTM_calc import theano_inhibition as inhibition
 from HTM_calc import np_inhibition as inhibition
@@ -157,6 +157,8 @@ class HTMLayer:
         self.colOverlaps = np.empty([self.height, self.width])
         # Setup a matrix where each row represents a columns input values from its potential synapses.
         self.colPotInputs = np.empty([self.numColumns, self.numPotSyn])
+        # Store the previous timeSteps potential inputs.
+        self.prevColPotInputs = np.empty([self.numColumns, self.numPotSyn])
         # Setup a matrix where each element represents the timestep when a column
         # was active but not bursting last. Each position in the first dimension
         # represents a column. The matrix stores the last two times the column
@@ -167,11 +169,11 @@ class HTMLayer:
         # the other two positions.
         self.colActNotBurstTimes = np.zeros((self.numColumns, 3))
         self.tempTimeCheck = 0
-        # Setup a vector where each element represents a timeStep when a column
-        # should stop temporal pooling.
-        self.colStopTempAtTime = np.zeros(self.numColumns)
         # Setup a vector where each element represents if a column is active 1 or not 0
         self.colActive = np.zeros(self.numColumns)
+        # Setup a vector where each element represents if a column was active one timeStep ago
+        # 1 represens active, 0 not active one timeStep ago
+        self.prevColActive = np.zeros(self.numColumns)
 
         # The timeSteps when cells where active last. This is a 3D tensor.
         # The 1st dimension stores the columns the 2nd is the cells in the columns.
@@ -309,9 +311,9 @@ class HTMLayer:
                                                            self.permanenceInc,
                                                            self.permanenceDec)
 
-        # self.tempPoolCalc = temporal.TemporalPoolCalculator(self.potentialWidth,
-        #                                                     self.potentialHeight,
-        #                                                     self.minOverlap)
+        self.tempPoolCalc = temporal.TemporalPoolCalculator(self.potentialWidth,
+                                                            self.potentialHeight,
+                                                            self.minOverlap)
 
     def setupColumns(self):
         # Get just the parameters for the columns
@@ -631,7 +633,9 @@ class HTMLayer:
         # print "len(self.input) = %s len(self.input[0]) = %s " % (len(self.Input), len(self.Input[0]))
         # print "len(colPotSynPerm) = %s len(colPotSynPerm[0]) = %s" % (len(self.colPotSynPerm), len(self.colPotSynPerm[0]))
         # print "self.colPotSynPerm = \n%s" % self.colPotSynPerm
-
+        # Save the previous potential Inputs
+        self.prevColPotInputs = self.colPotInputs
+        # Update the overlap and potential input values for each column.
         self.colOverlaps, self.colPotInputs = self.overlapCalc.calculateOverlap(self.colPotSynPerm, self.Input)
         # limit the overlap values so they are larger then minOverlap
         self.colOverlaps = self.overlapCalc.removeSmallOverlaps(self.colOverlaps)
@@ -650,6 +654,8 @@ class HTMLayer:
         # Get the potential overlaps and reshape them into a grid (matrix).
         potColOverlapsGrid = self.getPotentialOverlaps().reshape((self.height, self.width))
 
+        # Store the current activecol as the previous active columns and update the colActive
+        self.prevColActive = self.colActive
         self.colActive = self.inhibCalc.calculateWinningCols(colOverlapsGrid, potColOverlapsGrid)
         # print "self.colActive = \n%s" % self.colActive
 
@@ -714,27 +720,29 @@ class HTMLayer:
                                                                  self.segIndUpdatePredict,
                                                                  self.segActiveSynPredict)
 
-    def temporal(self):
+    def temporalPooler(self, timeStep):
         '''
-        Temporal Pooler keeps cells that are correclty predicitng a
+        Temporal Pooler keeps cells that are correctly predicitng a
         pattern active longer through the input sequence.
 
         It works by adjusting the permanences of both the proximal and distal syanpses.
-        It performs learning on the column synapses and cell synapses for columsn and cells
+        It performs learning on the column synapses and cell synapses for columns and cells
         that where previously "active predictive" (they where predicting and then became active)
-        and columsn that have just become active predictive.
+        and columns that have just become active predictive.
 
         '''
-        # TODO
-        pass
-        # We need just the latest column active but not bursting times.
-        # latestColActNotBurstTimes = self.colActNotBurstTimes[:, 0]
 
-        # self.colOverlaps, self.colStopTempAtTime = self.tempPoolCalc.calculateTemporalPool(latestColActNotBurstTimes,
-        #                                                                                    self.timeStep,
-        #                                                                                    self.colOverlaps,
-        #                                                                                    self.colPotInputs,
-        #                                                                                    self.colStopTempAtTime)
+        #latestColActNotBurstTimes = self.colActNotBurstTimes[:, 0]
+
+        self.colPotSynPerm = self.tempPoolCalc.updateProximalTempPool(self.colPotInputs,
+                                                                      self.colActive,
+                                                                      self.colPotSynPerm,
+                                                                      self.timeStep
+                                                                      )
+
+        #TODO
+        # implement and call the updateDistalTempPool function in the above calcualtor
+        # This updateddistal synapses causing some cells to predict more often.
 
 
 class HTMRegion:
@@ -898,9 +906,8 @@ class HTMRegion:
             layer.spatialLearning()
             # This updates the sequence pooler
             layer.sequencePooler(layer.timeStep)
-            # TODO
             # This updates the temporal pooler
-            #layer.temporal()
+            layer.temporalPooler(layer.timeStep)
             # Update the output grid for the layer.
             layer.updateOutput()
 
