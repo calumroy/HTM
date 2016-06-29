@@ -712,6 +712,7 @@ class HTMGridViewer(QtGui.QGraphicsView):
                 currentLayer = self.htm.regionArray[self.level].layerArray[self.layer]
                 cellsScore = currentLayer.getCellsScore(item.pos_x, item.pos_y, item.cell)
                 print "     Cells Score = %s" % cellsScore
+                currentLayer.getCellsUpdateSynStruct(item.pos_x, item.pos_y, item.cell)
                 numSegments = layer.getNumSegments(item.pos_x, item.pos_y, item.cell)
                 self.selectedItem = item
                 item_pos = item.pos()

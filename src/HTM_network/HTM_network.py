@@ -311,9 +311,11 @@ class HTMLayer:
                                                            self.permanenceInc,
                                                            self.permanenceDec)
 
-        self.tempPoolCalc = temporal.TemporalPoolCalculator(self.potentialWidth,
+        self.tempPoolCalc = temporal.TemporalPoolCalculator(self.numColumns,
+                                                            self.potentialWidth,
                                                             self.potentialHeight,
-                                                            self.minOverlap)
+                                                            self.spatialPermanenceInc,
+                                                            self.spatialPermanenceDec)
 
     def setupColumns(self):
         # Get just the parameters for the columns
@@ -417,6 +419,16 @@ class HTMLayer:
         if self.learnCellsTime[colIndex][cellIndex][1] == timeStep:
             return True
         return False
+
+    def getCellsUpdateSynStruct(self, pos_x, pos_y, cellInd):
+        # The update synapse structures for the given cell
+        colInd = pos_y * self.width + pos_x
+        print " cells self.segIndUpdateActive = %s " % self.segIndUpdateActive[colInd][cellInd]
+        print " cells self.segActiveSynActive = %s " % self.segActiveSynActive[colInd][cellInd]
+        print " cells self.segIndNewSynActive = %s " % self.segIndNewSynActive[colInd][cellInd]
+        print " cells self.segNewSynActive = %s " % self.segNewSynActive[colInd][cellInd]
+        print " cells self.segIndUpdatePredict = %s " % self.segIndUpdatePredict[colInd][cellInd]
+        print " cells self.segActiveSynPredict = %s " % self.segActiveSynPredict[colInd][cellInd]
 
     def getCellsScore(self, pos_x, pos_y, cellInd):
         # Get the score of the selected cell from the activeCells calculator

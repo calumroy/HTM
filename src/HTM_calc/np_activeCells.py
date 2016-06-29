@@ -267,6 +267,8 @@ class activeCellsCalculator():
         # then minNumSynThreshold synapses active) then return the cell with
         # the least number of segments that have been active. If their is a
         # draw then return the cell with the least used segment.
+        # Also return if the best cell was found or not. This is so if a best cell was not found
+        # then a new segment can be created.
         # A flag to indicate that a bestCell was found.
         bestCellFound = False
         # Cell index with the most active Segment
@@ -320,12 +322,12 @@ class activeCellsCalculator():
                     bestCellFound = True
         if bestCellFound is True:
             # print "returned from GETBESTMATCHINGCELL the cell i=%s with the best segment s=%s"%(bestCell,bestSegment)
-            return (bestCell, bestSegment)
+            return (bestCell, bestSegment, bestCellFound)
         else:
             # Return the first index of the cell and the
             # index of the least used segment in that cell.
             # print "Returning least used segment cellInd = %s segINd = %s" % (cellIndLeastUsedSeg, segIndLeastUsedSeg)
-            return (cellIndLeastUsedSeg, segIndLeastUsedSeg)
+            return (cellIndLeastUsedSeg, segIndLeastUsedSeg, bestCellFound)
 
     def newRandomPrevActiveSynapses(self, newSynapseList, curSynapseList=None, keepConnectedSyn=False):
         # Fill the newSynapseList with a random selection of new synapses
@@ -719,7 +721,9 @@ class activeCellsCalculator():
                     if learningCellChosen is False:
                         # print " Getting the best matching cell to set as learning cell"
                         # The best matching cell whose segment was most active and hence was most predicting.
-                        (cell, s) = self.getBestMatchingCell(distalSynapses[c], activeSeg[c], timeStep)
+                        # Also return if a best matching cell was found. This means a cell had a segment with
+                        # some matching synapses. If one wasn't found then a new segment should be created.
+                        (cell, s, matchSegFound) = self.getBestMatchingCell(distalSynapses[c], activeSeg[c], timeStep)
                         # print "Got the best matching seg to be learn col, cell, seg = %s, %s, %s" % (c, cell, s)
                         self.setLearnCell(c, cell, timeStep)
                         # Update the segment s by adding to the update tensors. The update happens in the future.
@@ -730,7 +734,8 @@ class activeCellsCalculator():
                         # Create these new synapases by deleting weak synapses in the segment.
                         self.segIndNewSyn[c][cell] = s
                         # print "Creating maybe some new synapses for col, cell, seg = %s,%s,%s" % (c, cell, s)
-                        self.newRandomPrevActiveSynapses(self.segNewSyn[c][cell], distalSynapses[c][cell][s], True)
+                        # If matchSegFound is false then create new synapses for all the syns in the given cells segment.
+                        self.newRandomPrevActiveSynapses(self.segNewSyn[c][cell], distalSynapses[c][cell][s], matchSegFound)
 
         # print "self.cellsScore= \n%s" % self.cellsScore
         # print "self.colArrayHighestScoredCell= \n%s" % self.colArrayHighestScoredCell
