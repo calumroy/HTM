@@ -168,7 +168,6 @@ class activeCellsCalculator():
         # The minimum required permanence value required by a synapse for it to be connected.
         self.connectPermanence = connectPermanence
 
-        # self.prevColPotInputs = np.array([[-1 for x in range(self.numPotSynapses)] for y in range(self.numColumns)])
         self.prevActiveCols = np.array([-1 for i in range(self.numColumns)])
         # An array storing for each column the cell index number for the cell who has the highest calculated score.
         self.colArrayHighestScoredCell = np.array([-1 for j in range(self.numColumns)])
@@ -211,6 +210,10 @@ class activeCellsCalculator():
                                     for x in range(self.cellsPerColumn)]
                                   for y in range(self.numColumns)])
 
+    def getPrevLearnCellsList(self):
+        # Get the list of cells that where in the learn state for the previous timestep.
+        return self.prevLearnCellsList
+
     def getCellsScore(self, colIndex, cellIndex):
         # Get the score of the selected cell
         cellsScore = self.cellsScore[colIndex][cellIndex]
@@ -227,7 +230,7 @@ class activeCellsCalculator():
 
     def findNumSegs(self, cellDistalSynapses):
         # Find the number of segments in a cell.
-        # The segments must have at least one synapses with a permenance above zero.
+        # The segments must have at least one synapses with a permanence above zero.
         # Returns the number of segments.
         numSegments = 0
 
@@ -344,9 +347,9 @@ class activeCellsCalculator():
                     newSynapseList[i] = [columnIndex, cellIndex, self.newSynPermanence]
             else:
                 # keepConnectedSyn is true only create new synapses by
-                # overwriting weak synapses (low permenance values).
-                curPermenance = curSynapseList[i][2]
-                if curPermenance < self.connectPermanence:
+                # overwriting weak synapses (low permanence values).
+                curpermanence = curSynapseList[i][2]
+                if curpermanence < self.connectPermanence:
                     #from PyQt4.QtCore import pyqtRemoveInputHook; import ipdb; pyqtRemoveInputHook(); ipdb.set_trace()
                     if len(self.prevLearnCellsList) > 0:
                         newSynEnd = random.sample(self.prevLearnCellsList, 1)[0]
@@ -503,8 +506,8 @@ class activeCellsCalculator():
         count = 0
         for i in range(len(synapseMatrix)):
             # Make sure the synapse exist (its permanence is larger then 0)
-            synPermenance = synapseMatrix[i][2]
-            if synPermenance > self.connectPermanence:
+            synpermanence = synapseMatrix[i][2]
+            if synpermanence > self.connectPermanence:
                 columnIndex = int(synapseMatrix[i][0])
                 cellIndex = int(synapseMatrix[i][1])
                 if onCell is True:
@@ -614,12 +617,15 @@ class activeCellsCalculator():
                     It is a variable length 2d array storing the columnIndex and cellIndex of cells currently active.
                     For example [9,3]. It is reset to an empty list at the start of each timeStep.
 
-                3.  "prevActiveCellsList" is a 2d tensor storing the active cells in each column for the previous timeStep.
+                3.  "prevActiveCellsList" is a variable length 2d tensor storing the columnIndex and cellIndex of cells that
+                    where in the active state for the previous timeStep.
 
                 4. "currentLearnCellsList" is a 2d tensor storing the learn state cells in each column for the current timeStep.
                     It is a variable length 2d array storing the columnIndex and cell index of cells currently in the learn
                     state. It is reset to an empty list at the start of each timeStep.
-                5.  "prevLearnCellsList" is a 2d tensor storing the active cells in each column for the previous timeStep.
+
+                5.  "prevLearnCellsList" is a variable length 2d tensor storing the columnIndex and cellIndex of cells that
+                    where in the learn state for the previous timeStep.
 
                 6. Four tensors storing information on which segments to update for a cell.
                    The 4 tensors are needed because a segment can be updated by either changing permanence values of the

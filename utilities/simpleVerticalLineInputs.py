@@ -21,8 +21,8 @@ class simpleVerticalLineInputs:
         self.width = width
         self.height = height
         # How many input patterns to store
-        self.numPatterns = 6
-        # An index indicating the current pattern that is being used as a serias of input grids.
+        self.numPatterns = 7
+        # An index indicating the current pattern that is being used as a series of input grids.
         self.patIndex = 0
         # An array storing different input patterns
         # Each pattern is a series of 2dArray grids storing binary patterns.
@@ -88,6 +88,13 @@ class simpleVerticalLineInputs:
             if patIndex >= self.numInputs:
                 patIndex = 0
             inputs[5][n] = SDRFunct.orSDRPatterns(inputs[0][patIndex], inputs[2][patIndex])
+        # The seventh pattern is just every 6th input of the first pattern
+        patIndex = 0
+        for n in range(len(inputs[2])):
+            patIndex = patIndex + 6
+            if patIndex >= self.numInputs:
+                patIndex = 0
+            inputs[6][n] = inputs[0][patIndex]
 
     def changePattern(self, patternindex):
         # Change the input pattern

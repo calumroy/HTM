@@ -34,7 +34,7 @@ testParameters = {
                                 'spatialPermanenceInc': 0.15,
                                 'spatialPermanenceDec': 0.05,
                                 'activeColPermanenceDec': 0.02,
-                                'maxNumTempPoolPatterns': 3,
+                                'tempDelayLength': 3,
                                 'permanenceInc': 0.1,
                                 'permanenceDec': 0.02,
                                 'connectPermanence': 0.3,

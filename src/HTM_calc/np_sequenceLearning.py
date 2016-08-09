@@ -124,7 +124,7 @@ class seqLearningCalculator():
                         distalSynapses[c][i][segIndUpdate][s][2] -= self.permanenceDec
                         distalSynapses[c][i][segIndUpdate][s][2] = max(0.0,
                                                                        distalSynapses[c][i][segIndUpdate][s][2])
-                        # print "     Decremented permenance syn perm = %s" % distalSynapses[c][i][segIndUpdate][s][2]
+                        # print "     Decremented permanence syn perm = %s" % distalSynapses[c][i][segIndUpdate][s][2]
                 # Decrement the permanence of all synapses in the synapse list,
                 # whether they were active or not.
                 distalSynapses[c][i][segIndUpdate][s][2] -= self.permanenceDec

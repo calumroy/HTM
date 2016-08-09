@@ -206,6 +206,7 @@ class inhibitionCalculator():
         # value based on that row and col number. This helps when deciding
         # how to break ties in the inhibition stage. Note this is not a random value!
         # Make sure the tiebreaker contains values less then 1.
+        # The tie breaker increases based on a columns index number.
         # The tie breaker is based on position and whether the column was
         # previously active or active but not bursting; the input addColBias is used to
         # indicate that extra bias should be given to a particular column.

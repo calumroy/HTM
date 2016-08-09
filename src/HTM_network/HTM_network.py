@@ -133,14 +133,12 @@ class HTMLayer:
         # the columns, cells and synpases. This is done to improve the performance
         # since operations are just matrix manipulations.
         # These parameters come from the column class.
-        # Just take the parameters for the first column.
-
         self.potentialWidth = params['potentialWidth']
         self.potentialHeight = params['potentialHeight']
         self.minOverlap = params['minOverlap']
         self.spatialPermanenceInc = params['spatialPermanenceInc']
         self.spatialPermanenceDec = params['spatialPermanenceDec']
-        self.maxNumTempPoolPatterns = params['maxNumTempPoolPatterns']
+        self.tempDelayLength = params['tempDelayLength']
         # Already active columns have their spatial synapses decremented by a different value in the spatial pooler.
         self.activeColPermanenceDec = params['activeColPermanenceDec']
         self.permanenceInc = params['permanenceInc']
@@ -192,6 +190,10 @@ class HTMLayer:
         # Each element stores the last 2 timestep when this cell was in the learn state last.
         self.learnCellsTime = np.array([[[-1, -1] for x in range(self.cellsPerColumn)]
                                        for y in range(self.numColumns)])
+
+        # A variable length list storing the column Index and cell index of the learning cells
+        # for the previous timeStep.
+        self.prevLearnCellsList = []
 
         # Create the distalSynapse 5d tensor holding the information of the distal synapses.
         # The first dimension stores the columns, the 2nd is the cells
@@ -311,11 +313,17 @@ class HTMLayer:
                                                            self.permanenceInc,
                                                            self.permanenceDec)
 
-        self.tempPoolCalc = temporal.TemporalPoolCalculator(self.numColumns,
-                                                            self.potentialWidth,
-                                                            self.potentialHeight,
+        self.tempPoolCalc = temporal.TemporalPoolCalculator(self.cellsPerColumn,
+                                                            self.numColumns,
+                                                            self.numPotSyn,
                                                             self.spatialPermanenceInc,
-                                                            self.spatialPermanenceDec)
+                                                            self.spatialPermanenceDec,
+                                                            self.permanenceInc,
+                                                            self.permanenceDec,
+                                                            self.minThreshold,
+                                                            self.cellSynPermanence,
+                                                            self.connectPermanence,
+                                                            self.tempDelayLength)
 
     def setupColumns(self):
         # Get just the parameters for the columns
@@ -707,6 +715,8 @@ class HTMLayer:
          self.segActiveSynActive,
          self.segIndNewSynActive,
          self.segNewSynActive) = self.activeCellsCalc.getSegUpdates()
+        # Also get the list of the previous learn state cells
+        self.prevLearnCellsList = self.activeCellsCalc.getPrevLearnCellsList()
 
         # 2. CALCULATE PREDICTIVE CELLS
         self.predictCellsTime = self.predictCellsCalc.updatePredictiveState(timeStep,
@@ -752,10 +762,13 @@ class HTMLayer:
                                                                       self.timeStep
                                                                       )
 
-        #TODO
-        # implement and call the updateDistalTempPool function in the above calcualtor
-        # This updateddistal synapses causing some cells to predict more often.
-
+        # This updates distal synapses causing some cells to predict more often.
+        self.distalSynapses = self.tempPoolCalc.updateDistalTempPool(self.timeStep,
+                                                                     self.prevLearnCellsList,
+                                                                     self.predictCellsTime,
+                                                                     self.activeCellsTime,
+                                                                     self.activeSegsTime,
+                                                                     self.distalSynapses)
 
 class HTMRegion:
     def __init__(self, input, columnArrayWidth, columnArrayHeight, cellsPerColumn, params):

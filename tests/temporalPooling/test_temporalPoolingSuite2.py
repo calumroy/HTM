@@ -32,7 +32,7 @@ testParameters = {
                                 'spatialPermanenceInc': 0.1,
                                 'spatialPermanenceDec': 0.02,
                                 'activeColPermanenceDec': 0.02,
-                                'maxNumTempPoolPatterns': 3,
+                                'tempDelayLength': 3,
                                 'permanenceInc': 0.1,
                                 'permanenceDec': 0.02,
                                 'connectPermanence': 0.3,
@@ -55,7 +55,7 @@ testParameters = {
                                 'spatialPermanenceInc': 0.2,
                                 'spatialPermanenceDec': 0.02,
                                 'activeColPermanenceDec': 0.02,
-                                'maxNumTempPoolPatterns': 3,
+                                'tempDelayLength': 3,
                                 'permanenceInc': 0.1,
                                 'permanenceDec': 0.02,
                                 'connectPermanence': 0.3,
@@ -79,7 +79,7 @@ testParameters = {
                                 'spatialPermanenceInc': 0.2,
                                 'spatialPermanenceDec': 0.02,
                                 'activeColPermanenceDec': 0.02,
-                                'maxNumTempPoolPatterns': 10,
+                                'tempDelayLength': 10,
                                 'permanenceInc': 0.15,
                                 'permanenceDec': 0.05,
                                 'minThreshold': 5,
@@ -403,6 +403,19 @@ class test_temporalPoolingSuite2:
 
         #gui.startHtmGui(self.htm, self.InputCreator)
 
+    def test_tempEquality(self):
+        '''
+        Test to make sure that a pattern is eventually temporally
+        pooled by cells that where active at different times of the
+        input pattern initially.
+
+        Eg. pattern A, B, C should be pooled into a stable pattern
+        with some cells that originally became active for input A and some that
+        where originally active for B and C as well.
+        '''
+        self.InputCreator.changePattern(6)
+        gui.startHtmGui(self.htm, self.InputCreator)
+        self.nSteps(100)
 
 
 
