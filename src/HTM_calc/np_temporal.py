@@ -220,16 +220,19 @@ class TemporalPoolCalculator():
         else:
             return leastUsedSeg
 
-    def newRandomPrevActiveSynapses(self, segSynList, prevLearnCellsList, curSynapseList=None, keepConnectedSyn=False):
+    def newRandomPrevActiveSynapses(self, segSynList, prev2CellsActPredList, curSynapseList=None, keepConnectedSyn=False):
         # Fill the segSynList with a random selection of new synapses
-        # that are connected with cells that where in the learn state one timeStep ago.
+        # that are connected with cells that are in the prev2CellsActPredList.
+        # This list stores the cells that where in the antepenultimate active Predict state.
+        # This may be from further back then 2 timesteps as the previous activePredict cells may
+        # have been active for multiple timesteps.
         # Each element in the synapseList contains (colIndex, cellIndex, permanence)
         for i in range(len(segSynList)):
             # if the keepConnectedSyn option is false then create new synapses for all
             # the synapses in the segment.
             if keepConnectedSyn is False:
-                if len(prevLearnCellsList) > 0:
-                    newSynEnd = random.sample(prevLearnCellsList, 1)[0]
+                if len(prev2CellsActPredList) > 0:
+                    newSynEnd = random.sample(prev2CellsActPredList, 1)[0]
                     columnIndex = newSynEnd[0]
                     cellIndex = newSynEnd[1]
                     segSynList[i] = [columnIndex, cellIndex, self.newSynPermanence]
@@ -239,8 +242,8 @@ class TemporalPoolCalculator():
                 curpermanence = curSynapseList[i][2]
                 if curpermanence < self.connectPermanence:
                     #from PyQt4.QtCore import pyqtRemoveInputHook; import ipdb; pyqtRemoveInputHook(); ipdb.set_trace()
-                    if len(self.prevLearnCellsList) > 0:
-                        newSynEnd = random.sample(prevLearnCellsList, 1)[0]
+                    if len(self.prev2CellsActPredList) > 0:
+                        newSynEnd = random.sample(prev2CellsActPredList, 1)[0]
                         columnIndex = newSynEnd[0]
                         cellIndex = newSynEnd[1]
                         segSynList[i] = [columnIndex, cellIndex, self.newSynPermanence]
@@ -296,16 +299,13 @@ class TemporalPoolCalculator():
 
         return colPotSynPerm
 
-    def updateDistalTempPool(self, timeStep, prevLearnCellsList, predictCellsTime, activeCellsTime, activeSeg, distalSynapses):
+    def updateDistalTempPool(self, timeStep, predictCellsTime, activeCellsTime, activeSeg, distalSynapses):
         '''
         Update the distal synapses (the cell synapses) such that;
 
         Inputs:
                 1.  timeStep is the number of iterations that the HTM has been through.
                     It is just an incrementing integer used to keep track of time.
-
-                2.  "prevLearnCellsList" is a variable length 2d tensor storing the columnIndex and cellIndex of cells that
-                    where in the learn state for the previous timeStep.
 
                 3.  "predictCellsTime" This 3D tensor is returned by this function. It is the timeSteps when cells where
                     in the predictive state last. The 1st dimension stores the columns the 2nd is the cells in the columns.
@@ -371,7 +371,11 @@ class TemporalPoolCalculator():
                         # created overwrite the least used segment.
                         h, lastTimeStep = self.findLeastUsedSeg(activeSeg[c][i], True)
                         print "new Random Seg created for c,i,h = %s, %s, %s" % (c, i, h)
-                        self.newRandomPrevActiveSynapses(distalSynapses[c][i][h], prevLearnCellsList)
+
+                        # TODO
+                        # Implement a self.prev2CellsActPredList keeping track of the antepenultimate
+                        # activePredict cells.
+                        self.newRandomPrevActiveSynapses(distalSynapses[c][i][h], self.prev2CellsActPredList)
 
         return distalSynapses
 
@@ -393,17 +397,16 @@ def runTempPoolUpdateProximal(tempPooler, colPotInputs, colPotSynPerm, timeStep)
         print "colPotSynPerm = \n%s" % colPotSynPerm
 
 
-def runTempPoolUpdateDistal(tempPooler, timeStep, prevLearnCellsList, predictCellsTime,
+def runTempPoolUpdateDistal(tempPooler, timeStep, predictCellsTime,
                             activeCellsTime, activeSeg, distalSynapses):
     # Run the temporal poolers function to update the distal synapses for a test.
-    print "prevLearnCellsList = \n%s" % prevLearnCellsList
     print "INITIAL distalSynapses = \n%s" % distalSynapses
 
     # Run through calculator
     test_iterations = 1
     for i in range(test_iterations):
         timeStep += 1
-        distalSynapses = tempPooler.updateDistalTempPool(timeStep, prevLearnCellsList,
+        distalSynapses = tempPooler.updateDistalTempPool(timeStep,
                                                          predictCellsTime, activeCellsTime,
                                                          activeSeg, distalSynapses)
         print "distalSynapses = \n%s" % distalSynapses
@@ -454,7 +457,6 @@ if __name__ == '__main__':
     # Create the active cells times
     activeCellsTime = np.zeros((numColumns, cellsPerColumn, 2))
     activeSegsTime = np.zeros((numColumns, cellsPerColumn, maxSegPerCell))
-    prevLearnCellsList = np.zeros((numColumns, cellsPerColumn, 2))
 
     # # Profile and save results as a picture
     # graphviz = GraphvizOutput()
@@ -471,7 +473,7 @@ if __name__ == '__main__':
     # runTempPoolUpdateProximal(tempPooler, colPotInputs, colPotSynPerm, timeStep)
 
     # Test the temporal poolers update distal synapse function
-    runTempPoolUpdateDistal(tempPooler, timeStep, prevLearnCellsList, predictCellsTime,
+    runTempPoolUpdateDistal(tempPooler, timeStep, predictCellsTime,
                             activeCellsTime, activeSegsTime, distalSynapses)
 
 

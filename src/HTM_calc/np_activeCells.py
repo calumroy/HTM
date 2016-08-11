@@ -210,10 +210,6 @@ class activeCellsCalculator():
                                     for x in range(self.cellsPerColumn)]
                                   for y in range(self.numColumns)])
 
-    def getPrevLearnCellsList(self):
-        # Get the list of cells that where in the learn state for the previous timestep.
-        return self.prevLearnCellsList
-
     def getCellsScore(self, colIndex, cellIndex):
         # Get the score of the selected cell
         cellsScore = self.cellsScore[colIndex][cellIndex]
