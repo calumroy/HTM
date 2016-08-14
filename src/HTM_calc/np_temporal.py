@@ -65,6 +65,10 @@ class TemporalPoolCalculator():
         self.cellsPersistance = np.array([[-1 for x in range(self.cellsPerColumn)]
                                          for y in range(self.numColumns)])
 
+        # A list that stores the cells that where in the active predict state from
+        # 2 time steps agp, the antepenultimate active predict cells.
+        self.prev2CellsActPredList = []
+
     def checkCellActive(self, colIndex, cellIndex, timeStep, activeCellsTime):
         # Check if the given cell was active at the timestep given.
         # We need to check the activeCellsTime tensor which holds multiple
