@@ -64,10 +64,21 @@ class TemporalPoolCalculator():
         # into the future without any active segments.
         self.cellsPersistance = np.array([[-1 for x in range(self.cellsPerColumn)]
                                          for y in range(self.numColumns)])
+        # The timeSteps when cells first enetered the learning state last. This doesn't include subsequent timesteps
+        # where the cell stayed in the learning state.
+        # This is a 3D tensor. The 1st dimension stores the columns the 2nd is the cells in the columns.
+        # Each element stores the last 2 timesteps when this cell first enetered the learning state last.
+        self.newLearnCellsTime = np.array([[[-1, -1] for x in range(self.cellsPerColumn)] for y in range(self.numColumns)])
 
-        # A list that stores the cells that where in the active predict state from
-        # 2 time steps agp, the antepenultimate active predict cells.
-        self.prev2CellsActPredList = []
+    def checkCellLearn(self, colIndex, cellIndex, timeStep, learnCellsTime):
+        # Check if the given cell was learning at the timestep given.
+        # We need to check the learnCellsTime tensor which holds multiple
+        # previous timeSteps when each cell was last in the learn state.
+        if learnCellsTime[colIndex][cellIndex][0] == timeStep:
+            return True
+        if learnCellsTime[colIndex][cellIndex][1] == timeStep:
+            return True
+        return False
 
     def checkCellActive(self, colIndex, cellIndex, timeStep, activeCellsTime):
         # Check if the given cell was active at the timestep given.
@@ -91,6 +102,16 @@ class TemporalPoolCalculator():
             predictCellsTime[colIndex][cellIndex][0] = timeStep
         else:
             predictCellsTime[colIndex][cellIndex][1] = timeStep
+
+    def setLearnCell(self, colIndex, cellIndex, timeStep, learnCellsTime):
+        # Set the given cell at colIndex, cellIndex into a learn state for the
+        # given timeStep.
+        # We need to check the learnCellsTime tensor which holds multiple
+        # previous timeSteps and set the oldest one to the given timeStep.
+        if learnCellsTime[colIndex][cellIndex][0] <= learnCellsTime[colIndex][cellIndex][1]:
+            learnCellsTime[colIndex][cellIndex][0] = timeStep
+        else:
+            learnCellsTime[colIndex][cellIndex][1] = timeStep
 
     def checkCellPredict(self, colIndex, cellIndex, timeStep, predictCellsTime):
         # Check if the given cell was predicting at the timestep given.
@@ -120,9 +141,12 @@ class TemporalPoolCalculator():
         cellsAvgPersistNum = ((1.0 - 1.0/self.delayLength) * cellsAvgPersistNum +
                               (1.0/self.delayLength) * prevTrackingNum)
 
-    def segmentNumSynapsesActive(self, synapseMatrix, timeStep, activeCellsTime):
-        # Find the number of active synapses for the previous timestep.
-        # Synapses whose end is on an active cell for the timestep.
+    def segmentNumSynapsesActive(self, synapseMatrix, potPrev2LearnCellsList):
+        # Find the number of synapses whose ends connect to the cells in
+        # the list of antepenultimate cells potPrev2LearnCellsList.
+        # Note: the input potPrev2LearnCellsList stores the antepenultimate learning cells as
+        # [[columnIndex, cellIndex], ...]
+
         # The synapseMatrix stores an array of synapses where
         # each synapse stores the end connection of that synpase.
         # The end of the synapse connects to a cell in a column.
@@ -134,15 +158,20 @@ class TemporalPoolCalculator():
             if synpermanence > self.connectPermanence:
                 columnIndex = int(synapseMatrix[i][0])
                 cellIndex = int(synapseMatrix[i][1])
-                if self.checkCellActive(columnIndex, cellIndex, timeStep-1, activeCellsTime) is True:
-                    count += 1
+                # TODO
+                # Make a faster method of searching the potPrev2LearnCellsList
+                for colCellInd in potPrev2LearnCellsList:
+                    if (colCellInd[0] == columnIndex and colCellInd[1] == cellIndex):
+                        count += 1
 
         return count
 
-    def getBestMatchingSegment(self, cellSegmentTensor, timeStep, activeCellsTime):
-        # We find the segment who was most predicting for the timestep and call
+    def getBestMatchingSegment(self, cellSegmentTensor, potPrev2LearnCellsList):
+        # We find the segment who was most predicting and call
         # this the best matching segment. This means that segment has synapses whose ends are
-        # connected to cells that were active in the previous timeStep.
+        # connected to cells that are from the antepenultimate list of learning cells.
+        # Note: the input potPrev2LearnCellsList stores the antepenultimate learning cells as
+        # [[columnIndex, cellIndex], ...]
 
         # The cellSegmentTensor is a 3d array holding all the segments for a particular cell.
         # For each segment there is an array of synpases and for each synapse there is an
@@ -151,14 +180,14 @@ class TemporalPoolCalculator():
         # This routine is agressive. The permanence value of a synapse is allowed to be less
         # then connectedPermance but the number of active synapses in the segment must be
         # larger then minNumSynThreshold for the segment to be considered as active.
-        # This means we need to find synapses that where previously active.
+
         h = 0   # mostActiveSegmentIndex
         mostActiveSegSynCount = None
         # Look through the segments for the one with the most active synapses.
         # Iterate through each segment g, for the cell i, in column c.
         for g in range(len(cellSegmentTensor)):
-            # Find in the current segment, synapses that where active for the previous timeStep.
-            currentSegSynCount = self.segmentNumSynapsesActive(cellSegmentTensor[g], timeStep, activeCellsTime)
+            # Find in the current segment, synapses that where in potPrev2LearnCellsList.
+            currentSegSynCount = self.segmentNumSynapsesActive(cellSegmentTensor[g], potPrev2LearnCellsList)
             if currentSegSynCount > mostActiveSegSynCount or (mostActiveSegSynCount is None):
                 h = g
                 mostActiveSegSynCount = currentSegSynCount
@@ -202,9 +231,9 @@ class TemporalPoolCalculator():
             if segActiveSynList[s] == 1:
                 # from PyQt4.QtCore import pyqtRemoveInputHook; import ipdb; pyqtRemoveInputHook(); ipdb.set_trace()
                 # print "Incrementing syn perm [%s,%s,%s,%s]" % (c, i, segIndUpdate, s)
-                distalSynapses[colIndex][cellIndex][segIndex][s][2] += self.permanenceInc
+                distalSynapses[colIndex][cellIndex][segIndex][s][2] += self.seqPermanenceInc
                 distalSynapses[colIndex][cellIndex][segIndex][s][2] = min(1.0,
-                                                                          [colIndex][cellIndex][segIndex][s][2])
+                                                                          distalSynapses[colIndex][cellIndex][segIndex][s][2])
 
     def findLeastUsedSeg(self, cellsActiveSegTimes, returnTimeStep=False):
         # Find the most unused segment from the given cells list
@@ -224,13 +253,69 @@ class TemporalPoolCalculator():
         else:
             return leastUsedSeg
 
+    def getPrev2NewLearnCells(self, timeStep, newLearnCellsList, learnCellsTime, activeCellsTime, numCells):
+        # Find from the newLearnCellsTime tensor the cells that most recently entered the learning state
+        # but were not active in the previous timestep. Note we have not updated the newLearnCellsTime tensor yet from
+        # the last timeStep so no cells that just entered the learning state this timestep will be included either.
+        # Return at least the number of cells specified from the input numCells unless not enough cells have
+        # entered the learn state yet. The returned list holds [columnIndex, cellIndex] for each element.
+        prev2CellsActPredList = []
+        # Sort the newLearnCellsTime and then start from the latest cell checking if it was active in the previous timestep.
+        # If it wasn't add it to the prev2CellsActPredList. Keep going until you have more then numCells added to the list or
+        # the rest of the cells never entered the learn state (the timestep is -1). If you have added numCells to the
+        # prev2CellsActPredList then check what the current timeStep is and add the rest of the cells with this
+        # timestep as well.
+        # We need the column and cell indicies not the timesteps so use argsort instead of sort.
+        # Create a 1d array to sort then return the indicies.
+        sortFlatNewLearnCellsTime = np.argsort(self.newLearnCellsTime.ravel())
+        # Convert the ordered 1d array of indices into a tuple of coordinate arrays.
+        # Each element represnets the indices for positions in self.newLearnCellsTime.
+        # The indices are sorted from longest ago to most recent.
+        # Remember that the newLearnCellsTime stored the last 2 timesteps for each cell in each column.
+        sortFlatNewLearnCellsTime = np.dstack(np.unravel_index(sortFlatNewLearnCellsTime,
+                                                               (self.numColumns, self.cellsPerColumn, 2)))
+        sortFlatNewLearnCellsTime = sortFlatNewLearnCellsTime[0]
+
+        foundNumCells = False
+        latestTimeStep = None
+        for index3D in reversed(sortFlatNewLearnCellsTime):
+            columnIndex = index3D[0]
+            cellIndex = index3D[1]
+            learnCellsTimeStep = self.newLearnCellsTime[index3D[0]][index3D[1]][index3D[2]]
+            #from PyQt4.QtCore import pyqtRemoveInputHook; import ipdb; pyqtRemoveInputHook(); ipdb.set_trace()
+
+            if (foundNumCells is False) or (foundNumCells is True and learnCellsTimeStep == latestTimeStep):
+                if learnCellsTimeStep >= 0:
+                    if self.checkCellActive(columnIndex, cellIndex, timeStep-1, activeCellsTime) is False:
+                        prev2CellsActPredList.append([columnIndex, cellIndex])
+                if len(prev2CellsActPredList) == numCells:
+                    foundNumCells = True
+                    latestTimeStep = learnCellsTimeStep
+            if (foundNumCells is True and learnCellsTimeStep < latestTimeStep):
+                # Break the for loop we don't need to continue searching for cells to add to the list
+                break
+
+        # From the list of cells that are in the learn state newLearnCellsList, update the newLearnCells tensor.
+        # This tensor stores the timesteps when a cell first enters the learn state not subsequent timesteps.
+        # Check the learnCellsTime tensor to see if this is the first time a cell in the newLearnCellsList
+        # entered the learning state.
+        for j in range(len(newLearnCellsList)):
+            colInd = newLearnCellsList[j][0]
+            cellInd = newLearnCellsList[j][1]
+            #print "Checking if learning at timeStep = %s, learnCellsTime[%s][%s] = %s" % (timeStep-1, colInd, cellInd, learnCellsTime[colInd][cellInd])
+            if self.checkCellLearn(colInd, cellInd, timeStep-1, learnCellsTime) is False:
+                #from PyQt4.QtCore import pyqtRemoveInputHook; import ipdb; pyqtRemoveInputHook(); ipdb.set_trace()
+                self.setLearnCell(colInd, cellInd, timeStep, self.newLearnCellsTime)
+
+        return prev2CellsActPredList
+
     def newRandomPrevActiveSynapses(self, segSynList, prev2CellsActPredList, curSynapseList=None, keepConnectedSyn=False):
         # Fill the segSynList with a random selection of new synapses
         # that are connected with cells that are in the prev2CellsActPredList.
-        # This list stores the cells that where in the antepenultimate active Predict state.
-        # This may be from further back then 2 timesteps as the previous activePredict cells may
+        # This list stores the cells that where in the antepenultimate learning state.
+        # This may be from further back then 2 timesteps as the previous learning cells may
         # have been active for multiple timesteps.
-        # Each element in the synapseList contains (colIndex, cellIndex, permanence)
+        # Each element in the synapseList contains (colIndex, cellIndex)
         for i in range(len(segSynList)):
             # if the keepConnectedSyn option is false then create new synapses for all
             # the synapses in the segment.
@@ -303,13 +388,22 @@ class TemporalPoolCalculator():
 
         return colPotSynPerm
 
-    def updateDistalTempPool(self, timeStep, predictCellsTime, activeCellsTime, activeSeg, distalSynapses):
+    def updateDistalTempPool(self, timeStep, newLearnCellsList, learnCellsTime, predictCellsTime,
+                             activeCellsTime, activeSeg, distalSynapses):
         '''
         Update the distal synapses (the cell synapses) such that;
 
         Inputs:
                 1.  timeStep is the number of iterations that the HTM has been through.
                     It is just an incrementing integer used to keep track of time.
+
+                2.  "newLearnCellsList" is a 2d tensor storing the cells that are in the learn state in each column
+                    for the current timeStep. It is a variable length 2d array storing the columnIndex and cell index
+                    of cells currently in the learn state.
+
+                3. "learnCellsTime" This 3D tensor is returned by this function. It is the timeSteps when cells where
+                    in the learning state last. The 1st dimension stores the columns the 2nd is the cells in the columns.
+                    Each element stores the last 2 timestep when this cell was in the learning state.
 
                 3.  "predictCellsTime" This 3D tensor is returned by this function. It is the timeSteps when cells where
                     in the predictive state last. The 1st dimension stores the columns the 2nd is the cells in the columns.
@@ -337,6 +431,16 @@ class TemporalPoolCalculator():
                 4. predictCellsTime
 
         '''
+
+        # Get a list of the antepenultimate new learning cells.
+        # These are the cells that were last in the learning state but were not
+        # active in the previous timestep or current timestep.
+        # The list needs to be at least as big as the num synpases in a segment since the segment will
+        # be filled with entirely new synapses connected to cells from this list.
+        numCellsNeeded = len(distalSynapses[0][0][0])
+        potPrev2LearnCellsList = self.getPrev2NewLearnCells(timeStep, newLearnCellsList,
+                                                            learnCellsTime, activeCellsTime, numCellsNeeded)
+
         for c in range(self.numColumns):
             for i in range(self.cellsPerColumn):
                 if (self.checkCellActivePredict(c, i, timeStep,
@@ -362,10 +466,13 @@ class TemporalPoolCalculator():
                    (self.checkCellPredict(c, i, timeStep, predictCellsTime) is False)):
                     self.setPredictCell(c, i, timeStep, predictCellsTime)
                 # If the cell is now active predict (active and was predicting) then
-                # add new distal synapses that connect to the learn cells at t-1 timesteps ago.
+                # add new distal synapses that connect to the antepenultimate learning cells.
                 if (self.checkCellActivePredict(c, i, timeStep, activeCellsTime, predictCellsTime)):
-                    # Find the segment which already contains enough synapses to have predicted 1 timesteps ago.
-                    h = self.getBestMatchingSegment(distalSynapses[c][i], timeStep-1, activeCellsTime)
+                    # Find the segment which already contains enough synapses to have predicted that it would be
+                    # in the active predict state now, use the antepenultimate learning state cells.
+                    # This may be from further back then 2 timesteps as the previous learning cells may
+                    # have been active for multiple timesteps.
+                    h = self.getBestMatchingSegment(distalSynapses[c][i], potPrev2LearnCellsList)
                     if h is not None:
                         # Find the synapses that where active and increment their permanence values.
                         segActiveSynList = self.getSegmentActiveSynapses(distalSynapses[c][i][h], timeStep, activeCellsTime)
@@ -374,12 +481,8 @@ class TemporalPoolCalculator():
                         # No best matching segment was found so a new segment will be
                         # created overwrite the least used segment.
                         h, lastTimeStep = self.findLeastUsedSeg(activeSeg[c][i], True)
-                        print "new Random Seg created for c,i,h = %s, %s, %s" % (c, i, h)
-
-                        # TODO
-                        # Implement a self.prev2CellsActPredList keeping track of the antepenultimate
-                        # activePredict cells.
-                        self.newRandomPrevActiveSynapses(distalSynapses[c][i][h], self.prev2CellsActPredList)
+                        # print "new Random Seg created for c,i,h = %s, %s, %s" % (c, i, h)
+                        self.newRandomPrevActiveSynapses(distalSynapses[c][i][h], potPrev2LearnCellsList)
 
         return distalSynapses
 
@@ -401,7 +504,7 @@ def runTempPoolUpdateProximal(tempPooler, colPotInputs, colPotSynPerm, timeStep)
         print "colPotSynPerm = \n%s" % colPotSynPerm
 
 
-def runTempPoolUpdateDistal(tempPooler, timeStep, predictCellsTime,
+def runTempPoolUpdateDistal(tempPooler, timeStep, newLearnCellsList, learnCellsTime, predictCellsTime,
                             activeCellsTime, activeSeg, distalSynapses):
     # Run the temporal poolers function to update the distal synapses for a test.
     print "INITIAL distalSynapses = \n%s" % distalSynapses
@@ -410,7 +513,7 @@ def runTempPoolUpdateDistal(tempPooler, timeStep, predictCellsTime,
     test_iterations = 1
     for i in range(test_iterations):
         timeStep += 1
-        distalSynapses = tempPooler.updateDistalTempPool(timeStep,
+        distalSynapses = tempPooler.updateDistalTempPool(timeStep, newLearnCellsList, learnCellsTime,
                                                          predictCellsTime, activeCellsTime,
                                                          activeSeg, distalSynapses)
         print "distalSynapses = \n%s" % distalSynapses
@@ -456,6 +559,10 @@ if __name__ == '__main__':
         if index[4] == 0:
             distalSynapses[index] = random.randint(0, numColumns-1)
 
+    # Create a list sotring which cells are in the learning state for the current timestep [[colInd, CellInd], ...]
+    newLearnCellsList = []
+    # Create the learning cells times
+    learnCellsTime = np.zeros((numColumns, cellsPerColumn, 2))
     # Create the predictive cells times
     predictCellsTime = np.zeros((numColumns, cellsPerColumn, 2))
     # Create the active cells times
@@ -477,7 +584,7 @@ if __name__ == '__main__':
     # runTempPoolUpdateProximal(tempPooler, colPotInputs, colPotSynPerm, timeStep)
 
     # Test the temporal poolers update distal synapse function
-    runTempPoolUpdateDistal(tempPooler, timeStep, predictCellsTime,
+    runTempPoolUpdateDistal(tempPooler, timeStep, newLearnCellsList, learnCellsTime, predictCellsTime,
                             activeCellsTime, activeSegsTime, distalSynapses)
 
 

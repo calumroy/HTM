@@ -181,11 +181,11 @@ class activeCellsCalculator():
         self.prevLearnCellsList = []
         # The timeSteps when cells where active last. This is a 3D tensor.
         # The 1st dimension stores the columns the 2nd is the cells in the columns.
-        # Each element stores the last 2 timestep when this cell was active last.
+        # Each element stores the last 2 timesteps when this cell was active last.
         self.activeCellsTime = np.array([[[-1, -1] for x in range(self.cellsPerColumn)] for y in range(self.numColumns)])
-        # The timeSteps when cells where learning cells last. This is a 3D tensor.
+        # The timeSteps when cells were in the learning state last. This is a 3D tensor.
         # The 1st dimension stores the columns the 2nd is the cells in the columns.
-        # Each element stores the timestep when this cell was last in the learn state.
+        # Each element stores the last 2 timesteps when this cell was last in the learn state.
         self.learnCellsTime = np.array([[[-1, -1] for x in range(self.cellsPerColumn)] for y in range(self.numColumns)])
         # A 2d tensor storing for each columns cell a score value.
         self.cellsScore = np.array([[0 for x in range(self.cellsPerColumn)] for y in range(self.numColumns)])
@@ -209,6 +209,9 @@ class activeCellsCalculator():
         self.segNewSyn = np.array([[[[-1, -1, 0.0] for z in range(self.maxSynPerSeg)]
                                     for x in range(self.cellsPerColumn)]
                                   for y in range(self.numColumns)])
+
+    def getCurrentLearnCellsList(self):
+        return self.currentLearnCellsList
 
     def getCellsScore(self, colIndex, cellIndex):
         # Get the score of the selected cell
@@ -672,6 +675,7 @@ class activeCellsCalculator():
                                 self.setActiveCell(c, i, timeStep)
                         # Leave the previous learn cell in the learn state
                         prevLearnCellIndex = self.findLearnCell(c, timeStep-1)
+                        #print "Setting Learning Cell = [%s][%s] for timeStep = %s" % (c, prevLearnCellIndex, timeStep)
                         self.setLearnCell(c, prevLearnCellIndex, timeStep)
                 else:
                     # For the columns that have changed state from not active to active,

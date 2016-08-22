@@ -191,6 +191,11 @@ class HTMLayer:
         self.learnCellsTime = np.array([[[-1, -1] for x in range(self.cellsPerColumn)]
                                        for y in range(self.numColumns)])
 
+        # A variable length list storing the column Index and cell index of the learning cells
+        # for the current timeStep.
+        self.learnCellsList = []
+
+
         # Create the distalSynapse 5d tensor holding the information of the distal synapses.
         # The first dimension stores the columns, the 2nd is the cells
         # in the columns, 3rd stores the segments for each cell, 4th stores the synapses in each
@@ -711,6 +716,8 @@ class HTMLayer:
          self.segActiveSynActive,
          self.segIndNewSynActive,
          self.segNewSynActive) = self.activeCellsCalc.getSegUpdates()
+        # Get the cells that are in the learning state as a list.
+        self.learnCellsList = self.activeCellsCalc.getCurrentLearnCellsList()
 
         # 2. CALCULATE PREDICTIVE CELLS
         self.predictCellsTime = self.predictCellsCalc.updatePredictiveState(timeStep,
@@ -758,10 +765,13 @@ class HTMLayer:
 
         # This updates distal synapses causing some cells to predict more often.
         self.distalSynapses = self.tempPoolCalc.updateDistalTempPool(self.timeStep,
+                                                                     self.learnCellsList,
+                                                                     self.learnCellsTime,
                                                                      self.predictCellsTime,
                                                                      self.activeCellsTime,
                                                                      self.activeSegsTime,
                                                                      self.distalSynapses)
+
 
 class HTMRegion:
     def __init__(self, input, columnArrayWidth, columnArrayHeight, cellsPerColumn, params):
