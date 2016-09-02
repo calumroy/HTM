@@ -117,7 +117,27 @@ class test_temporalPoolingSuite3:
 
         self.InputCreator.changePattern(3)
         gui.startHtmGui(self.htm, self.InputCreator)
-        self.nSteps(100)
+        self.nSteps(101)
+
+        self.InputCreator.changePattern(1)
+        gui.startHtmGui(self.htm, self.InputCreator)
+        self.nSteps(102)
+
+        self.InputCreator.changePattern(3)
+        gui.startHtmGui(self.htm, self.InputCreator)
+        self.nSteps(103)
+
+        self.InputCreator.changePattern(6)
+        gui.startHtmGui(self.htm, self.InputCreator)
+        self.nSteps(104)
+
+        self.InputCreator.changePattern(1)
+        gui.startHtmGui(self.htm, self.InputCreator)
+        self.nSteps(105)
+
+        self.InputCreator.changePattern(4)
+        gui.startHtmGui(self.htm, self.InputCreator)
+        self.nSteps(106)
 
 
 

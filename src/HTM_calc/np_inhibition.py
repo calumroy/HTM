@@ -209,24 +209,44 @@ class inhibitionCalculator():
         # The tie breaker increases based on a columns index number.
         # The tie breaker is based on position and whether the column was
         # previously active or active but not bursting; the input addColBias is used to
-        # indicate that extra bias should be given to a particular column.
-
-        # If indicated by the input addColBias being set to 1 then if the columns
+        # indicate that extra bias should be given to a particular column that was
+        # previously active. It is a matrix where each element represents a column.
+        # If indicated by the input addColBias being set to 1 and addBiasToPrevActive is true then
         # add a larger bias that counts for more then the position of the column.
 
         normValue = 1.0/float(2*self.numColumns+2)
+
         tieBreaker = np.array([[(1+i+j*self.width)*normValue for i in range(self.width)]
                               for j in range(self.height)])
+        # Create a tiebreaker that is not biased to either side of the columns grid.
+        for j in range(len(tieBreaker)):
+            for i in range(len(tieBreaker[0])):
+                if j % 2 == 1:
+                    if (i+j*self.width) % 2 == 1:
+                        # For odd positions bias to the right
+                        tieBreaker[j][i] = (1+i+j*self.width)*normValue
+                    else:
+                        # For even positions bias to the left
+                        tieBreaker[j][i] = (self.width-(i+1)+j*self.width)*normValue
+                else:
+                    if (i+j*self.width) % 2 == 0:
+                        # For odd positions bias to the right
+                        tieBreaker[j][i] = (1+i+j*self.width)*normValue
+                    else:
+                        # For even positions bias to the left
+                        tieBreaker[j][i] = (self.width-(i+1)+j*self.width)*normValue
+
         maxNormValue = (self.numColumns+1) * normValue
         # maxNormValue + normValue*numColumns must be smaller then one.
         # The maxNormValue should be larger then numColumns * normValue
-        # It is assumed the binary grid input addColBias only holds 0 or 1.
-        # We won't check for this as it is expensive.
-        activeColTieBreaker = np.array([[addColBias[j][i]*maxNormValue for i in range(self.width)]
-                                        for j in range(self.height)])
-        #print "activeColTieBreaker=\n%s" % activeColTieBreaker
+
         # If addBiasToPrevActive is true add the tie breakers
         if addBiasToPrevActive is True:
+            # It is assumed the binary grid input addColBias only holds 0 or 1.
+            # We won't check for this as it is expensive.
+            activeColTieBreaker = np.array([[addColBias[j][i]*maxNormValue for i in range(self.width)]
+                                            for j in range(self.height)])
+            # print "activeColTieBreaker=\n%s" % activeColTieBreaker
             totalTieBreaker = np.add(tieBreaker, activeColTieBreaker)
         else:
             totalTieBreaker = tieBreaker
