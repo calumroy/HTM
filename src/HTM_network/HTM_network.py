@@ -537,6 +537,10 @@ class HTMLayer:
                                                     [Synapse(x, y, -1, self.colSynPermanence)])
                 cInd += 1
 
+    def getPotColSynapses(self, column):
+        # Get the list of the columns potential Synapses.
+        return column.potentialSynapses
+
     def getConnectedSynapses(self, column):
         # Create a list of the columns connected Synapses.
         column.connectedSynapses = np.array([], dtype=object)

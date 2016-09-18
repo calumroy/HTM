@@ -6,8 +6,31 @@ author: Calum Meiklejohn
 website: calumroy.com
 
 This code draws the input and a HTM network in a grid using PyQt
-It creates a simple input of a moving vertical line and the HTM
-region attempts to learn this pattern.
+It creates a simple input and output Grid of squares representing the input
+space and HTM columns.
+
+    Red squares are inactive inputs or columns.
+
+    Green squares are active input or columns.
+
+    Smaller Blue squares are active cells in the columns.
+
+    Smaller black squares are predicting cells in the columns.
+
+    Smaller Green squares are cells in the learing state in the columns.
+
+    Clicking on the columns displays the potential and connected proximal
+    synapses for that column. White or dark greenshow the connected synapses.
+
+    Clicking on the cells shows the connected distal synpases for that cell by
+    highlightling the other cells that synapses connect to from a selected segment.
+
+    You Can "Mark" the current state of a HTM layer by clicking the mark button.
+    This creates a copy of the current layer and displays it in a new window.
+
+    Some shortcut keys exist
+        Space: Run one timestep
+        1,2,3: display the active, predictive and learning cells.
 
 """
 import sys
@@ -234,7 +257,15 @@ class HTMInput(QtGui.QGraphicsView):
         # grid input squares which are connected to that columns connected synapses.
         HTMGridVeiwer.selectedColumn.connect(self.drawColumnInputs)
 
+    def contains(self, list, filter):
+        # Helper function for quickly searching a list of column objects.
+        for x in list:
+            if filter(x):
+                return True
+        return False
+
     def drawColumnInputs(self, pos_x, pos_y):
+        self.updateGrid()
         #print "Selected pos_x = %s pos_y = %s" % (pos_x, pos_y)
         currentLayer = self.htm.regionArray[self.level].layerArray[self.layer]
         column = currentLayer.columns[pos_y][pos_x]
@@ -245,35 +276,55 @@ class HTMInput(QtGui.QGraphicsView):
         transpBlue = QtGui.QColor(0, 0, 0xFF, 0x30)
         green = QtGui.QColor(0, 0xFF, 0, 0xFF)
         darkGreen = QtGui.QColor(0, 0x80, 0x40, 0xFF)
+        lightRed = QtGui.QColor(0xFF, 0x60, 0x60, 0xFF)
+        lightGreen = QtGui.QColor(0, 0xFF, 0, 0x80)
 
         # Get the selected columns synpases from the htm layer.
         selectedColumn = currentLayer.columns[pos_y][pos_x]
         #from PyQt4.QtCore import pyqtRemoveInputHook; import ipdb; pyqtRemoveInputHook(); ipdb.set_trace()
         colSynList = currentLayer.getConnectedSynapses(selectedColumn)
+        # Get the potential list of synapses for the selected column
+        potColSynList = currentLayer.getPotColSynapses(selectedColumn)
 
-        #blue = QtGui.QColor(0x40, 0x30, 0xFF, 0xFF)
-        # Go through each column. If it is in the synapse list draw it otherwise don't
-        for col in self.columnItems:
+        # Color the inputs which have potential column synapses connected to
+        # them for the selected column slightly lighter then the other inputs.
+        for syn in potColSynList:
+            # Find the columnItems that have the same x and y pos
+            # as the synpase ends in the colSynList.
+            # The self.columnItems is ordered but not in the same way as
+            # The htm input grid.
+            syn_index = syn.pos_y+syn.pos_x*self.rows
+            col = self.columnItems[syn_index]
+            value = self.htm.regionArray[self.level].layerArray[self.layer].Input[col.pos_y][col.pos_x]
+
             color = QtGui.QColor(0xFF, 0, 0, 0xFF)
             brush = QtGui.QBrush(QtCore.Qt.red)
-            inputConnected = False
-            #brush = QtGui.QBrush(transpBlue)   # Have to create a brush with a color
-            # Check each synapse and draw the connected columns
-            # Get the list of the selected columns connected synapses.
 
-            for syn in colSynList:
-                if syn.pos_x == col.pos_x and syn.pos_y == col.pos_y:
-                    print "     syn x, y= %s,%s Permanence = %s" % (col.pos_x, col.pos_y, syn.permanence)
-                    inputConnected = True
+            if (value == 0):
+                color = lightRed
+            elif (value == 1):
+                color = lightGreen
+
+            brush.setColor(color)
+            col.setBrush(brush)
+
+        # Color the inputs which have "connected" column synapses connected to
+        # them for the selected column differently to the other inputs.
+        for syn in colSynList:
+            # Find the columnItems that have the same x and y pos
+            # as the synpase ends in the colSynList.
+            # The self.columnItems is ordered but not in the same way as
+            # The htm input grid.
+            syn_index = syn.pos_y+syn.pos_x*self.rows
+            col = self.columnItems[syn_index]
             value = self.htm.regionArray[self.level].layerArray[self.layer].Input[col.pos_y][col.pos_x]
-            #color = darkGreen
-            if (value == 0 and inputConnected is False):
-                color = red
-            elif (value == 0 and inputConnected is True):
+
+            color = QtGui.QColor(0xFF, 0, 0, 0xFF)
+            brush = QtGui.QBrush(QtCore.Qt.red)
+
+            if (value == 0):
                 color = transpBlue
-            elif (value == 1 and inputConnected is False):
-                color = green
-            elif (value == 1 and inputConnected is True):
+            elif (value == 1):
                 color = darkGreen
 
             brush.setColor(color)
