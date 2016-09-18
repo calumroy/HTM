@@ -214,6 +214,11 @@ class inhibitionCalculator():
         # If indicated by the input addColBias being set to 1 and addBiasToPrevActive is true then
         # add a larger bias that counts for more then the position of the column.
 
+
+        #TODO
+        # TRY ADDING THE TIE BREAKER TO THE ACTUAL INPUTS NOT THE COLUMN OVERLAP
+        # VALUES. THIS WILL NEED TO BE DONE IN THE OVERLAP CALCULATOR.
+
         normValue = 1.0/float(2*self.numColumns+2)
 
         tieBreaker = np.array([[(1+i+j*self.width)*normValue for i in range(self.width)]
@@ -221,20 +226,26 @@ class inhibitionCalculator():
         # Create a tiebreaker that is not biased to either side of the columns grid.
         for j in range(len(tieBreaker)):
             for i in range(len(tieBreaker[0])):
-                if j % 2 == 1:
-                    if (i+j*self.width) % 2 == 1:
-                        # For odd positions bias to the right
-                        tieBreaker[j][i] = (1+i+j*self.width)*normValue
-                    else:
-                        # For even positions bias to the left
-                        tieBreaker[j][i] = (self.width-(i+1)+j*self.width)*normValue
+                if (j % 2) == 1:
+                    # For odd positions bias to the bottom left
+                    tieBreaker[j][i] = ((j+1)*self.width+(self.width-i-1))*normValue
                 else:
-                    if (i+j*self.width) % 2 == 0:
-                        # For odd positions bias to the right
-                        tieBreaker[j][i] = (1+i+j*self.width)*normValue
-                    else:
-                        # For even positions bias to the left
-                        tieBreaker[j][i] = (self.width-(i+1)+j*self.width)*normValue
+                    # For even positions bias to the bottom right
+                    tieBreaker[j][i] = (1+i+j*self.width)*normValue
+
+                #     if (i+j*self.width) % 2 == 1:
+                #         # For odd positions bias to the bottom left
+                #         tieBreaker[j][i] = ((j+1)*self.width+(self.width-i-1))*normValue
+                #     else:
+                #         # For odd positions bias to the top right
+                #         tieBreaker[j][i] = ((self.height-j)*self.width+i)*normValue
+                # else:
+                #     if (i+j*self.width) % 2 == 1:
+                #         # For even positions bias to the bottom right
+                #         tieBreaker[j][i] = (1+i+j*self.width)*normValue
+                #     else:
+                #         # For even positions bias to the top left
+                #         tieBreaker[j][i] = ((self.width-i-1)+(self.height-j)*self.width)*normValue
 
         maxNormValue = (self.numColumns+1) * normValue
         # maxNormValue + normValue*numColumns must be smaller then one.

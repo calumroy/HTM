@@ -74,9 +74,24 @@ class OverlapCalculator():
         self.stepX, self.stepY = self.getStepSizes(inputWidth, inputHeight,
                                                    self.columnsWidth, self.columnsHeight,
                                                    self.potentialWidth, self.potentialHeight)
+        # Contruct a tiebreaker matrix. It contains small values that help
+        # resolve any ties in overlap scores for columns.
+        self.tieBreaker = np.array([[0.0 for i in range(self.inputWidth)]
+                                   for j in range(self.inputHeight)])
+        self.makeTieBreaker(self.tieBreaker, self.inputWidth, self.inputHeight)
 
         # Create theano variables and functions
         ############################################
+
+        # Create the theano function for calculating
+        # the addition of a small tie breaker value to each input.
+        self.o_grid = T.matrix(dtype='float32')
+        self.tie_grid = T.matrix(dtype='float32')
+        self.add_vals = T.add(self.o_grid, self.tie_grid)
+        self.add_tieBreaker = function([self.o_grid, self.tie_grid],
+                                       self.add_vals,
+                                       on_unused_input='warn',
+                                       allow_input_downcast=True)
 
         # Create the theano function for calculating
         # the inputs to a column from an input grid.
@@ -144,6 +159,24 @@ class OverlapCalculator():
 
         ########################### END THEANO ###############################
 
+    def makeTieBreaker(self, tieBreaker, inputWidth, inputHeight):
+        # create a tie breaker matrix holding small values for each element in
+        # the input grid. These values all add up to less then 1 and are used
+        # to resolve situations where columns have the same overlap number.
+
+        numInputs = inputWidth * inputHeight
+        normValue = 1.0/float(2*numInputs+2)
+        # Create a tiebreaker that is not biased to either side of the input grid.
+        for j in range(len(tieBreaker)):
+            for i in range(len(tieBreaker[0])):
+                if (j % 2) == 1:
+                    # For odd positions bias to the bottom left
+                    tieBreaker[j][i] = ((j+1)*self.inputWidth+(self.inputWidth-i-1))*normValue
+                else:
+                    # For even positions bias to the bottom right
+                    tieBreaker[j][i] = (1+i+j*self.inputWidth)*normValue
+        #print "self.tieBreaker = \n%s" % self.tieBreaker
+
     def checkNewInputParams(self, newColSynPerm, newInput):
         # Check that the new input has the same dimensions as the
         # originally defined input parameters.
@@ -203,14 +236,14 @@ class OverlapCalculator():
 
         # Add the padding around the edges of the inputGrid
         inputGrid = np.lib.pad(inputGrid,
-                              ((0, 0),
-                               (0, 0),
-                               (topPos_y, bottomPos_y),
-                               (leftPos_x, rightPos_x)),
+                               ((0, 0),
+                                (0, 0),
+                                (topPos_y, bottomPos_y),
+                                (leftPos_x, rightPos_x)),
                                'constant',
                                constant_values=(padValue))
 
-        #print "inputGrid = \n%s" % inputGrid
+        # print "inputGrid = \n%s" % inputGrid
 
         return inputGrid
 
@@ -278,15 +311,31 @@ class OverlapCalculator():
 
         return stepX, stepY
 
+    def addInputTieBreaker(self, inputGrid):
+        # Add a small number to each input value in the input grid.
+        # This value is based on each elements row and col number in the input Grid.
+        # This helps when deciding how to break ties in the spatial pooler for
+        # columns with the same overlap values. Note this is not a random value!
+        # Make sure the tiebreaker values all add up to less then 1.
+        # The tie breaker is constructed such that no particular direction in the
+        # inputGrid is biased on average more then any other.
+        # Use a theano function to add each element in the tieBreaker to the input.
+        inputsGridTie = self.add_tieBreaker(inputGrid, self.tieBreaker)
+        return inputsGridTie
+
     def getColInputs(self, inputGrid):
         # This function uses theano's convolution function to
         # return the inputs that each column potentially connects to.
+
+        # Add a small tiebreaker value to the input scores.
+        #inputGrid = self.addInputTieBreaker(inputGrid)
+
         # Take the input and put it into a 4D tensor.
         # This is because the theano function images2neibs
         # works with 4D tensors only.
         inputGrid = np.array([[inputGrid]])
 
-        #print "inputGrid.shape = %s,%s,%s,%s" % inputGrid.shape
+        # print "inputGrid.shape = %s,%s,%s,%s" % inputGrid.shape
         firstDim, secondDim, width, height = inputGrid.shape
 
         # work out how much padding is needed on the borders
@@ -301,7 +350,7 @@ class OverlapCalculator():
         # Calculate the inputs to each column.
         inputConPotSyn = self.pool_inputs(inputGrid)
         # The returned array is within a list so just use pos 0.
-        #print "inputConPotSyn = \n%s" % inputConPotSyn
+        # print "inputConPotSyn = \n%s" % inputConPotSyn
         # print "inputConPotSyn.shape = %s,%s" % inputConPotSyn.shape
         return inputConPotSyn
 
@@ -343,7 +392,7 @@ if __name__ == '__main__':
     potHeight = 4
     centerPotSynapses = 1
     numInputRows = 4
-    numInputCols = 32
+    numInputCols = 5
     numColumnRows = 7
     numColumnCols = 5
     connectedPerm = 0.3

@@ -755,7 +755,7 @@ class inhibitionCalculator():
         return inhibCols, notInhibOrActNum
 
     def calculateWinningCols(self, overlapsGrid):
-        # Take the overlapsGrid and calulate a binary list
+        # Take the overlapsGrid and calculate a binary list
         # describing the active columns ( 1 is active, 0 not active).
 
         height, width = overlapsGrid.shape

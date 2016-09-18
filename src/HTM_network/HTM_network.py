@@ -1,5 +1,5 @@
 # Title: HTM
-# Description: git managed development of a HTM network
+# Description: HTM network
 # Author: Calum Meiklejohn
 # Development phase: alpha
 
