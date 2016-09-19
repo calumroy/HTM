@@ -293,20 +293,23 @@ class HTMInput(QtGui.QGraphicsView):
             # as the synpase ends in the colSynList.
             # The self.columnItems is ordered but not in the same way as
             # The htm input grid.
-            syn_index = syn.pos_y+syn.pos_x*self.rows
-            col = self.columnItems[syn_index]
-            value = self.htm.regionArray[self.level].layerArray[self.layer].Input[col.pos_y][col.pos_x]
+            # Check that the potential synpases isn't conected to padding on
+            # the input grid. If so don't draw the input at -1 numpy arrays allow negative indexes.
+            if (syn.pos_y != -1 and syn.pos_x != -1):
+                syn_index = syn.pos_y+syn.pos_x*self.rows
+                col = self.columnItems[syn_index]
+                value = self.htm.regionArray[self.level].layerArray[self.layer].Input[col.pos_y][col.pos_x]
 
-            color = QtGui.QColor(0xFF, 0, 0, 0xFF)
-            brush = QtGui.QBrush(QtCore.Qt.red)
+                color = QtGui.QColor(0xFF, 0, 0, 0xFF)
+                brush = QtGui.QBrush(QtCore.Qt.red)
 
-            if (value == 0):
-                color = lightRed
-            elif (value == 1):
-                color = lightGreen
+                if (value == 0):
+                    color = lightRed
+                elif (value == 1):
+                    color = lightGreen
 
-            brush.setColor(color)
-            col.setBrush(brush)
+                brush.setColor(color)
+                col.setBrush(brush)
 
         # Color the inputs which have "connected" column synapses connected to
         # them for the selected column differently to the other inputs.
