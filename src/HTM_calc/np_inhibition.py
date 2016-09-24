@@ -221,7 +221,7 @@ class inhibitionCalculator():
 
         normValue = 1.0/float(2*self.numColumns+2)
 
-        tieBreaker = np.array([[(1+i+j*self.width)*normValue for i in range(self.width)]
+        tieBreaker = np.array([[0 for i in range(self.width)]
                               for j in range(self.height)])
         # Create a tiebreaker that is not biased to either side of the columns grid.
         for j in range(len(tieBreaker)):
@@ -247,9 +247,13 @@ class inhibitionCalculator():
                 #         # For even positions bias to the top left
                 #         tieBreaker[j][i] = ((self.width-i-1)+(self.height-j)*self.width)*normValue
 
-        maxNormValue = (self.numColumns+1) * normValue
+        #maxNormValue = (self.numColumns+1) * normValue
         # maxNormValue + normValue*numColumns must be smaller then one.
         # The maxNormValue should be larger then numColumns * normValue
+
+        # Since the maximum tiebreaker value added to the overlap values already
+        # make sure this additional value doesn't make the total more then 1.
+        maxNormValue = 0.49
 
         # If addBiasToPrevActive is true add the tie breakers
         if addBiasToPrevActive is True:
@@ -261,9 +265,9 @@ class inhibitionCalculator():
             totalTieBreaker = np.add(tieBreaker, activeColTieBreaker)
         else:
             totalTieBreaker = tieBreaker
-        #print "totalTieBreaker=\n%s" % totalTieBreaker
         # Add the total tiebreaker matrix to the overlapsGrid.
         overlapsGrid = np.add(overlapsGrid, totalTieBreaker)
+        #print "INHIBITION overlapsGrid + TieBreaker=\n%s" % overlapsGrid
 
         return overlapsGrid
 
@@ -274,8 +278,6 @@ class inhibitionCalculator():
             # # Get the columns position
             # pos_x = i % self.width
             # pos_y = math.floor(i/self.height)
-
-            #print "COLUMN INDEX = %s" % i
 
             neighbourCols = self.neighbourColsLists[i]
 
@@ -390,11 +392,11 @@ class inhibitionCalculator():
 
         # Add a tie breaker to the overlapsGrid based on position and
         # if the column was previously active.
-        biasPrevActiveCols = True
-        overlapsGrid = self.addTieBreaker(overlapsGrid, self.prevActiveColsGrid, biasPrevActiveCols)
+        #biasPrevActiveCols = False
+        #overlapsGrid = self.addTieBreaker(overlapsGrid, self.prevActiveColsGrid, biasPrevActiveCols)
         # Do the same for the potential Overlaps Grid.
-        biasPrevActiveCols = False
-        potOverlapsGrid = self.addTieBreaker(potOverlapsGrid, self.prevActiveColsGrid, biasPrevActiveCols)
+        #biasPrevActiveCols = False
+        #potOverlapsGrid = self.addTieBreaker(potOverlapsGrid, self.prevActiveColsGrid, biasPrevActiveCols)
 
         allColsOverlaps = overlapsGrid.flatten().tolist()
         allColsPotOverlaps = potOverlapsGrid.flatten().tolist()
@@ -406,7 +408,7 @@ class inhibitionCalculator():
         self.numColsActInNeigh = np.zeros_like(allColsOverlaps)
 
         # print "columnActive = \n%s" % columnActive
-        #print "overlapsGrid plus tiebreaker = \n%s" % overlapsGrid
+        # print "overlapsGrid plus tiebreaker = \n%s" % overlapsGrid
         # print "allColsOverlaps = \n%s" % allColsOverlaps
 
         # Get all the columns in a 1D array then sort them based on their overlap value.

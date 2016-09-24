@@ -13,7 +13,7 @@ testParameters = {
                   'HTM': {
                         'numLevels': 1,
                         'columnArrayWidth': 10,
-                        'columnArrayHeight': 30,
+                        'columnArrayHeight': 20,
                         'cellsPerColumn': 3,
 
                         'HTMRegions': [{
@@ -27,11 +27,11 @@ testParameters = {
                                 'inhibitionWidth': 20,
                                 'inhibitionHeight': 2,
                                 'centerPotSynapses': 1,
-                                'potentialWidth': 20,
-                                'potentialHeight': 10,
-                                'spatialPermanenceInc': 0.1,
+                                'potentialWidth': 40,
+                                'potentialHeight': 8,
+                                'spatialPermanenceInc': 0.31,
                                 'spatialPermanenceDec': 0.02,
-                                'activeColPermanenceDec': 0.02,
+                                'activeColPermanenceDec': 0.001,
                                 'tempDelayLength': 3,
                                 'permanenceInc': 0.1,
                                 'permanenceDec': 0.02,
@@ -67,17 +67,14 @@ class test_temporalPoolingSuite3:
 
         params = testParameters
 
-        self.width = 10
-        self.height = 30
-        self.cellsPerColumn = 3
-        self.numLevels = 1
-        self.numLayers = 3
-
         # Create an array of input which will be fed to the htm so it
         # can try to temporarily pool them.
         numInputs = params['HTM']['columnArrayWidth']*params['HTM']['cellsPerColumn']
-        inputWidth = params['HTM']['columnArrayWidth']*params['HTM']['cellsPerColumn']
+        # inputWidth = params['HTM']['columnArrayWidth']*params['HTM']['cellsPerColumn']
+        # inputHeight = 2*params['HTM']['columnArrayHeight']
+        inputWidth = 40
         inputHeight = 2*params['HTM']['columnArrayHeight']
+
 
         self.InputCreator = svli.simpleVerticalLineInputs(inputWidth, inputHeight, numInputs)
         #self.htmlayer = HTMLayer(self.inputs[0], self.width, self.height, self.cellsPerColumn)
@@ -111,19 +108,19 @@ class test_temporalPoolingSuite3:
         with some cells that originally became active for input A and some that
         where originally active for B and C as well.
         '''
-        self.InputCreator.changePattern(6)
+        self.InputCreator.changePattern(1)
         gui.startHtmGui(self.htm, self.InputCreator)
         self.nSteps(100)
 
-        self.InputCreator.changePattern(3)
+        self.InputCreator.changePattern(6)
         gui.startHtmGui(self.htm, self.InputCreator)
         self.nSteps(101)
 
-        self.InputCreator.changePattern(1)
+        self.InputCreator.changePattern(3)
         gui.startHtmGui(self.htm, self.InputCreator)
         self.nSteps(102)
 
-        self.InputCreator.changePattern(3)
+        self.InputCreator.changePattern(1)
         gui.startHtmGui(self.htm, self.InputCreator)
         self.nSteps(103)
 
@@ -131,7 +128,7 @@ class test_temporalPoolingSuite3:
         gui.startHtmGui(self.htm, self.InputCreator)
         self.nSteps(104)
 
-        self.InputCreator.changePattern(1)
+        self.InputCreator.changePattern(3)
         gui.startHtmGui(self.htm, self.InputCreator)
         self.nSteps(105)
 

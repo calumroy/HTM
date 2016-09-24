@@ -74,17 +74,34 @@ class OverlapCalculator():
         self.stepX, self.stepY = self.getStepSizes(inputWidth, inputHeight,
                                                    self.columnsWidth, self.columnsHeight,
                                                    self.potentialWidth, self.potentialHeight)
-        # Contruct a tiebreaker matrix. It contains small values that help
-        # resolve any ties in overlap scores for columns.
-        self.tieBreaker = np.array([[0.0 for i in range(self.inputWidth)]
-                                   for j in range(self.inputHeight)])
-        self.makeTieBreaker(self.tieBreaker, self.inputWidth, self.inputHeight)
+        # Contruct a tiebreaker matrix for the columns potential synapses.
+        # It contains small values that help resolve any ties in potential
+        # overlap scores for columns.
+        self.potSynTieBreaker = np.array([[0.0 for i in range(self.potentialHeight*self.potentialWidth)]
+                                         for j in range(self.numColumns)])
+        self.makePotSynTieBreaker(self.potSynTieBreaker)
+        # Store the potential inputs to every column plus the tie breaker value.
+        # Each row represents the inputs a columns potential synapses cover.
+        self.colInputPotSynTie = np.array([[0.0 for i in range(self.potentialHeight*self.potentialWidth)]
+                                          for j in range(self.numColumns)])
+        self.colTieBreaker = np.array([0.0 for i in range(self.numColumns)])
+        self.makeColTieBreaker(self.colTieBreaker)
 
         # Create theano variables and functions
         ############################################
 
         # Create the theano function for calculating
-        # the addition of a small tie breaker value to each input.
+        # the multiplication elementwise of 2 matricies.
+        self.i_grid = T.matrix(dtype='float32')
+        self.j_grid = T.matrix(dtype='float32')
+        self.multi_vals = self.i_grid * self.j_grid
+        self.multi_grids = function([self.i_grid, self.j_grid],
+                                    self.multi_vals,
+                                    on_unused_input='warn',
+                                    allow_input_downcast=True)
+
+        # Create the theano function for calculating
+        # the addition of a small tie breaker value to each matrix input.
         self.o_grid = T.matrix(dtype='float32')
         self.tie_grid = T.matrix(dtype='float32')
         self.add_vals = T.add(self.o_grid, self.tie_grid)
@@ -92,6 +109,16 @@ class OverlapCalculator():
                                        self.add_vals,
                                        on_unused_input='warn',
                                        allow_input_downcast=True)
+
+        # Create the theano function for calculating
+        # the addition of a small tie breaker value to each matrix input.
+        self.o_vect = T.vector(dtype='float32')
+        self.tie_vect = T.vector(dtype='float32')
+        self.add_vectVals = T.add(self.o_vect, self.tie_vect)
+        self.add_vectTieBreaker = function([self.o_vect, self.tie_vect],
+                                           self.add_vectVals,
+                                           on_unused_input='warn',
+                                           allow_input_downcast=True)
 
         # Create the theano function for calculating
         # the inputs to a column from an input grid.
@@ -159,23 +186,66 @@ class OverlapCalculator():
 
         ########################### END THEANO ###############################
 
-    def makeTieBreaker(self, tieBreaker, inputWidth, inputHeight):
+    def makePotSynTieBreaker(self, tieBreaker):
         # create a tie breaker matrix holding small values for each element in
-        # the input grid. These values all add up to less then 1 and are used
-        # to resolve situations where columns have the same overlap number.
+        # the self.colInputPotSyn grid. The tie breaker values are created such that
+        # for a particular row in the colInputPotSyn adding all tie breaker values up
+        # the result is less then 1. We will make it less then 0.5. THe tie breaker values
+        # are all multiples of the same number. Each row in the colInputPotSyn grid
+        # has a different pattern of tie breaker values. THis is done by sliding the previous
+        # rows values along by 1 and wrapping at the end of the row.
+        # They are used  to resolve situations where columns have the same overlap number.
+        # The purpose of
+        inputHeight = len(tieBreaker)
+        inputWidth = len(tieBreaker[0])
+        #numInputs = inputWidth
 
-        numInputs = inputWidth * inputHeight
-        normValue = 1.0/float(2*numInputs+2)
-        # Create a tiebreaker that is not biased to either side of the input grid.
+        # Use the sum of all integer values less then or equal to formula.
+        # This is because each row has its tie breaker values added together.
+        # We want to make sure the result from adding the tie breaker values is
+        # less then 0.5 but more then 0.0.
+        n = float(inputWidth)
+        normValue = float(0.5/(n*(n+1.0)/2.0))
+        #normValue = 1.0/float(2*inputWidth+2)
+        print "maxNormValue = %s" % (n*(n+1.0)/2.0)
+        print "normValue = %s" % normValue
+        print "tie Width = %s" % inputWidth
+
+        rowsTie = np.arange(inputWidth)+1
+        rowsTie = rowsTie*normValue
+        # Create a tiebreaker that changes for each row.
         for j in range(len(tieBreaker)):
-            for i in range(len(tieBreaker[0])):
-                if (j % 2) == 1:
-                    # For odd positions bias to the bottom left
-                    tieBreaker[j][i] = ((j+1)*self.inputWidth+(self.inputWidth-i-1))*normValue
-                else:
-                    # For even positions bias to the bottom right
-                    tieBreaker[j][i] = (1+i+j*self.inputWidth)*normValue
-        #print "self.tieBreaker = \n%s" % self.tieBreaker
+            tieBreaker[j] = np.roll(rowsTie, j)
+            #from PyQt4.QtCore import pyqtRemoveInputHook; import ipdb; pyqtRemoveInputHook(); ipdb.set_trace()
+
+            #print "np.roll(rowsTie, j) * inputWidth = %s" % (np.roll(rowsTie, j) * inputWidth)
+
+            #for i in range(len(tieBreaker[0])):
+
+                # if (j % 2) == 1:
+                #     # For odd positions bias to the bottom left
+                #     tieBreaker[j][i] = ((j+1)*inputWidth+(inputWidth-i-1))*normValue
+                # else:
+                #     # For even positions bias to the bottom right
+                #     tieBreaker[j][i] = (1+i+j*inputWidth)*normValue
+        # print "self.tieBreaker = \n%s" % self.tieBreaker
+
+    def makeColTieBreaker(self, tieBreaker):
+        # Make a vector of tiebreaker values to add to the columns overlap values vector.
+        normValue = 1.0/float(2*self.numColumns+2)
+
+        # Create a tiebreaker that is not biased to either side of the columns grid.
+        for j in range(len(tieBreaker)):
+            # The tieBreaker is a flattened vecto of the columns overlaps.
+            # workout the row and col number of the non flattened matrix.
+            rowNum = math.floor(j/self.columnsWidth)
+            colNum = j % self.columnsWidth
+            if (j % 2) == 1:
+                # For odd positions bias to the bottom left
+                tieBreaker[j] = ((rowNum+1)*self.columnsWidth+(self.columnsWidth-colNum-1))*normValue
+            else:
+                # For even positions bias to the bottom right
+                tieBreaker[j] = (1+colNum+rowNum*self.columnsWidth)*normValue
 
     def checkNewInputParams(self, newColSynPerm, newInput):
         # Check that the new input has the same dimensions as the
@@ -311,24 +381,27 @@ class OverlapCalculator():
 
         return stepX, stepY
 
-    def addInputTieBreaker(self, inputGrid):
-        # Add a small number to each input value in the input grid.
-        # This value is based on each elements row and col number in the input Grid.
-        # This helps when deciding how to break ties in the spatial pooler for
-        # columns with the same overlap values. Note this is not a random value!
-        # Make sure the tiebreaker values all add up to less then 1.
-        # The tie breaker is constructed such that no particular direction in the
-        # inputGrid is biased on average more then any other.
-        # Use a theano function to add each element in the tieBreaker to the input.
-        inputsGridTie = self.add_tieBreaker(inputGrid, self.tieBreaker)
-        return inputsGridTie
+    def addVectTieBreaker(self, vectorVals, tieBreaker):
+        # Add a tieBreaker array to the vector array.
+        gridPlusTieB = self.add_vectTieBreaker(vectorVals, tieBreaker)
+        return gridPlusTieB
+
+    def maskTieBreaker(self, grid, tieBreaker):
+        # Multiply the tiebreaker values by the input grid then add them to it.
+        # Since the grid contains ones and zeros some tiebreaker values are
+        # masked out. This means the tie breaker will be different for each input
+        # pattern.
+        maskedTieBreaker = None
+
+        maskedTieBreaker = self.multi_grids(grid, tieBreaker)
+        print "maskedTieBreaker = \n%s" % maskedTieBreaker
+
+        gridPlusTieB = self.add_tieBreaker(grid, maskedTieBreaker)
+        return gridPlusTieB
 
     def getColInputs(self, inputGrid):
         # This function uses theano's convolution function to
         # return the inputs that each column potentially connects to.
-
-        # Add a small tiebreaker value to the input scores.
-        #inputGrid = self.addInputTieBreaker(inputGrid)
 
         # Take the input and put it into a 4D tensor.
         # This is because the theano function images2neibs
@@ -358,8 +431,6 @@ class OverlapCalculator():
         # Return the calculated potential overlap score for every column.
         # This is the overlap score each column has if all poential synpases
         # are checked for active inputs.
-        # Sum the potential inputs for every column.
-        self.colPotOverlaps = self.calcOverlap(self.colInputPotSyn)
         return self.colPotOverlaps
 
     def calculateOverlap(self, colSynPerm, inputGrid):
@@ -368,14 +439,33 @@ class OverlapCalculator():
         self.checkNewInputParams(colSynPerm, inputGrid)
         # Calcualte the inputs to each column
         self.colInputPotSyn = self.getColInputs(inputGrid)
+
+        # Add a masked small tiebreaker value to the self.colInputPotSyn scores.
+        self.colInputPotSynTie = self.maskTieBreaker(self.colInputPotSyn, self.potSynTieBreaker)
+        #print "self.colInputPotSyn = \n%s" % self.colInputPotSyn
+        #print "self.colInputPotSynTie = \n%s" % self.colInputPotSynTie
+
+        # Calculate the potential overlap scores for every column.
+        # Sum the potential inputs for every column.
+        self.colPotOverlaps = self.calcOverlap(self.colInputPotSynTie)
+        #print "self.colPotOverlaps = \n%s" % self.colPotOverlaps
+
         # Call the theano functions to calculate the overlap value.
-        # print "colSynPerm = \n%s" % colSynPerm
+        #print "colSynPerm = \n%s" % colSynPerm
         # print "colInputPotSyn = \n%s" % colInputPotSyn
         # print "len(colSynPerm) = %s len(colSynPerm[0]) = %s " % (len(colSynPerm), len(colSynPerm[0]))
         # print "len(colInputPotSyn) = %s len(colInputPotSyn[0]) = %s " % (len(colInputPotSyn), len(colInputPotSyn[0]))
         connectedSynInputs = self.getConnectedSynInput(colSynPerm, self.colInputPotSyn)
-        # print "connectedSynInputs = \n%s" % connectedSynInputs
+        #print "connectedSynInputs = \n%s" % connectedSynInputs
         colOverlapVals = self.calcOverlap(connectedSynInputs)
+
+        #from PyQt4.QtCore import pyqtRemoveInputHook; import ipdb; pyqtRemoveInputHook(); ipdb.set_trace()
+
+        #print "self.colTieBreaker = \n%s" % self.colTieBreaker.reshape((self.columnsWidth, self.columnsHeight))
+        # Add a small tiebreaker value to the column overlap scores vector.
+        colOverlapVals = self.addVectTieBreaker(colOverlapVals, self.colTieBreaker)
+
+        #print "colOverlapVals = \n%s" % colOverlapVals.reshape((self.columnsWidth, self.columnsHeight))
         return colOverlapVals, self.colInputPotSyn
 
     def removeSmallOverlaps(self, colOverlapVals):
@@ -430,6 +520,7 @@ if __name__ == '__main__':
     colOverlaps, colPotInputs = overlapCalc.calculateOverlap(colSynPerm, newInputMat)
     print "len(colOverlaps) = %s" % len(colOverlaps)
     print "colOverlaps = \n%s" % colOverlaps
+    print "colPotInputs = \n%s" % colPotInputs
 
     # limit the overlap values so they are larger then minOverlap
     colOverlaps = overlapCalc.removeSmallOverlaps(colOverlaps)

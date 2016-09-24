@@ -152,7 +152,11 @@ class HTMLayer:
         self.colPotSynPerm = np.array([[self.colSynPermanence for i in range(self.numPotSyn)]
                                       for j in range(self.numColumns)])
         # Setup a matrix where each position represents a columns overlap.
+        # This only checks synapses that are connected.
         self.colOverlaps = np.empty([self.height, self.width])
+        # Setup a matrix where each position represents a columns potential overlap.
+        # All potential synapses are checked not just the connected ones.
+        self.potColOverlapsGrid = np.empty([self.height, self.width])
         # Setup a matrix where each row represents a columns input values from its potential synapses.
         self.colPotInputs = np.empty([self.numColumns, self.numPotSyn])
         # Store the previous timeSteps potential inputs.
@@ -558,6 +562,18 @@ class HTMLayer:
 
         return column.connectedSynapses
 
+    def getPotentialOverlaps(self, column=None):
+        # Get the potential overlap scores for all columns if the column object
+        # input to this function is None.
+        # If a valid column object is requested return the potential overlap
+        # score just for that column.
+        # Get them from the overlaps calculator
+        if column is None:
+            return self.overlapCalc.getPotentialOverlaps()
+        else:
+            columnIndex = column.pos_y * self.width + column.pos_x
+            return self.overlapCalc.getPotentialOverlaps()[columnIndex]
+
     def getColumnsOverlap(self, column):
         # Return the columns overlap value. This is stored in the
         # self.colOverlaps matrix.
@@ -642,11 +658,6 @@ class HTMLayer:
             # Set the cell respective element in the output to 1 if that cell is active.
             self.output[col_pos_y][int(col_pos_x*self.cellsPerColumn+cellInd)] = 1
 
-    def getPotentialOverlaps(self):
-        # Get the potential overlap scores for each column.
-        # Get them from the overlpas calculator
-        return self.overlapCalc.getPotentialOverlaps()
-
     def Overlap(self):
         """
         Phase one for the spatial pooler
@@ -665,6 +676,10 @@ class HTMLayer:
         # limit the overlap values so they are larger then minOverlap
         self.colOverlaps = self.overlapCalc.removeSmallOverlaps(self.colOverlaps)
 
+        # Also get the potential overlaps in a grid form.
+        # Get the potential overlaps and reshape them into a grid (matrix).
+        self.potColOverlapsGrid = self.getPotentialOverlaps().reshape((self.height, self.width))
+
     def inhibition(self, timeStep):
         '''
         Phase two for the spatial pooler
@@ -675,13 +690,10 @@ class HTMLayer:
         # The inhibitor calculator requires the column overlaps to be in
         # a grid with the same shape as the HTM layer.
         colOverlapsGrid = self.colOverlaps.reshape((self.height, self.width))
-        # It also requires the potential overlaps to be in a grid form.
-        # Get the potential overlaps and reshape them into a grid (matrix).
-        potColOverlapsGrid = self.getPotentialOverlaps().reshape((self.height, self.width))
 
         # Store the current activecol as the previous active columns and update the colActive
         self.prevColActive = self.colActive
-        self.colActive = self.inhibCalc.calculateWinningCols(colOverlapsGrid, potColOverlapsGrid)
+        self.colActive = self.inhibCalc.calculateWinningCols(colOverlapsGrid, self.potColOverlapsGrid)
         # print "self.colActive = \n%s" % self.colActive
 
     def spatialLearning(self):

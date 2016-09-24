@@ -270,8 +270,9 @@ class HTMInput(QtGui.QGraphicsView):
         currentLayer = self.htm.regionArray[self.level].layerArray[self.layer]
         column = currentLayer.columns[pos_y][pos_x]
         columnsOverlap = currentLayer.getColumnsOverlap(column)
+        potColumnsOverlap = currentLayer.getPotentialOverlaps(column)
         columnsMinOverlap = currentLayer.getColumnsMinOverlap()
-        print "     overlap = %s minOverlap = %s" % (columnsOverlap, columnsMinOverlap)
+        print "     overlap = %s, potColumnsOverlap = %s, minOverlap = %s" % (columnsOverlap, potColumnsOverlap, columnsMinOverlap)
         red = QtGui.QColor(0xFF, 0, 0, 0xFF)
         transpBlue = QtGui.QColor(0, 0, 0xFF, 0x30)
         green = QtGui.QColor(0, 0xFF, 0, 0xFF)
