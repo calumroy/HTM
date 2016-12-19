@@ -6,7 +6,7 @@ import sys
 from copy import deepcopy
 from utilities import simpleVerticalLineInputs as svli, measureTemporalPooling as mtp
 from utilities import sdrFunctions
-from utilities import startHtmGui as gui
+from utilities import startHtmGui as htmgui
 
 
 testParameters = {
@@ -85,6 +85,9 @@ class test_temporalPoolingSuite3:
         # Measure the temporal pooling
         self.temporalPooling = mtp.measureTemporalPooling()
 
+        # define the gui class
+        self.gui = htmgui.start_htm_gui()
+
     def step(self):
         # Update the inputs and run them through the HTM levels just once.
         # Update the HTM input and run through the
@@ -109,31 +112,31 @@ class test_temporalPoolingSuite3:
         where originally active for B and C as well.
         '''
         self.InputCreator.changePattern(1)
-        gui.startHtmGui(self.htm, self.InputCreator)
+        self.gui.startHtmGui(self.htm, self.InputCreator)
         self.nSteps(100)
 
         self.InputCreator.changePattern(6)
-        gui.startHtmGui(self.htm, self.InputCreator)
+        self.gui.startHtmGui(self.htm, self.InputCreator)
         self.nSteps(101)
 
         self.InputCreator.changePattern(3)
-        gui.startHtmGui(self.htm, self.InputCreator)
+        self.gui.startHtmGui(self.htm, self.InputCreator)
         self.nSteps(102)
 
         self.InputCreator.changePattern(1)
-        gui.startHtmGui(self.htm, self.InputCreator)
+        self.gui.startHtmGui(self.htm, self.InputCreator)
         self.nSteps(103)
 
         self.InputCreator.changePattern(6)
-        gui.startHtmGui(self.htm, self.InputCreator)
+        self.gui.startHtmGui(self.htm, self.InputCreator)
         self.nSteps(104)
 
         self.InputCreator.changePattern(3)
-        gui.startHtmGui(self.htm, self.InputCreator)
+        self.gui.startHtmGui(self.htm, self.InputCreator)
         self.nSteps(105)
 
         self.InputCreator.changePattern(4)
-        gui.startHtmGui(self.htm, self.InputCreator)
+        self.gui.startHtmGui(self.htm, self.InputCreator)
         self.nSteps(106)
 
 

@@ -1290,6 +1290,8 @@ class HTMGui(QtGui.QMainWindow):
         self.initUI(HTMInput, InputCreator)
 
     def initUI(self, HTMInput, InputCreator):
+        # Connect up a close event to a function
+        self.closeEvent = self.closeEvent
         layout = QtGui.QHBoxLayout()
         # Create the HTM Viewing widget and pass in the HTM object to view
         self.HTMWidget = HTMNetwork(HTMInput, InputCreator)
@@ -1340,5 +1342,9 @@ class HTMGui(QtGui.QMainWindow):
         # fit the new screen size.
         self.windowSizeChanged.emit()
 
-
+    def closeEvent(self, event):
+        print "Closing"
+        self.deleteLater()
+        self.close()
+        #self.destroyed()
 
