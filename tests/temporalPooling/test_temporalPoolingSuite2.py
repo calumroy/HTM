@@ -6,7 +6,7 @@ import sys
 from copy import deepcopy
 from utilities import simpleVerticalLineInputs as svli, measureTemporalPooling as mtp
 from utilities import sdrFunctions
-from utilities import startHtmGui as gui
+from utilities import startHtmGui as htmgui
 
 
 testParameters = {
@@ -134,6 +134,9 @@ class test_temporalPoolingSuite2:
         # Measure the temporal pooling
         self.temporalPooling = mtp.measureTemporalPooling()
 
+        # define the gui class
+        self.gui = htmgui.start_htm_gui()
+
     def step(self):
         # Update the inputs and run them through the HTM levels just once.
         # Update the HTM input and run through the
@@ -153,7 +156,7 @@ class test_temporalPoolingSuite2:
         of temporal pooling occurs for a repeating input sequence.
         '''
 
-        gui.startHtmGui(self.htm, self.InputCreator)
+        self.gui.startHtmGui(self.htm, self.InputCreator)
 
         self.nSteps(400)
 
@@ -165,7 +168,7 @@ class test_temporalPoolingSuite2:
             tempPoolPercent = self.temporalPooling.temporalPoolingPercent(htmOutput)
             print "Temporal pooling percent = %s" % tempPoolPercent
 
-        #gui.startHtmGui(self.htm, self.InputCreator)
+        #self.gui.startHtmGui(self.htm, self.InputCreator)
 
         # More then this percentage of temporal pooling should have occurred
         assert tempPoolPercent >= 0.75
@@ -175,7 +178,7 @@ class test_temporalPoolingSuite2:
         This test is designed to make sure that temporal pooling
         increase up the heirarchy of layers.
         '''
-        #gui.startHtmGui(self.htm, self.InputCreator)
+        #self.gui.startHtmGui(self.htm, self.InputCreator)
         self.nSteps(400)
 
         # Measure the temporal pooling for each layer. This requires
@@ -193,7 +196,7 @@ class test_temporalPoolingSuite2:
                 tempPoolPercent[layer] = self.temporalPoolingMeasures[layer].temporalPoolingPercent(gridOutput)
                 #print "Layer %s Temporal pooling percent = %s" % (layer, tempPoolPercent[layer])
 
-        #gui.startHtmGui(self.htm, self.InputCreator)
+        #self.gui.startHtmGui(self.htm, self.InputCreator)
 
         # Less then this percentage of temporal pooling should have occurred
         for i in range(len(tempPoolPercent)):
@@ -311,7 +314,7 @@ class test_temporalPoolingSuite2:
         # This is the left to right pattern sequence.
         self.InputCreator.changePattern(0)
 
-        gui.startHtmGui(self.htm, self.InputCreator)
+        self.gui.startHtmGui(self.htm, self.InputCreator)
         self.nSteps(100)
 
         # # Measure the temporal pooling for each layer. This requires
@@ -334,15 +337,15 @@ class test_temporalPoolingSuite2:
         #     topGridOutputPat1 = self.htm.regionArray[0].layerOutput(self.numLayers-1)
 
         self.InputCreator.changePattern(2)
-        gui.startHtmGui(self.htm, self.InputCreator)
+        self.gui.startHtmGui(self.htm, self.InputCreator)
         self.nSteps(150)
         self.InputCreator.changePattern(0)
-        gui.startHtmGui(self.htm, self.InputCreator)
+        self.gui.startHtmGui(self.htm, self.InputCreator)
         self.nSteps(150)
         self.InputCreator.changePattern(2)
-        gui.startHtmGui(self.htm, self.InputCreator)
+        self.gui.startHtmGui(self.htm, self.InputCreator)
         self.InputCreator.changePattern(0)
-        gui.startHtmGui(self.htm, self.InputCreator)
+        self.gui.startHtmGui(self.htm, self.InputCreator)
 
         # # Measure the temporal pooling for each layer. This requires
         # # a temporal pooling measuring class per layer.
@@ -414,7 +417,7 @@ class test_temporalPoolingSuite2:
         where originally active for B and C as well.
         '''
         self.InputCreator.changePattern(6)
-        gui.startHtmGui(self.htm, self.InputCreator)
+        self.gui.startHtmGui(self.htm, self.InputCreator)
         self.nSteps(100)
 
 

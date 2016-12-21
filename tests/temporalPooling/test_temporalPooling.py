@@ -7,7 +7,7 @@ from PyQt4 import QtGui
 import sys
 from copy import deepcopy
 from utilities import simpleVerticalLineInputs as svli, measureTemporalPooling as mtp
-from utilities import startHtmGui as gui
+from utilities import startHtmGui as htmgui
 
 testParameters = {
                  'HTM': {
@@ -134,6 +134,9 @@ class test_temporalPooling:
         # Measure the temporal pooling
         self.temporalPooling = mtp.measureTemporalPooling()
 
+        # define the gui class
+        self.gui = htmgui.start_htm_gui()
+
     def step(self):
         # Update the inputs and run them through the HTM levels just once.
         # Update the HTM input and run through the
@@ -152,7 +155,7 @@ class test_temporalPooling:
         This test is designed to make sure that a minimum amount
         of temporal pooling occurs for a repeating input sequence.
         '''
-        #gui.startHtmGui(self.htm, self.InputCreator)
+        #self.gui.startHtmGui(self.htm, self.InputCreator)
         self.nSteps(400)
 
         tempPoolPercent = 0
@@ -189,7 +192,7 @@ class test_temporalPooling:
             tempPoolPercent = self.temporalPooling.temporalPoolingPercent(htmOutput)
             print "Temporal pooling percent = %s" % tempPoolPercent
 
-        gui.startHtmGui(self.htm, self.InputCreator)
+        self.gui.startHtmGui(self.htm, self.InputCreator)
 
         # Less then this percentage of temporal pooling should have occurred
         assert tempPoolPercent < 0.6
@@ -212,7 +215,7 @@ class test_temporalPooling:
             tempPoolPercent = self.temporalPooling.temporalPoolingPercent(htmOutput)
             print "Temporal pooling percent = %s" % tempPoolPercent
 
-        #gui.startHtmGui(self.htm, self.InputCreator)
+        #self.gui.startHtmGui(self.htm, self.InputCreator)
 
         # More then this percentage of temporal pooling should have occurred
         assert tempPoolPercent > 0.6
@@ -239,7 +242,7 @@ class test_temporalPooling:
                 tempPoolPercent[layer] = self.temporalPoolingMeasures[layer].temporalPoolingPercent(gridOutput)
                 #print "Layer %s Temporal pooling percent = %s" % (layer, tempPoolPercent[layer])
 
-        #gui.startHtmGui(self.htm, self.InputCreator)
+        #self.gui.startHtmGui(self.htm, self.InputCreator)
 
         # Less then this percentage of temporal pooling should have occurred
         for i in range(len(tempPoolPercent)):
