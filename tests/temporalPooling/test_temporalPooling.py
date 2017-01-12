@@ -106,7 +106,7 @@ class test_temporalPooling:
         their is no compilcated feedback happening with one level.
 
         To test the temporal pooling ability of the regions a sequence
-        of inputs are repeatably inputted to the HTM. If after a number
+        of inputs are repeatably inputed to the HTM. If after a number
         of steps the top most layer is only changing slightly compared to
         the bottom layer then temporal pooling is occuring.
         '''

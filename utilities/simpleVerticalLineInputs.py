@@ -1,7 +1,7 @@
 import numpy as np
 from copy import deepcopy
 import random
-from utilities import sdrFunctions as SDRFunct
+import sdrFunctions as SDRFunct
 
 
 class simpleVerticalLineInputs:
@@ -21,7 +21,7 @@ class simpleVerticalLineInputs:
         self.width = width
         self.height = height
         # How many input patterns to store
-        self.numPatterns = 7
+        self.numPatterns = 8
         # An index indicating the current pattern that is being used as a series of input grids.
         self.patIndex = 0
         # An array storing different input patterns
@@ -95,6 +95,13 @@ class simpleVerticalLineInputs:
             if patIndex >= self.numInputs:
                 patIndex = 0
             inputs[6][n] = inputs[0][patIndex]
+        # The eighth pattern is just every 6th input of the second pattern
+        patIndex = 0
+        for n in range(len(inputs[2])):
+            patIndex = patIndex + 6
+            if patIndex >= self.numInputs:
+                patIndex = 0
+            inputs[7][n] = inputs[1][patIndex]
 
     def changePattern(self, patternindex):
         # Change the input pattern

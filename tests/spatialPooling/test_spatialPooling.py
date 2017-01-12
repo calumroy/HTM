@@ -7,6 +7,7 @@ import json
 from copy import deepcopy
 from utilities import simpleVerticalLineInputs as svli
 from utilities import sdrFunctions as SDRFunct
+from utilities import startHtmGui as htmgui
 
 testParameters = {
                 'HTM': {
@@ -79,6 +80,9 @@ class test_spatialPooling:
         # Setup some parameters of the HTM
         self.setupParameters()
 
+        # define the gui class
+        self.gui = htmgui.start_htm_gui()
+
     def setupParameters(self):
         # Setup some parameters of the HTM
         pass
@@ -147,9 +151,7 @@ class test_spatialPooling:
         similarPerIn1 = self.gridsSimilar(colSDR1, combinedOutput)
         similarPerIn2 = self.gridsSimilar(colSDR2, combinedOutput)
 
-        # app = QtGui.QApplication(sys.argv)
-        # self.htmGui = GUI_HTM.HTMGui(self.htm, self.InputCreator)
-        # sys.exit(app.exec_())
+        #self.gui.startHtmGui(self.htm, self.InputCreator)
 
         #from PyQt4.QtCore import pyqtRemoveInputHook; import ipdb; pyqtRemoveInputHook(); ipdb.set_trace()
         assert similarPerIn1 >= 0.49 and similarPerIn1 <= 0.51
@@ -191,9 +193,7 @@ class test_spatialPooling:
         self.htm.spatialTemporal(combinedInput)
         combinedOutput = self.getColumnGridOutput(self.htm, 0, 0)
 
-        #app = QtGui.QApplication(sys.argv)
-        #self.htmGui = GUI_HTM.HTMGui(self.htm, self.InputCreator)
-        #sys.exit(app.exec_())
+        #self.gui.startHtmGui(self.htm, self.InputCreator)
 
         # Compare the combined output SDR to the individual input SDRs.
         # The combined one should be equal to 50% of the individual ones.
@@ -250,9 +250,7 @@ class test_spatialPooling:
         similarPerIn1 = self.gridsSimilar(colSDR1, combinedOutput)
         similarPerIn2 = self.gridsSimilar(colSDR2, combinedOutput)
 
-        # app = QtGui.QApplication(sys.argv)
-        # self.htmGui = GUI_HTM.HTMGui(self.htm, self.InputCreator)
-        # sys.exit(app.exec_())
+        # self.gui.startHtmGui(self.htm, self.InputCreator)
 
         # from PyQt4.QtCore import pyqtRemoveInputHook; import ipdb; pyqtRemoveInputHook(); ipdb.set_trace()
         # Not exactly 50% since on the edges of the two patterns new columns may activate.

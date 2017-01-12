@@ -67,16 +67,13 @@ class test_temporalPoolingSuite3:
 
         params = testParameters
 
-        # Create an array of input which will be fed to the htm so it
+        # Create an array of inputs which will be fed to the htm so it
         # can try to temporarily pool them.
-        numInputs = params['HTM']['columnArrayWidth']*params['HTM']['cellsPerColumn']
-        # inputWidth = params['HTM']['columnArrayWidth']*params['HTM']['cellsPerColumn']
-        # inputHeight = 2*params['HTM']['columnArrayHeight']
-        inputWidth = 40
-        inputHeight = 2*params['HTM']['columnArrayHeight']
+        
+        inputWidth = params['HTM']['columnArrayWidth']
+        inputHeight = params['HTM']['columnArrayHeight']
 
-
-        self.InputCreator = svli.simpleVerticalLineInputs(inputWidth, inputHeight, numInputs)
+        self.InputCreator = svli.simpleVerticalLineInputs(inputWidth, inputHeight)
         #self.htmlayer = HTMLayer(self.inputs[0], self.width, self.height, self.cellsPerColumn)
         self.htm = HTM_network.HTM(self.InputCreator.createSimGrid(),
                                    params
@@ -111,7 +108,7 @@ class test_temporalPoolingSuite3:
         with some cells that originally became active for input A and some that
         where originally active for B and C as well.
         '''
-        self.InputCreator.changePattern(1)
+        self.InputCreator.changePattern(7)
         self.gui.startHtmGui(self.htm, self.InputCreator)
         self.nSteps(100)
 
@@ -119,15 +116,15 @@ class test_temporalPoolingSuite3:
         self.gui.startHtmGui(self.htm, self.InputCreator)
         self.nSteps(101)
 
-        self.InputCreator.changePattern(3)
+        self.InputCreator.changePattern(7)
         self.gui.startHtmGui(self.htm, self.InputCreator)
         self.nSteps(102)
 
-        self.InputCreator.changePattern(1)
+        self.InputCreator.changePattern(6)
         self.gui.startHtmGui(self.htm, self.InputCreator)
         self.nSteps(103)
 
-        self.InputCreator.changePattern(6)
+        self.InputCreator.changePattern(7)
         self.gui.startHtmGui(self.htm, self.InputCreator)
         self.nSteps(104)
 
@@ -135,7 +132,7 @@ class test_temporalPoolingSuite3:
         self.gui.startHtmGui(self.htm, self.InputCreator)
         self.nSteps(105)
 
-        self.InputCreator.changePattern(4)
+        self.InputCreator.changePattern(6)
         self.gui.startHtmGui(self.htm, self.InputCreator)
         self.nSteps(106)
 

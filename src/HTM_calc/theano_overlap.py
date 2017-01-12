@@ -394,7 +394,7 @@ class OverlapCalculator():
         maskedTieBreaker = None
 
         maskedTieBreaker = self.multi_grids(grid, tieBreaker)
-        print "maskedTieBreaker = \n%s" % maskedTieBreaker
+        #print "maskedTieBreaker = \n%s" % maskedTieBreaker
 
         gridPlusTieB = self.add_tieBreaker(grid, maskedTieBreaker)
         return gridPlusTieB
