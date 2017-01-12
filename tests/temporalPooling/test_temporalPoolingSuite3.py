@@ -4,7 +4,7 @@ from HTM_GUI import GUI_HTM
 from PyQt4 import QtGui
 import sys
 from copy import deepcopy
-from utilities import simpleVerticalLineInputs as svli, measureTemporalPooling as mtp
+from utilities import imageInputs as imageIn, measureTemporalPooling as mtp
 from utilities import sdrFunctions
 from utilities import startHtmGui as htmgui
 
@@ -69,11 +69,11 @@ class test_temporalPoolingSuite3:
 
         # Create an array of inputs which will be fed to the htm so it
         # can try to temporarily pool them.
-        
-        inputWidth = params['HTM']['columnArrayWidth']
-        inputHeight = params['HTM']['columnArrayHeight']
 
-        self.InputCreator = svli.simpleVerticalLineInputs(inputWidth, inputHeight)
+        #inputWidth = params['HTM']['columnArrayWidth']
+        #inputHeight = params['HTM']['columnArrayHeight']
+
+        self.InputCreator = imageIn.imageInputs(r'test_seqs')
         #self.htmlayer = HTMLayer(self.inputs[0], self.width, self.height, self.cellsPerColumn)
         self.htm = HTM_network.HTM(self.InputCreator.createSimGrid(),
                                    params
@@ -108,33 +108,10 @@ class test_temporalPoolingSuite3:
         with some cells that originally became active for input A and some that
         where originally active for B and C as well.
         '''
-        self.InputCreator.changePattern(7)
+        self.InputCreator.changePattern(1)
         self.gui.startHtmGui(self.htm, self.InputCreator)
         self.nSteps(100)
 
-        self.InputCreator.changePattern(6)
+        self.InputCreator.changePattern(0)
         self.gui.startHtmGui(self.htm, self.InputCreator)
         self.nSteps(101)
-
-        self.InputCreator.changePattern(7)
-        self.gui.startHtmGui(self.htm, self.InputCreator)
-        self.nSteps(102)
-
-        self.InputCreator.changePattern(6)
-        self.gui.startHtmGui(self.htm, self.InputCreator)
-        self.nSteps(103)
-
-        self.InputCreator.changePattern(7)
-        self.gui.startHtmGui(self.htm, self.InputCreator)
-        self.nSteps(104)
-
-        self.InputCreator.changePattern(3)
-        self.gui.startHtmGui(self.htm, self.InputCreator)
-        self.nSteps(105)
-
-        self.InputCreator.changePattern(6)
-        self.gui.startHtmGui(self.htm, self.InputCreator)
-        self.nSteps(106)
-
-
-

@@ -32,11 +32,13 @@ class imageInputs:
         self.inputs = []
         # An array storing different input patterns
         # Each pattern is a series of 2dArray grids storing binary patterns.
-        #self.inputs = np.array([[[[0 for i in range(self.width)]
+        # self.inputs = np.array([[[[0 for i in range(self.width)]
         #                        for j in range(self.height)]
         #                        for k in range(self.numInputs)]
         #                        for l in range(self.numPatterns)])
-        self.setInputs(self.inputs, test_seq_dir)
+        # Set the self.inputs array to a sequence of np.arrays
+        # containing the sequence images from the image test directory.
+        self.setInputs(test_seq_dir)
         # Use an index to keep track of which input to send next
         self.index = 0
         # A variable specifying the amount of noise in the inputs 0 to 1
@@ -46,12 +48,12 @@ class imageInputs:
         # that the next input is the correct input in the sequence
         self.sequenceProbability = 1.0
 
-    def setInputs(self, inputs, test_seq_dir):
+    def setInputs(self, test_seq_dir):
         # Import the sequences stored in the sequence directory
-        self.importAllInputSequences(inputs, test_seq_dir)
+        self.inputs = self.importAllInputSequences(test_seq_dir)
 
-    def importAllInputSequences(self, inputs_list, directory):
-        
+    def importAllInputSequences(self, directory):
+
         base_dir = "./"
         png = []
         pic_postfix = ".png"
@@ -60,30 +62,31 @@ class imageInputs:
         print "searching in root directory ", base_dir
         for root, dirs, filesnames in os.walk(base_dir):
             for dir_name in dirs:
-                print 'searching', dir_name
-                if directory in dir_name: 
+                # print 'searching', dir_name
+                if directory in dir_name:
                     print 'found dir', dir_name
-                    test_seq_dir = os.path.join(root,directory)
+                    test_seq_dir = os.path.join(root, directory)
                     break
 
         # Now find all the sub dirs. Each sub dir is another sequence of images.
-        for root, dirs, filesnames in os.walk(test_seq_dir):           
+        for root, dirs, filesnames in os.walk(test_seq_dir):
             for dir_name in dirs:
-                print "     searching", dir_name
-                print os.path.join(root,directory)
+                # print "     searching", dir_name
+                # print os.path.join(root,directory)
                 png.append([])
-                pic_search_str = os.path.join(root,dir_name)+"/*"+pic_postfix
+                pic_search_str = os.path.join(root, dir_name)+"/*"+pic_postfix
                 for file_name in glob.glob(pic_search_str):
-                    print "         looking at file ", file_name 
-                    #help(misc.imread)
-                    png[-1].append(misc.imread(file_name, flatten=1))           
-                    
+                    # print "         looking at file ", file_name
+                    # help(misc.imread)
+                    png[-1].append(misc.imread(file_name, flatten=1))
+
         im = np.asarray(png)
+        im_bin = (im < 100).astype(int)
 
-        print 'Importing done...', im.shape
-
-        print "first image in first sequence = \n"
-        print im[0][0]
+        print 'Importing image sequences: done Shape:', im_bin.shape
+        # print "first image in first sequence = \n"
+        # print im_bin[0][0]
+        return im_bin
 
     def changePattern(self, patternindex):
         # Change the input pattern
@@ -118,6 +121,7 @@ class imageInputs:
                         newGrid[y][x] = 1
         # Give the next output a chance to be an out of sequence input.
         if (random.random() < self.sequenceProbability):
+            assert (len(self.inputs) > 0)
             outputGrid = self.inputs[self.patIndex][self.index]
         else:
             sequenceLen = len(self.inputs[self.patIndex])
@@ -133,5 +137,5 @@ class imageInputs:
             return outputGrid
 
 
-if __name__ == '__main__':
-    InputCreator = imageInputs(r'test_seqs')
+# if __name__ == '__main__':
+#     InputCreator = imageInputs(r'test_seqs')
