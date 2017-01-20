@@ -277,6 +277,7 @@ class HTMInput(QtGui.QGraphicsView):
         transpBlue = QtGui.QColor(0, 0, 0xFF, 0x30)
         green = QtGui.QColor(0, 0xFF, 0, 0xFF)
         darkGreen = QtGui.QColor(0, 0x80, 0x40, 0xFF)
+        darkerGreen = QtGui.QColor(0x1A, 0x39, 0x26, 0xFF)
         lightRed = QtGui.QColor(0xFF, 0x60, 0x60, 0xFF)
         lightGreen = QtGui.QColor(0, 0xFF, 0, 0x80)
 

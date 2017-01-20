@@ -23,13 +23,13 @@ testParameters = {
 
                             'HTMLayers': [{
                                 'desiredLocalActivity': 1,
-                                'minOverlap': 3,
-                                'inhibitionWidth': 20,
+                                'minOverlap': 8,
+                                'inhibitionWidth': 12,
                                 'inhibitionHeight': 2,
                                 'centerPotSynapses': 1,
-                                'potentialWidth': 40,
+                                'potentialWidth': 28,
                                 'potentialHeight': 8,
-                                'spatialPermanenceInc': 0.31,
+                                'spatialPermanenceInc': 0.16,
                                 'spatialPermanenceDec': 0.02,
                                 'activeColPermanenceDec': 0.001,
                                 'tempDelayLength': 3,
@@ -108,10 +108,10 @@ class test_temporalPoolingSuite3:
         with some cells that originally became active for input A and some that
         where originally active for B and C as well.
         '''
-        self.InputCreator.changePattern(1)
+        self.InputCreator.changePattern(0)
         self.gui.startHtmGui(self.htm, self.InputCreator)
         self.nSteps(100)
 
-        self.InputCreator.changePattern(0)
+        self.InputCreator.changePattern(1)
         self.gui.startHtmGui(self.htm, self.InputCreator)
         self.nSteps(101)
