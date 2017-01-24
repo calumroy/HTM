@@ -138,6 +138,10 @@ class HTMLayer:
         self.minOverlap = params['minOverlap']
         self.spatialPermanenceInc = params['spatialPermanenceInc']
         self.spatialPermanenceDec = params['spatialPermanenceDec']
+        self.tempPermanenceInc = params['spatialPermanenceInc']
+        self.tempPermanenceDec = params['spatialPermanenceDec']
+        self.tempSpatialPermanenceInc = params['tempSpatialPermanenceInc']
+        self.tempSeqPermanenceInc = params['tempSeqPermanenceInc']
         self.tempDelayLength = params['tempDelayLength']
         # Already active columns have their spatial synapses decremented by a different value in the spatial pooler.
         self.activeColPermanenceDec = params['activeColPermanenceDec']
@@ -321,10 +325,8 @@ class HTMLayer:
         self.tempPoolCalc = temporal.TemporalPoolCalculator(self.cellsPerColumn,
                                                             self.numColumns,
                                                             self.numPotSyn,
-                                                            self.spatialPermanenceInc,
-                                                            self.spatialPermanenceDec,
-                                                            self.permanenceInc,
-                                                            self.permanenceDec,
+                                                            self.tempSpatialPermanenceInc,
+                                                            self.tempSeqPermanenceInc,
                                                             self.minThreshold,
                                                             self.cellSynPermanence,
                                                             self.connectPermanence,

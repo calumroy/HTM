@@ -14,8 +14,8 @@ A class to calculate the temporal pooling for a HTM layer.
 
 class TemporalPoolCalculator():
     def __init__(self, cellsPerColumn, numColumns, numPotSyn,
-                 spatialPermanenceInc, spatialPermanenceDec,
-                 seqPermanenceInc, seqPermanenceDec,
+                 spatialPermanenceInc, 
+                 seqPermanenceInc, 
                  minNumSynThreshold, newSynPermanence,
                  connectPermanence, delayLength):
         self.numColumns = numColumns
@@ -24,11 +24,9 @@ class TemporalPoolCalculator():
         # The value by which the spatial poolers synapses (proximal synapses)
         # permanence values change by.
         self.spatialPermanenceInc = spatialPermanenceInc
-        self.spatialPermanenceDec = spatialPermanenceDec
         # The value by which the sequence poolers synapses (distal synapses)
         # permanence values change by.
         self.seqPermanenceInc = seqPermanenceInc
-        self.seqPermanenceDec = seqPermanenceDec
         # More then this many synapses in a segment must be active for the segment
         # to be considered a potnetial best matching segment and it getting it's synapse
         # permanence values increased.
@@ -362,29 +360,32 @@ class TemporalPoolCalculator():
                 1.  Updates and outputs the 2d tensor colPotSynPerm.
 
         '''
-        for c in range(len(colActive)):
-            # Iterate through each potential synpase.
-            for s in range(len(colPotSynPerm[c])):
-                # Update the potential synapses for the currently active columns.
-                if colActive[c] == 1:
-                    # If any of the columns potential synapses where connected to an
-                    # active input increment the synapses permenence.
-                    if self.prevColPotInputs[c][s] == 1:
-                        # print "Current active Col prev input active for col, syn = %s, %s" % (c, s)
-                        colPotSynPerm[c][s] += self.spatialPermanenceInc
-                        colPotSynPerm[c][s] = min(1.0, colPotSynPerm[c][s])
-                # Update the potential synapses for the previous active columns.
-                if self.prevColActive[c] == 1:
-                    # If any of the columns potential synapses are connected to a
-                    # currently active input increment the synapses permenence.
-                    if colPotInputs[c][s] == 1:
-                        # print "Prev active Col current input active for col, syn = %s, %s" % (c, s)
-                        colPotSynPerm[c][s] += self.spatialPermanenceInc
-                        colPotSynPerm[c][s] = min(1.0, colPotSynPerm[c][s])
 
-        # Store the current inputs to the potentialSynapses to use next time.
-        self.prevColPotInputs = colPotInputs
-        self.prevColActive = colActive
+        # Only perform temporal proximal pooling if the proximal permanence increment value is larger then zero!
+        if self.spatialPermanenceInc > 0.0:
+            for c in range(len(colActive)):
+                # Iterate through each potential synpase.
+                for s in range(len(colPotSynPerm[c])):
+                    # Update the potential synapses for the currently active columns.
+                    if colActive[c] == 1:
+                        # If any of the columns potential synapses where connected to an
+                        # active input increment the synapses permenence.
+                        if self.prevColPotInputs[c][s] == 1:
+                            # print "Current active Col prev input active for col, syn = %s, %s" % (c, s)
+                            colPotSynPerm[c][s] += self.spatialPermanenceInc
+                            colPotSynPerm[c][s] = min(1.0, colPotSynPerm[c][s])
+                    # Update the potential synapses for the previous active columns.
+                    if self.prevColActive[c] == 1:
+                        # If any of the columns potential synapses are connected to a
+                        # currently active input increment the synapses permenence.
+                        if colPotInputs[c][s] == 1:
+                            # print "Prev active Col current input active for col, syn = %s, %s" % (c, s)
+                            colPotSynPerm[c][s] += self.spatialPermanenceInc
+                            colPotSynPerm[c][s] = min(1.0, colPotSynPerm[c][s])
+
+            # Store the current inputs to the potentialSynapses to use next time.
+            self.prevColPotInputs = colPotInputs
+            self.prevColActive = colActive
 
         return colPotSynPerm
 
@@ -432,57 +433,59 @@ class TemporalPoolCalculator():
 
         '''
 
-        # Get a list of the antepenultimate new learning cells.
-        # These are the cells that were last in the learning state but were not
-        # active in the previous timestep or current timestep.
-        # The list needs to be at least as big as the num synpases in a segment since the segment will
-        # be filled with entirely new synapses connected to cells from this list.
-        numCellsNeeded = len(distalSynapses[0][0][0])
-        potPrev2LearnCellsList = self.getPrev2NewLearnCells(timeStep, newLearnCellsList,
-                                                            learnCellsTime, activeCellsTime, numCellsNeeded)
+        # Only perform temporal distal pooling if the distal permanence increment value is larger then zero!
+        if self.seqPermanenceInc > 0.0:
+            # Get a list of the antepenultimate new learning cells.
+            # These are the cells that were last in the learning state but were not
+            # active in the previous timestep or current timestep.
+            # The list needs to be at least as big as the num synpases in a segment since the segment will
+            # be filled with entirely new synapses connected to cells from this list.
+            numCellsNeeded = len(distalSynapses[0][0][0])
+            potPrev2LearnCellsList = self.getPrev2NewLearnCells(timeStep, newLearnCellsList,
+                                                                learnCellsTime, activeCellsTime, numCellsNeeded)
 
-        for c in range(self.numColumns):
-            for i in range(self.cellsPerColumn):
-                if (self.checkCellActivePredict(c, i, timeStep,
-                                                activeCellsTime, predictCellsTime) is True):
-                    # Increment the tracking number for the active predict cell
-                    self.cellsTrackingNum[c][i] += 1
-                else:
-                    # Update the avg persistence count for the cell
-                    if ((self.cellsTrackingNum[c][i] > 0) and self.checkCellActive(c, i, timeStep, activeCellsTime)):
-                        self.updateAvgPesist(self.cellsTrackingNum[c][i], self.cellsAvgPersist[c][i])
-                    # Reset the tracking number back to zero
-                    self.cellsTrackingNum[c][i] = 0
-                # Calculate the persistance value
-                self.cellsPersistance[c][i] = self.cellsAvgPersist[c][i] - self.cellsTrackingNum[c][i]
-                # limit the persistance count
-                if self.cellsPersistance[c][i] < 0:
-                    self.cellsPersistance[c][i] = 0
-                # If the cell was previously predicting or active and the persistance value is larger then zero
-                # and it is no longer predictng then keep the cell in the predicting state.
-                if ((self.checkCellPredict(c, i, timeStep-1, predictCellsTime) or
-                     (self.checkCellActive(c, i, timeStep-1, activeCellsTime))) and
-                    (self.cellsPersistance[c][i] > 0) and
-                   (self.checkCellPredict(c, i, timeStep, predictCellsTime) is False)):
-                    self.setPredictCell(c, i, timeStep, predictCellsTime)
-                # If the cell is now active predict (active and was predicting) then
-                # add new distal synapses that connect to the antepenultimate learning cells.
-                if (self.checkCellActivePredict(c, i, timeStep, activeCellsTime, predictCellsTime)):
-                    # Find the segment which already contains enough synapses to have predicted that it would be
-                    # in the active predict state now, use the antepenultimate learning state cells.
-                    # This may be from further back then 2 timesteps as the previous learning cells may
-                    # have been active for multiple timesteps.
-                    h = self.getBestMatchingSegment(distalSynapses[c][i], potPrev2LearnCellsList)
-                    if h is not None:
-                        # Find the synapses that where active and increment their permanence values.
-                        segActiveSynList = self.getSegmentActiveSynapses(distalSynapses[c][i][h], timeStep, activeCellsTime)
-                        self.updateDistalSyn(c, i, h, distalSynapses, segActiveSynList)
+            for c in range(self.numColumns):
+                for i in range(self.cellsPerColumn):
+                    if (self.checkCellActivePredict(c, i, timeStep,
+                                                    activeCellsTime, predictCellsTime) is True):
+                        # Increment the tracking number for the active predict cell
+                        self.cellsTrackingNum[c][i] += 1
                     else:
-                        # No best matching segment was found so a new segment will be
-                        # created overwrite the least used segment.
-                        h, lastTimeStep = self.findLeastUsedSeg(activeSeg[c][i], True)
-                        # print "new Random Seg created for c,i,h = %s, %s, %s" % (c, i, h)
-                        self.newRandomPrevActiveSynapses(distalSynapses[c][i][h], potPrev2LearnCellsList)
+                        # Update the avg persistence count for the cell
+                        if ((self.cellsTrackingNum[c][i] > 0) and self.checkCellActive(c, i, timeStep, activeCellsTime)):
+                            self.updateAvgPesist(self.cellsTrackingNum[c][i], self.cellsAvgPersist[c][i])
+                        # Reset the tracking number back to zero
+                        self.cellsTrackingNum[c][i] = 0
+                    # Calculate the persistance value
+                    self.cellsPersistance[c][i] = self.cellsAvgPersist[c][i] - self.cellsTrackingNum[c][i]
+                    # limit the persistance count
+                    if self.cellsPersistance[c][i] < 0:
+                        self.cellsPersistance[c][i] = 0
+                    # If the cell was previously predicting or active and the persistance value is larger then zero
+                    # and it is no longer predictng then keep the cell in the predicting state.
+                    if ((self.checkCellPredict(c, i, timeStep-1, predictCellsTime) or
+                         (self.checkCellActive(c, i, timeStep-1, activeCellsTime))) and
+                        (self.cellsPersistance[c][i] > 0) and
+                       (self.checkCellPredict(c, i, timeStep, predictCellsTime) is False)):
+                        self.setPredictCell(c, i, timeStep, predictCellsTime)
+                    # If the cell is now active predict (active and was predicting) then
+                    # add new distal synapses that connect to the antepenultimate learning cells.
+                    if (self.checkCellActivePredict(c, i, timeStep, activeCellsTime, predictCellsTime)):
+                        # Find the segment which already contains enough synapses to have predicted that it would be
+                        # in the active predict state now, use the antepenultimate learning state cells.
+                        # This may be from further back then 2 timesteps as the previous learning cells may
+                        # have been active for multiple timesteps.
+                        h = self.getBestMatchingSegment(distalSynapses[c][i], potPrev2LearnCellsList)
+                        if h is not None:
+                            # Find the synapses that where active and increment their permanence values.
+                            segActiveSynList = self.getSegmentActiveSynapses(distalSynapses[c][i][h], timeStep, activeCellsTime)
+                            self.updateDistalSyn(c, i, h, distalSynapses, segActiveSynList)
+                        else:
+                            # No best matching segment was found so a new segment will be
+                            # created overwrite the least used segment.
+                            h, lastTimeStep = self.findLeastUsedSeg(activeSeg[c][i], True)
+                            # print "new Random Seg created for c,i,h = %s, %s, %s" % (c, i, h)
+                            self.newRandomPrevActiveSynapses(distalSynapses[c][i][h], potPrev2LearnCellsList)
 
         return distalSynapses
 
@@ -527,9 +530,7 @@ if __name__ == '__main__':
     maxSynPerSeg = 2
     cellsPerColumn = 2
     spatialPermanenceInc = 1.0
-    spatialPermanenceDec = 0.2
     seqPermanenceInc = 0.1
-    seqPermanenceDec = 0.02
     newSynPermanence = 0.3
     minNumSynThreshold = 1
     connectPermanence = 0.2
@@ -575,8 +576,8 @@ if __name__ == '__main__':
     # with PyCallGraph(output=graphviz):
 
     tempPooler = TemporalPoolCalculator(cellsPerColumn, numColumns, numPotSyn,
-                                        spatialPermanenceInc, spatialPermanenceDec,
-                                        seqPermanenceInc, seqPermanenceDec,
+                                        spatialPermanenceInc, 
+                                        seqPermanenceInc, 
                                         minNumSynThreshold, newSynPermanence,
                                         connectPermanence, tempDelayLength)
 

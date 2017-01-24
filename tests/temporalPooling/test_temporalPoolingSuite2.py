@@ -35,6 +35,8 @@ testParameters = {
                                 'tempDelayLength': 3,
                                 'permanenceInc': 0.1,
                                 'permanenceDec': 0.02,
+                                'tempSpatialPermanenceInc': 0.1,
+                                'tempSeqPermanenceInc': 0.1,
                                 'connectPermanence': 0.3,
                                 'minThreshold': 5,
                                 'minScoreThreshold': 5,
@@ -58,6 +60,8 @@ testParameters = {
                                 'tempDelayLength': 3,
                                 'permanenceInc': 0.1,
                                 'permanenceDec': 0.02,
+                                'tempSpatialPermanenceInc': 0.2,
+                                'tempSeqPermanenceInc': 0.1,
                                 'connectPermanence': 0.3,
                                 'minThreshold': 5,
                                 'minScoreThreshold': 3,
@@ -82,6 +86,8 @@ testParameters = {
                                 'tempDelayLength': 10,
                                 'permanenceInc': 0.15,
                                 'permanenceDec': 0.05,
+                                'tempSpatialPermanenceInc': 0.2,
+                                'tempSeqPermanenceInc': 0.15,
                                 'minThreshold': 5,
                                 'minScoreThreshold': 3,
                                 'newSynapseCount': 10,
@@ -156,7 +162,7 @@ class test_temporalPoolingSuite2:
         of temporal pooling occurs for a repeating input sequence.
         '''
 
-        self.gui.startHtmGui(self.htm, self.InputCreator)
+        #self.gui.startHtmGui(self.htm, self.InputCreator)
 
         self.nSteps(400)
 

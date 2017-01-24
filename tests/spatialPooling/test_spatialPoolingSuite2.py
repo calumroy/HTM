@@ -37,6 +37,8 @@ testParameters = {
                                 'tempDelayLength': 3,
                                 'permanenceInc': 0.1,
                                 'permanenceDec': 0.02,
+                                'tempSpatialPermanenceInc': 0.1,
+                                'tempSeqPermanenceInc': 0.1,
                                 'connectPermanence': 0.3,
                                 'minThreshold': 5,
                                 'minScoreThreshold': 5,
