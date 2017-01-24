@@ -81,7 +81,12 @@ class imageInputs:
                     png[-1].append(misc.imread(file_name, flatten=1))
 
         im = np.asarray(png)
-        im_bin = (im < 100).astype(int)
+        im_bin = np.zeros_like(im)
+        #import ipdb; ipdb.set_trace()
+        for i in range(len(im)):
+            if im[0] is not None:
+                for j in range(len(im[0])):
+                    im_bin[i][j] = (im[i][j] < 100).astype(int)
 
         print 'Importing image sequences: done Shape:', im_bin.shape
         # print "first image in first sequence = \n"
@@ -91,6 +96,8 @@ class imageInputs:
     def changePattern(self, patternindex):
         # Change the input pattern
         self.patIndex = patternindex
+        # Check the current patterns length
+        self.numInputs = len(self.inputs[self.patIndex])
 
     def step(self, cellGrid):
         # Required function for a InputCreator class
