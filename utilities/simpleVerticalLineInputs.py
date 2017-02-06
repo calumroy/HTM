@@ -135,7 +135,7 @@ class simpleVerticalLineInputs:
                     if random.random() < self.noise:
                         newGrid[y][x] = 1
         # Give the next outpu a chance to be an out of sequence input.
-        if (random.random() < self.sequenceProbability):
+        if (random.random() <= self.sequenceProbability):
             outputGrid = self.inputs[self.patIndex][self.index]
         else:
             sequenceLen = len(self.inputs[self.patIndex])
@@ -144,6 +144,8 @@ class simpleVerticalLineInputs:
         self.index += 1
         if (self.index >= len(self.inputs[self.patIndex])):
             self.index = 0
+
+        import ipdb; ipdb.set_trace()
         # If noise was added return the noisy grid.
         if newGrid is not None:
             return newGrid

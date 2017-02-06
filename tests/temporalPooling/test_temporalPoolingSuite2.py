@@ -318,10 +318,10 @@ class test_temporalPoolingSuite2:
         # Use a sequence of input patterns that uses every 2nd input of the
         # left to right line sequence pattern in the input creator class.
         # This is the left to right pattern sequence.
-        self.InputCreator.changePattern(0)
+        # self.InputCreator.changePattern(0)
 
-        self.gui.startHtmGui(self.htm, self.InputCreator)
-        self.nSteps(100)
+        # self.gui.startHtmGui(self.htm, self.InputCreator)
+        # self.nSteps(100)
 
         # # Measure the temporal pooling for each layer. This requires
         # # a temporal pooling measuring class per layer.
@@ -342,16 +342,16 @@ class test_temporalPoolingSuite2:
         #     # of the topmost layer after the second pattern has been learnt.
         #     topGridOutputPat1 = self.htm.regionArray[0].layerOutput(self.numLayers-1)
 
-        self.InputCreator.changePattern(2)
-        self.gui.startHtmGui(self.htm, self.InputCreator)
-        self.nSteps(150)
-        self.InputCreator.changePattern(0)
-        self.gui.startHtmGui(self.htm, self.InputCreator)
-        self.nSteps(150)
-        self.InputCreator.changePattern(2)
-        self.gui.startHtmGui(self.htm, self.InputCreator)
-        self.InputCreator.changePattern(0)
-        self.gui.startHtmGui(self.htm, self.InputCreator)
+        # self.InputCreator.changePattern(2)
+        # self.gui.startHtmGui(self.htm, self.InputCreator)
+        # self.nSteps(150)
+        # self.InputCreator.changePattern(0)
+        # self.gui.startHtmGui(self.htm, self.InputCreator)
+        # self.nSteps(150)
+        # self.InputCreator.changePattern(2)
+        # self.gui.startHtmGui(self.htm, self.InputCreator)
+        # self.InputCreator.changePattern(0)
+        # self.gui.startHtmGui(self.htm, self.InputCreator)
 
         # # Measure the temporal pooling for each layer. This requires
         # # a temporal pooling measuring class per layer.
@@ -422,9 +422,9 @@ class test_temporalPoolingSuite2:
         with some cells that originally became active for input A and some that
         where originally active for B and C as well.
         '''
-        self.InputCreator.changePattern(6)
-        self.gui.startHtmGui(self.htm, self.InputCreator)
-        self.nSteps(100)
+        # self.InputCreator.changePattern(6)
+        # self.gui.startHtmGui(self.htm, self.InputCreator)
+        # self.nSteps(100)
 
 
 
