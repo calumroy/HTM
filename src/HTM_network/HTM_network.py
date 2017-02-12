@@ -660,6 +660,27 @@ class HTMLayer:
             # Set the cell respective element in the output to 1 if that cell is active.
             self.output[col_pos_y][int(col_pos_x*self.cellsPerColumn+cellInd)] = 1
 
+    def getLearnCellsOutput(self):
+        # Update an output array representing all the cells in the learning state.
+        # The output array is the output from all the cells. The cells form a new 2d input grid
+        # Initialise all outputs as zero first then set the cells that are in the learning state as 1.
+        learnStateOutput = np.zeros((self.height, self.width * self.cellsPerColumn))
+        # Use the learning cells from the activeCells calculator.
+        # Set the corresponding bit in the output to true if the cell is currently learning.
+        # Learning cells list is a list of column indicies and cell indices which are learning.
+        # [colInd, cellInd]
+        
+        for learnCellPos in self.learnCellsList:
+            colInd = learnCellPos[0]
+            cellInd = learnCellPos[1]
+
+            col_pos_y = int(math.floor(int(colInd) / int(self.width)))
+            col_pos_x = colInd - col_pos_y * self.width
+            # Output is a 2d grid where each location represents a cell.
+            # Set the cell respective element in the output to 1 if that cell is learning.
+            learnStateOutput[col_pos_y][int(col_pos_x*self.cellsPerColumn+cellInd)] = 1
+        return learnStateOutput
+
     def Overlap(self):
         """
         Phase one for the spatial pooler

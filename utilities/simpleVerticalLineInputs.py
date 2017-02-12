@@ -10,26 +10,22 @@ class simpleVerticalLineInputs:
     straight vertical lines. A number of different sequences are stored in
     an array of an array of matricies.
 
-    The different sequences are defined in the setinputs method.
-    To add a new sequence, increment the self.numPatterns and add
-    the sequence to the end of the current self.inputs array.
-
     '''
     def __init__(self, width, height, numInputs):
-        # The number of inputs to store
+        # The number of inputs to store for each pattern
         self.numInputs = numInputs
         self.width = width
         self.height = height
-        # How many input patterns to store
-        self.numPatterns = 8
         # An index indicating the current pattern that is being used as a series of input grids.
         self.patIndex = 0
         # An array storing different input patterns
         # Each pattern is a series of 2dArray grids storing binary patterns.
-        self.inputs = np.array([[[[0 for i in range(self.width)]
-                                for j in range(self.height)]
-                                for k in range(self.numInputs)]
-                                for l in range(self.numPatterns)])
+        # self.inputs = [np.array([[[0 for i in range(self.width)]
+        #                         for j in range(self.height)]
+        #                         for k in range(self.numInputs)])
+        #                         for l in range(self.numPatterns)]
+        self.inputs = []
+
         self.setInputs(self.inputs)
         # Use an index to keep track of which input to send next
         self.index = 0
@@ -44,68 +40,159 @@ class simpleVerticalLineInputs:
         # This will create vertical lines in the input that move from side to side.
         # These inputs should then be used to test temporal pooling.
         # The first input pattern moves left to right
-        for n in range(len(inputs[0])):
-            for y in range(len(inputs[0][0])):
-                for x in range(len(inputs[0][n][y])):
+        numInputs = self.numInputs
+        new_inputs0 = np.array([[[0 for i in range(self.width)]
+                                 for j in range(self.height)]
+                                 for k in range(numInputs)])
+        for n in range(len(new_inputs0)):
+            for y in range(len(new_inputs0[0])):
+                for x in range(len(new_inputs0[n][y])):
                     if x == n:
-                        inputs[0][n][y][x] = 1
+                        new_inputs0[n][y][x] = 1
+        # Add the new pattern to the classes list storing all the patterns.
+        inputs.append(new_inputs0)
+        
+
         # The second input pattern moves right to left
-        for n in range(len(inputs[1])):
-            for y in range(len(inputs[1][0])):
-                for x in range(len(inputs[0][n][y])):
+        numInputs = self.numInputs
+        new_inputs1 = np.array([[[0 for i in range(self.width)]
+                                 for j in range(self.height)]
+                                 for k in range(numInputs)])
+        for n in range(len(new_inputs1)):
+            for y in range(len(new_inputs1[0])):
+                for x in range(len(new_inputs1[n][y])):
                     # reverse the pattern
-                    if x == (len(inputs[1]) - 1 - n):
-                        inputs[1][n][y][x] = 1
+                    if x == (len(new_inputs1) - 1 - n):
+                        new_inputs1[n][y][x] = 1
+        # Add the new pattern to the classes list storing all the patterns.
+        inputs.append(new_inputs1)
+
         # The third pattern is just every second input of the first pattern
         patIndex = 0
-        for n in range(len(inputs[2])):
+        numInputs = self.numInputs
+        new_inputs2 = np.array([[[0 for i in range(self.width)]
+                                 for j in range(self.height)]
+                                 for k in range(numInputs)])
+        for n in range(len(new_inputs2)):
             patIndex = patIndex + 4
             if patIndex >= self.numInputs:
                 patIndex = 0
-            inputs[2][n] = inputs[0][patIndex]
+            new_inputs2[n] = inputs[0][patIndex]
+        # Add the new pattern to the classes list storing all the patterns.
+        inputs.append(new_inputs2)
+
+
         # The forth pattern is just every second input of the second pattern
         patIndex = 0
-        for n in range(len(inputs[3])):
+        numInputs = self.numInputs
+        new_inputs3 = np.array([[[0 for i in range(self.width)]
+                                 for j in range(self.height)]
+                                 for k in range(numInputs)])
+        for n in range(len(new_inputs3)):
             patIndex = patIndex + 4
             if patIndex >= self.numInputs:
                 patIndex = 0
-            inputs[3][n] = inputs[1][patIndex]
+            new_inputs3[n] = inputs[1][patIndex]
+        # Add the new pattern to the classes list storing all the patterns.
+        inputs.append(new_inputs3)
+
         # The fifth pattern is the third pattern then the forth pattern
         patIndex = 0
-        for n in range(len(inputs[3])):
+        numInputs = self.numInputs
+        new_inputs4 = np.array([[[0 for i in range(self.width)]
+                                 for j in range(self.height)]
+                                 for k in range(numInputs)])
+        for n in range(len(new_inputs4)):
             patIndex = patIndex + 1
             if patIndex >= self.numInputs:
                 patIndex = 0
             if patIndex <= int(self.numInputs/2):
-                inputs[4][n] = inputs[2][patIndex]
+                new_inputs4[n] = inputs[2][patIndex]
             else:
-                inputs[4][n] = inputs[3][patIndex]
+                new_inputs4[n] = inputs[3][patIndex]
+        # Add the new pattern to the classes list storing all the patterns.
+        inputs.append(new_inputs4)
+
         # The 6th pattern is the first combined with the third pattern
         # by a logical or operation.
         patIndex = 0
-        for n in range(len(inputs[3])):
+        numInputs = self.numInputs
+        new_inputs5 = np.array([[[0 for i in range(self.width)]
+                                 for j in range(self.height)]
+                                 for k in range(numInputs)])
+        for n in range(len(inputs[2])):
             patIndex = patIndex + 1
             if patIndex >= self.numInputs:
                 patIndex = 0
-            inputs[5][n] = SDRFunct.orSDRPatterns(inputs[0][patIndex], inputs[2][patIndex])
+            new_inputs5[n] = SDRFunct.orSDRPatterns(inputs[0][patIndex], inputs[2][patIndex])
+        # Add the new pattern to the classes list storing all the patterns.
+        inputs.append(new_inputs5)
+
         # The seventh pattern is just every 6th input of the first pattern
         patIndex = 0
-        for n in range(len(inputs[2])):
+        numInputs = self.numInputs
+        new_inputs6 = np.array([[[0 for i in range(self.width)]
+                                 for j in range(self.height)]
+                                 for k in range(numInputs)])
+        for n in range(len(new_inputs6)):
             patIndex = patIndex + 6
             if patIndex >= self.numInputs:
                 patIndex = 0
-            inputs[6][n] = inputs[0][patIndex]
+            new_inputs6[n] = inputs[0][patIndex]
+        # Add the new pattern to the classes list storing all the patterns.
+        inputs.append(new_inputs6)
+
         # The eighth pattern is just every 6th input of the second pattern
         patIndex = 0
-        for n in range(len(inputs[2])):
+        numInputs = self.numInputs
+        new_inputs7 = np.array([[[0 for i in range(self.width)]
+                                 for j in range(self.height)]
+                                 for k in range(numInputs)])
+        for n in range(len(new_inputs7)):
             patIndex = patIndex + 6
             if patIndex >= self.numInputs:
                 patIndex = 0
-            inputs[7][n] = inputs[1][patIndex]
+            new_inputs7[n] = inputs[1][patIndex]
+        # Add the new pattern to the classes list storing all the patterns.
+        inputs.append(new_inputs7)
 
-    def changePattern(self, patternindex):
+        # The ninth pattern is just every second input of the first pattern
+        # but for only a few of the first inputs.
+        patIndex = 0
+        numInputs = int(np.floor(self.numInputs/7.0))
+        new_inputs8 = np.array([[[0 for i in range(self.width)]
+                                 for j in range(self.height)]
+                                 for k in range(numInputs)])
+        for n in range(numInputs):
+            patIndex = patIndex + 2
+            if patIndex >= self.numInputs:
+                patIndex = 0
+            new_inputs8[n] = inputs[0][patIndex]
+        # Add the new pattern to the classes list storing all the patterns.
+        inputs.append(new_inputs8)    
+
+        # The tenth pattern is just every second input of the first pattern
+        # but for only a few of the first inputs starting at a different input.
+        patIndex = 1
+        numInputs = int(np.floor(self.numInputs/7.0))
+        new_inputs9 = np.array([[[0 for i in range(self.width)]
+                                 for j in range(self.height)]
+                                 for k in range(numInputs)])
+        for n in range(numInputs):
+            patIndex = patIndex + 2
+            if patIndex >= self.numInputs:
+                patIndex = 0
+            new_inputs9[n] = inputs[0][patIndex]
+        # Add the new pattern to the classes list storing all the patterns.
+        inputs.append(new_inputs9) 
+
+    def changePattern(self, patternIndex):
         # Change the input pattern
-        self.patIndex = patternindex
+        self.patIndex = patternIndex
+
+    def getNumInputsPat(self, patternIndex):
+        numInputsPatX = len(self.inputs[patternIndex])
+        return numInputsPatX
 
     def step(self, cellGrid):
         # Required function for a InputCreator class
@@ -145,7 +232,7 @@ class simpleVerticalLineInputs:
         if (self.index >= len(self.inputs[self.patIndex])):
             self.index = 0
 
-        import ipdb; ipdb.set_trace()
+        #import ipdb; ipdb.set_trace()
         # If noise was added return the noisy grid.
         if newGrid is not None:
             return newGrid

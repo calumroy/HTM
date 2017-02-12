@@ -4,7 +4,8 @@
 This python script creates and runs the Balancer HTM simulation
 
 '''
-
+# import sys
+# sys.path.insert(0, "../")
 from PyQt4 import QtGui
 import sys
 import json
@@ -17,7 +18,7 @@ def main():
     app = QtGui.QApplication(sys.argv)
 
     # Open and import the parameters .json file
-    with open('balancer.json', 'r') as paramsFile:
+    with open('./examples/balancer.json', 'r') as paramsFile:
         params = json.load(paramsFile)
 
     # This makes the input the same size as the feedback command grids
