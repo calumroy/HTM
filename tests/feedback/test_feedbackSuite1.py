@@ -17,8 +17,8 @@ testParameters = {
                         'cellsPerColumn': 3,
 
                         'HTMRegions': [{
-                            'numLayers': 3,
-                            'enableHigherLevFb': 0,
+                            'numLayers': 2,
+                            'enableHigherLevFb': 1,
                             'enableCommandFeedback': 0,
 
                             'HTMLayers': [{
@@ -48,12 +48,12 @@ testParameters = {
                                 },
                                 {
                                 'desiredLocalActivity': 1,
-                                'minOverlap': 2,
+                                'minOverlap': 4,
                                 'inhibitionWidth': 8,
                                 'inhibitionHeight': 2,
                                 'centerPotSynapses': 1,
-                                'potentialWidth': 8,
-                                'potentialHeight': 8,
+                                'potentialWidth': 20,
+                                'potentialHeight': 10,
                                 'spatialPermanenceInc': 0.2,
                                 'spatialPermanenceDec': 0.02,
                                 'activeColPermanenceDec': 0.02,
@@ -70,38 +70,13 @@ testParameters = {
                                 'activationThreshold': 6,
                                 'colSynPermanence': 0.1,
                                 'cellSynPermanence': 0.4
-                                },
-                                {
-                                'desiredLocalActivity': 1,
-                                'minOverlap': 2,
-                                'inhibitionWidth': 30,
-                                'inhibitionHeight': 2,
-                                'centerPotSynapses': 1,
-                                'connectPermanence': 0.3,
-                                'potentialWidth': 50,
-                                'potentialHeight': 40,
-                                'spatialPermanenceInc': 0.04,
-                                'spatialPermanenceDec': 0.01,
-                                'activeColPermanenceDec': 0.02,
-                                'tempDelayLength': 10,
-                                'permanenceInc': 0.15,
-                                'permanenceDec': 0.05,
-                                'tempSpatialPermanenceInc': 0.04,
-                                'tempSeqPermanenceInc': 0.15,
-                                'minThreshold': 5,
-                                'minScoreThreshold': 3,
-                                'newSynapseCount': 10,
-                                'maxNumSegments': 10,
-                                'activationThreshold': 6,
-                                'colSynPermanence': 0.1,
-                                'cellSynPermanence': 0.4
                                 }]
                             }]
                         }
                     }
 
 
-class test_temporalPoolingSuite4:
+class test_feedbackSuite1:
     def setUp(self):
         '''
 
@@ -111,27 +86,11 @@ class test_temporalPoolingSuite4:
 
         The test parameters are loaded from a jason file.
 
-        To test the temporal pooling ability of the regions a sequence
-        of inputs are repeatably inputted to the HTM. If after a number
-        of steps the top most layer is only changing slightly compared to
-        the bottom layer then temporal pooling is occuring.
         '''
 
         params = testParameters
 
-        self.width = 10
-        self.height = 30
-        self.cellsPerColumn = 3
-        self.numLevels = 1
-        self.numLayers = 3
-
-        # Create an array of inputs which will be fed to the htm so it
-        # can try to temporarily pool them.
-        numInputs = params['HTM']['columnArrayWidth']*params['HTM']['cellsPerColumn']
-        inputWidth = params['HTM']['columnArrayWidth']*params['HTM']['cellsPerColumn']
-        inputHeight = 2*params['HTM']['columnArrayHeight']
-
-        self.InputCreator = svli.simpleVerticalLineInputs(inputWidth, inputHeight, numInputs)
+        self.InputCreator = imageIn.imageInputs(r'test_seqs_suite1')
         #self.htmlayer = HTMLayer(self.inputs[0], self.width, self.height, self.cellsPerColumn)
         self.htm = HTM_network.HTM(self.InputCreator.createSimGrid(),
                                    params
@@ -289,16 +248,16 @@ class test_temporalPoolingSuite4:
 
             # The simularity between the outputs from the 2 patterns for each input should be quite small
             # since the patterns did not share any input features.
-            #assert (simOut1vs2end[i] < 0.15)
+            assert (simOut1vs2end[i] < 0.15)
 
-        self.InputCreator.changePattern(pattern1_ind)
-        self.gui.startHtmGui(self.htm, self.InputCreator)
-        self.InputCreator.changePattern(pattern2_ind)
-        self.gui.startHtmGui(self.htm, self.InputCreator)
-        self.InputCreator.changePattern(pattern1_ind)
-        self.gui.startHtmGui(self.htm, self.InputCreator)
-        self.InputCreator.changePattern(pattern2_ind)
-        self.gui.startHtmGui(self.htm, self.InputCreator)
+        # self.InputCreator.changePattern(pattern1_ind)
+        # self.gui.startHtmGui(self.htm, self.InputCreator)
+        # self.InputCreator.changePattern(pattern2_ind)
+        # self.gui.startHtmGui(self.htm, self.InputCreator)
+        # self.InputCreator.changePattern(pattern1_ind)
+        # self.gui.startHtmGui(self.htm, self.InputCreator)
+        # self.InputCreator.changePattern(pattern2_ind)
+        # self.gui.startHtmGui(self.htm, self.InputCreator)
 
 
 

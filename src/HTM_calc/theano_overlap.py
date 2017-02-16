@@ -4,6 +4,7 @@ import numpy as np
 from theano.sandbox.neighbours import images2neibs
 from theano import Mode
 import math
+import random
 
 
 '''
@@ -234,18 +235,35 @@ class OverlapCalculator():
         # Make a vector of tiebreaker values to add to the columns overlap values vector.
         normValue = 1.0/float(2*self.numColumns+2)
 
+        # Initialise a random seed so we can get the same random numbers.
+        # This means the tie breaker will be the same each time but it will
+        # be randomly distributed over the cells.
+        seed = 1
+        random.seed(seed)
+
         # Create a tiebreaker that is not biased to either side of the columns grid.
         for j in range(len(tieBreaker)):
-            # The tieBreaker is a flattened vecto of the columns overlaps.
+            # The tieBreaker is a flattened vector of the columns overlaps.
+
             # workout the row and col number of the non flattened matrix.
             rowNum = math.floor(j/self.columnsWidth)
             colNum = j % self.columnsWidth
-            if (j % 2) == 1:
-                # For odd positions bias to the bottom left
+            if (random.random() > 0.5) == 1:
+                # Some positions are bias to the bottom left
                 tieBreaker[j] = ((rowNum+1)*self.columnsWidth+(self.columnsWidth-colNum-1))*normValue
             else:
-                # For even positions bias to the bottom right
-                tieBreaker[j] = (1+colNum+rowNum*self.columnsWidth)*normValue
+                # Some Positions are bias to the top right
+                tieBreaker[j] = ((self.columnsHeight-rowNum)*self.columnsWidth+colNum)*normValue
+
+            # # workout the row and col number of the non flattened matrix.
+            # rowNum = math.floor(j/self.columnsWidth)
+            # colNum = j % self.columnsWidth
+            # if (j % 2) == 1:
+            #     # For odd positions bias to the bottom left
+            #     tieBreaker[j] = ((rowNum+1)*self.columnsWidth+(self.columnsWidth-colNum-1))*normValue
+            # else:
+            #     # For even positions bias to the bottom right
+            #     tieBreaker[j] = (1+colNum+rowNum*self.columnsWidth)*normValue
 
     def checkNewInputParams(self, newColSynPerm, newInput):
         # Check that the new input has the same dimensions as the

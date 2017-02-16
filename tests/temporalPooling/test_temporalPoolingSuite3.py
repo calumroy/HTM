@@ -148,7 +148,7 @@ class test_temporalPoolingSuite3:
         Do this for 2 input patterns and make sure both input patterns pool over their own
         input sequences and do not overlap with each other very much.
         '''
-        
+
         # How many patterns are we comparing against
         numPatternsTested = 2
         # Teh level and layer in the htm we are testing on.
@@ -158,7 +158,7 @@ class test_temporalPoolingSuite3:
         # Set the first pattern to the DEF large pattern
         self.InputCreator.changePattern(0)
         numInputs = self.InputCreator.numInputs
-        
+
         # Now run through the pattern and store each output SDR
         # These are used to compare against later on.
         # outputsFromPatternX is an array storing a list of SDRs representing
@@ -191,7 +191,7 @@ class test_temporalPoolingSuite3:
             outputsFromPatternX[1][i] = self.getCellsGridOutput(self.htm, level, layer)
             self.step()
 
-        # Set the first pattern to the DEF large pattern    
+        # Set the first pattern to the DEF large pattern
         self.InputCreator.changePattern(0)
         numInputs = self.InputCreator.numInputs
         # Now the pattern has been changed back to the first one.
@@ -251,7 +251,7 @@ class test_temporalPoolingSuite3:
 
         We do this for an input pattern of ABC and DEC
         '''
-        
+
         # How many patterns are we comparing against
         numPatternsTested = 2
         # Teh level and layer in the htm we are testing on.
@@ -261,7 +261,7 @@ class test_temporalPoolingSuite3:
         # Set the first pattern to the ABC large pattern
         self.InputCreator.changePattern(2)
         numInputs = self.InputCreator.numInputs
-        
+
         # Now run through the pattern and store each output SDR
         # These are used to compare against later on.
         # outputsFromPatternX is an array storing a list of SDRs representing
@@ -294,7 +294,7 @@ class test_temporalPoolingSuite3:
             outputsFromPatternX[1][i] = self.getCellsGridOutput(self.htm, level, layer)
             self.step()
 
-        # Set the first pattern to the ABC large pattern    
+        # Set the first pattern to the ABC large pattern
         self.InputCreator.changePattern(2)
         #self.gui.startHtmGui(self.htm, self.InputCreator)
         numInputs = self.InputCreator.numInputs
@@ -352,3 +352,4 @@ class test_temporalPoolingSuite3:
         assert (simOut1vs2end[0] > 0.2) and (simOut1vs2end[0] < 0.5)
         assert (simOut1vs2end[1] > 0.2) and (simOut1vs2end[1] < 0.5)
         assert (simOut1vs2end[2] > 0.2) and (simOut1vs2end[2] < 0.5)
+
