@@ -214,21 +214,21 @@ class OverlapCalculator():
 
         rowsTie = np.arange(inputWidth)+1
         rowsTie = rowsTie*normValue
+
+        # Use a seeded random sample of the above array
+        seed = 1
+        random.seed(seed)
+        
+        #import ipdb; ipdb.set_trace()
         # Create a tiebreaker that changes for each row.
         for j in range(len(tieBreaker)):
-            tieBreaker[j] = np.roll(rowsTie, j)
+            tieBreaker[j] = random.sample(rowsTie, len(rowsTie))
+            #tieBreaker[j] = np.roll(rowsTie, j)
+
             #from PyQt4.QtCore import pyqtRemoveInputHook; import ipdb; pyqtRemoveInputHook(); ipdb.set_trace()
 
             #print "np.roll(rowsTie, j) * inputWidth = %s" % (np.roll(rowsTie, j) * inputWidth)
 
-            #for i in range(len(tieBreaker[0])):
-
-                # if (j % 2) == 1:
-                #     # For odd positions bias to the bottom left
-                #     tieBreaker[j][i] = ((j+1)*inputWidth+(inputWidth-i-1))*normValue
-                # else:
-                #     # For even positions bias to the bottom right
-                #     tieBreaker[j][i] = (1+i+j*inputWidth)*normValue
         # print "self.tieBreaker = \n%s" % self.tieBreaker
 
     def makeColTieBreaker(self, tieBreaker):

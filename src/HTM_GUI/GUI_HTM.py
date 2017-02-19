@@ -46,6 +46,9 @@ from reinforcement_learning import Thalamus
 import math
 import copy
 
+import decimal
+
+
 
 class layerPopup(QtGui.QWidget):
     # A popup menu to slect a certain layer to display in the HTM
@@ -270,9 +273,10 @@ class HTMInput(QtGui.QGraphicsView):
         currentLayer = self.htm.regionArray[self.level].layerArray[self.layer]
         column = currentLayer.columns[pos_y][pos_x]
         columnsOverlap = currentLayer.getColumnsOverlap(column)
+        #from PyQt4.QtCore import pyqtRemoveInputHook; import ipdb; pyqtRemoveInputHook(); ipdb.set_trace()
         potColumnsOverlap = currentLayer.getPotentialOverlaps(column)
         columnsMinOverlap = currentLayer.getColumnsMinOverlap()
-        print "     overlap = %s, potColumnsOverlap = %s, minOverlap = %s" % (columnsOverlap, potColumnsOverlap, columnsMinOverlap)
+        print "     overlap = %s\n      potColumnsOverlap = %r\n      minOverlap = %s" % (columnsOverlap, potColumnsOverlap, columnsMinOverlap)
         red = QtGui.QColor(0xFF, 0, 0, 0xFF)
         transpBlue = QtGui.QColor(0, 0, 0xFF, 0x30)
         green = QtGui.QColor(0, 0xFF, 0, 0xFF)

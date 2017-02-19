@@ -249,7 +249,7 @@ class test_temporalPoolingSuite4:
         # Rerun through all the inputs multiple times and store the outputs from
         # the first pattern again.
         self.InputCreator.setIndex(0)
-        self.nSteps(1*numInputs)
+        self.nSteps(2*numInputs)
         for i in range(numInputs):
             outputsFromPatternXAgain[0][i] = self.getLearningCellsOutput(self.htm, level, layer)
             self.step()
@@ -260,7 +260,7 @@ class test_temporalPoolingSuite4:
         # Rerun through all the inputs multiple times and store the outputs from
         # the second pattern again.
         self.InputCreator.setIndex(0)
-        self.nSteps(1*numInputs)
+        self.nSteps(2*numInputs)
         for i in range(numInputs):
             outputsFromPatternXAgain[1][i] = self.getLearningCellsOutput(self.htm, level, layer)
             self.step()
