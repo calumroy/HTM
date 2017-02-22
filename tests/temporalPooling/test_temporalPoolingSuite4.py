@@ -174,6 +174,135 @@ class test_temporalPoolingSuite4:
 
         return learnCellsGrid
 
+    def test_tempEquality(self):
+        '''
+        Test to make sure that a pattern is eventually temporally
+        pooled by cells that where active at different times of the
+        input pattern initially.
+
+        Eg. pattern A, B, C should be pooled into a stable pattern
+        with some cells that originally became active for input A and some that
+        where originally active for B and C as well.
+
+        We do this for an input patterns of moving vertical lines.
+        Two input patterns are used to make sure both input patterns pool over their own
+        input sequences and do not overlap with each other very much.
+        '''
+        # How many patterns are we comparing against
+        numPatternsTested = 2
+        # The level and layer in the htm we are testing on.
+        level = 0
+        layer = 1
+
+        pattern1_ind = 11
+        pattern2_ind = 12
+
+        pat1NumInputs = self.InputCreator.getNumInputsPat(pattern1_ind)
+        pat2NumInputs = self.InputCreator.getNumInputsPat(pattern2_ind)
+        # This test will only work if both patterns have the same number of inputs.
+        assert pat1NumInputs == pat2NumInputs
+        numInputs = pat1NumInputs
+
+        self.InputCreator.changePattern(pattern1_ind)
+        self.InputCreator.setIndex(0)
+        self.gui.startHtmGui(self.htm, self.InputCreator)
+        self.InputCreator.changePattern(pattern2_ind)
+        self.InputCreator.setIndex(0)
+        self.gui.startHtmGui(self.htm, self.InputCreator)
+        self.InputCreator.changePattern(pattern1_ind)
+        self.InputCreator.setIndex(0)
+        self.gui.startHtmGui(self.htm, self.InputCreator)
+        self.InputCreator.changePattern(pattern2_ind)
+        self.InputCreator.setIndex(0)
+        self.gui.startHtmGui(self.htm, self.InputCreator)
+        self.InputCreator.changePattern(13)
+        self.InputCreator.setIndex(0)
+        self.gui.startHtmGui(self.htm, self.InputCreator)
+
+        # Create arrays to store the output SDR from the HTM layer for each input.
+        outputSDR00 = self.getLearningCellsOutput(self.htm, level, layer)
+        outputsFromPatternX = np.array([[np.zeros_like(outputSDR00)
+                                         for n in range(numInputs)]
+                                        for p in range(numPatternsTested)]
+                                       )
+        outputsFromPatternXAgain = np.array([[np.zeros_like(outputSDR00)
+                                              for n in range(numInputs)]
+                                             for p in range(numPatternsTested)]
+                                            )
+
+        # Set the input to the first pattern
+        self.InputCreator.changePattern(pattern1_ind)
+        # Since the higher layers take longer to receive a new input run through the
+        # test pattern once. So the higher layer has at least got an intial input from the pattern.
+        #self.nSteps(3*numInputs)
+        self.nSteps(3)
+        # Reset the pattern to the start
+        self.InputCreator.setIndex(0)
+        # Now run through the pattern and store each output SDR
+        # These are used to compare against later on.
+        # outputsFromPatternX is an array storing a list of SDRs representing
+        # the output from the htm for every input in a particular pattern.
+        for i in range(numInputs):
+            outputsFromPatternX[0][i] = self.getLearningCellsOutput(self.htm, level, layer)
+            self.step()
+
+        #import ipdb; ipdb.set_trace()
+
+        # Set the input to the second pattern
+        self.InputCreator.changePattern(pattern2_ind)
+        # Since the higher layers take longer to receive a new input run through the
+        # test pattern once. So the higher layer has at least got an intial input from the new pattern.
+        #self.nSteps(2*numInputs)
+        self.nSteps(3)
+        # Reset the pattern to the start
+        self.InputCreator.setIndex(0)
+        # Store the outputs from the second pattern.
+        for i in range(numInputs):
+            outputsFromPatternX[1][i] = self.getLearningCellsOutput(self.htm, level, layer)
+            self.step()
+
+        # Set the input to the first pattern
+        self.InputCreator.changePattern(pattern1_ind)
+        # Now the pattern has been changed back to the first one.
+        # Rerun through all the inputs multiple times and store the outputs from
+        # the first pattern again.
+        self.InputCreator.setIndex(0)
+        self.nSteps(20*numInputs)
+        for i in range(numInputs):
+            outputsFromPatternXAgain[0][i] = self.getLearningCellsOutput(self.htm, level, layer)
+            self.step()
+
+        # Set the input to the second pattern
+        self.InputCreator.changePattern(pattern2_ind)
+        #self.gui.startHtmGui(self.htm, self.InputCreator)
+        # Rerun through all the inputs multiple times and store the outputs from
+        # the second pattern again.
+        self.InputCreator.setIndex(0)
+        self.nSteps(20*numInputs)
+        for i in range(numInputs):
+            outputsFromPatternXAgain[1][i] = self.getLearningCellsOutput(self.htm, level, layer)
+            self.step()
+
+        # Now we need to compare the two outputs from both times the two input patterns
+        # were stored.
+        simOutIn1 = np.zeros(numInputs)
+        simOutIn2 = np.zeros(numInputs)
+        simOut1vs2start = np.zeros(numInputs)
+        simOut1vs2end = np.zeros(numInputs)
+        for i in range(numInputs):
+            simOutIn1[i] = sdrFunctions.similarInputGrids(outputsFromPatternX[0][i],
+                                                     outputsFromPatternXAgain[0][i])
+            simOutIn2[i] = sdrFunctions.similarInputGrids(outputsFromPatternX[1][i],
+                                                     outputsFromPatternXAgain[1][i])
+            simOut1vs2start[i] = sdrFunctions.similarInputGrids(outputsFromPatternX[0][i],
+                                                     outputsFromPatternX[1][i])
+            simOut1vs2end[i] = sdrFunctions.similarInputGrids(outputsFromPatternXAgain[0][i],
+                                                     outputsFromPatternXAgain[1][i])
+            # # The simularity between the inital HTM output for each pattern vs the final output.
+            print "simularity of outputs in pattern 1 sequence[%s] = %s" % (i, simOutIn1[i])
+            print "simularity of outputs in pattern 2 sequence[%s] = %s" % (i, simOutIn2[i])
+            print "simularity of outputs in pattern 1 vs 2 initial learing[%s] = %s" % (i, simOut1vs2start[i])
+            print "simularity of outputs in pattern 1 vs 2 final patterns[%s] = %s" % (i, simOut1vs2end[i])
 
     def test_temporalDiff(self):
         '''
@@ -289,16 +418,127 @@ class test_temporalPoolingSuite4:
 
             # The simularity between the outputs from the 2 patterns for each input should be quite small
             # since the patterns did not share any input features.
-            #assert (simOut1vs2end[i] < 0.15)
+            assert (simOut1vs2end[i] < 0.1)
 
+        # self.InputCreator.changePattern(pattern1_ind)
+        # self.gui.startHtmGui(self.htm, self.InputCreator)
+        # self.InputCreator.changePattern(pattern2_ind)
+        # self.gui.startHtmGui(self.htm, self.InputCreator)
+        # self.InputCreator.changePattern(pattern1_ind)
+        # self.gui.startHtmGui(self.htm, self.InputCreator)
+        # self.InputCreator.changePattern(pattern2_ind)
+        # self.gui.startHtmGui(self.htm, self.InputCreator)
+
+    def test_tempDiffPooled(self):
+        '''
+        Test to make sure that when two patterns are different then the
+        temporally pooled outputs from a layer for each sequence
+        are initially different too. After enough transitions from one pattern to the other
+        this transition should also be temporally pooled resulting in a single
+        stable top layer output. 
+
+        We do this for two input patterns of vertical lines.
+        '''
+
+        # How many patterns are we comparing against
+        numPatternsTested = 2
+        # The level and layer in the htm we are testing on.
+        level = 0
+        layer = 1
+
+        pattern1_ind = 8
+        pattern2_ind = 9
+
+        pat1NumInputs = self.InputCreator.getNumInputsPat(pattern1_ind)
+        pat2NumInputs = self.InputCreator.getNumInputsPat(pattern2_ind)
+        # This test will only work if both patterns have the same number of inputs.
+        assert pat1NumInputs == pat2NumInputs
+        numInputs = pat1NumInputs
+
+        # self.InputCreator.changePattern(pattern1_ind)
+        # self.gui.startHtmGui(self.htm, self.InputCreator)
+        # self.InputCreator.changePattern(pattern2_ind)
+        # self.gui.startHtmGui(self.htm, self.InputCreator)
+        # self.InputCreator.changePattern(pattern1_ind)
+        # self.gui.startHtmGui(self.htm, self.InputCreator)
+        # self.InputCreator.changePattern(pattern2_ind)
+        # self.gui.startHtmGui(self.htm, self.InputCreator)
+
+        # Set the input to the first pattern
         self.InputCreator.changePattern(pattern1_ind)
-        self.gui.startHtmGui(self.htm, self.InputCreator)
+
+        # Now run through the pattern and store each output SDR
+        # These are used to compare against later on.
+        # outputsFromPatternX is an array storing a list of SDRs representing
+        # the output from the htm for every input in a particular pattern.
+        # Reset the pattern to the start
+        self.InputCreator.setIndex(0)
+        outputSDR00 = self.getLearningCellsOutput(self.htm, level, layer)
+        outputsFromPatternX = np.array([[np.zeros_like(outputSDR00)
+                                         for n in range(numInputs)]
+                                        for p in range(numPatternsTested)]
+                                       )
+        outputsFromPatternXAgain = np.array([[np.zeros_like(outputSDR00)
+                                              for n in range(numInputs)]
+                                             for p in range(numPatternsTested)]
+                                            )
+        for i in range(numInputs):
+            outputsFromPatternX[0][i] = self.getLearningCellsOutput(self.htm, level, layer)
+            self.step()
+
+        #import ipdb; ipdb.set_trace()
+
+        # Set the input to the second pattern
         self.InputCreator.changePattern(pattern2_ind)
-        self.gui.startHtmGui(self.htm, self.InputCreator)
+        # Store the outputs from the second pattern.
+        self.InputCreator.setIndex(0)
+        for i in range(numInputs):
+            outputsFromPatternX[1][i] = self.getLearningCellsOutput(self.htm, level, layer)
+            self.step()
+
+        # Set the input to the first pattern
         self.InputCreator.changePattern(pattern1_ind)
-        self.gui.startHtmGui(self.htm, self.InputCreator)
+        #self.gui.startHtmGui(self.htm, self.InputCreator)
+        # Now the pattern has been changed back to the first one.
+        # Rerun through all the inputs multiple times and store the outputs from
+        # the first pattern again.
+        self.InputCreator.setIndex(0)
+        self.nSteps(20*numInputs)
+        for i in range(numInputs):
+            outputsFromPatternXAgain[0][i] = self.getLearningCellsOutput(self.htm, level, layer)
+            self.step()
+
+        # Set the input to the second pattern
         self.InputCreator.changePattern(pattern2_ind)
-        self.gui.startHtmGui(self.htm, self.InputCreator)
+        #self.gui.startHtmGui(self.htm, self.InputCreator)
+        # Rerun through all the inputs multiple times and store the outputs from
+        # the second pattern again.
+        self.InputCreator.setIndex(0)
+        self.nSteps(20*numInputs)
+        for i in range(numInputs):
+            outputsFromPatternXAgain[1][i] = self.getLearningCellsOutput(self.htm, level, layer)
+            self.step()
+
+        # Now we need to compare the two outputs from both times the two input patterns
+        # were stored.
+        simOutIn1 = np.zeros(numInputs)
+        simOutIn2 = np.zeros(numInputs)
+        simOut1vs2start = np.zeros(numInputs)
+        simOut1vs2end = np.zeros(numInputs)
+        for i in range(numInputs):
+            simOutIn1[i] = sdrFunctions.similarInputGrids(outputsFromPatternX[0][i],
+                                                     outputsFromPatternXAgain[0][i])
+            simOutIn2[i] = sdrFunctions.similarInputGrids(outputsFromPatternX[1][i],
+                                                     outputsFromPatternXAgain[1][i])
+            simOut1vs2start[i] = sdrFunctions.similarInputGrids(outputsFromPatternX[0][i],
+                                                     outputsFromPatternX[1][i])
+            simOut1vs2end[i] = sdrFunctions.similarInputGrids(outputsFromPatternXAgain[0][i],
+                                                     outputsFromPatternXAgain[1][i])
+            # # The simularity between the inital HTM output for each pattern vs the final output.
+            print "simularity of outputs in pattern 1 sequence[%s] = %s" % (i, simOutIn1[i])
+            print "simularity of outputs in pattern 2 sequence[%s] = %s" % (i, simOutIn2[i])
+            print "simularity of outputs in pattern 1 vs 2 initial learing[%s] = %s" % (i, simOut1vs2start[i])
+            print "simularity of outputs in pattern 1 vs 2 final patterns[%s] = %s" % (i, simOut1vs2end[i])
 
 
 

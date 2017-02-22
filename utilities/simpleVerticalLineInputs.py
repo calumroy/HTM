@@ -186,6 +186,65 @@ class simpleVerticalLineInputs:
         # Add the new pattern to the classes list storing all the patterns.
         inputs.append(new_inputs9) 
 
+        # The elenventh pattern is just the ninth then the tenth pattern.
+        patIndex = 0
+        numInputs = len(inputs[8])+len(inputs[9])
+        new_inputs10 = np.array([[[0 for i in range(self.width)]
+                                 for j in range(self.height)]
+                                 for k in range(numInputs)])
+        for n in range(numInputs):
+            if patIndex < len(inputs[8]):
+                new_inputs10[n] = inputs[8][patIndex]
+            else:
+                new_inputs10[n] = inputs[9][patIndex-len(inputs[8])]
+            patIndex = patIndex + 1
+        # Add the new pattern to the classes list storing all the patterns.
+        inputs.append(new_inputs10)
+
+        # The twelfth pattern is just every second input of the first pattern.
+        patIndex = 0
+        numInputs = int((len(inputs[1])/2.0))
+        new_inputs11 = np.array([[[0 for i in range(self.width)]
+                                 for j in range(self.height)]
+                                 for k in range(numInputs)])
+        for n in range(numInputs):
+            patIndex = patIndex + 2
+            if patIndex >= self.numInputs:
+                patIndex = 0
+            new_inputs11[n] = inputs[0][patIndex]
+        # Add the new pattern to the classes list storing all the patterns.
+        inputs.append(new_inputs11)    
+
+        # The thirteenth pattern is just every second input of the first pattern
+        # starting at a different input.
+        patIndex = 1
+        numInputs = int((len(inputs[1])/2.0))
+        new_inputs12 = np.array([[[0 for i in range(self.width)]
+                                 for j in range(self.height)]
+                                 for k in range(numInputs)])
+        for n in range(numInputs):
+            patIndex = patIndex + 2
+            if patIndex >= self.numInputs:
+                patIndex = 0
+            new_inputs12[n] = inputs[0][patIndex]
+        # Add the new pattern to the classes list storing all the patterns.
+        inputs.append(new_inputs12) 
+
+        # The fourteenth pattern is just the twelfth then the thirteenth pattern.
+        patIndex = 0
+        numInputs = len(inputs[11])+len(inputs[12])
+        new_inputs13 = np.array([[[0 for i in range(self.width)]
+                                 for j in range(self.height)]
+                                 for k in range(numInputs)])
+        for n in range(numInputs):
+            if patIndex < len(inputs[11]):
+                new_inputs13[n] = inputs[11][patIndex]
+            else:
+                new_inputs13[n] = inputs[12][patIndex-len(inputs[11])]
+            patIndex = patIndex + 1
+        # Add the new pattern to the classes list storing all the patterns.
+        inputs.append(new_inputs13)
+
     def changePattern(self, patternIndex):
         # Change the input pattern
         self.patIndex = patternIndex
