@@ -51,7 +51,8 @@ class test_theanoOverlap:
                                                                numInputRows,
                                                                centerPotSynapses,
                                                                connectedPerm,
-                                                               minOverlap)
+                                                               minOverlap,
+                                                               wrapInput)
 
                 columnPotSynPositions = overlapCalc.getPotentialSynapsePos(numInputCols, numInputRows)
 
@@ -111,7 +112,8 @@ class test_theanoOverlap:
                                                        numInputRows,
                                                        centerPotSynapses,
                                                        connectedPerm,
-                                                       minOverlap)
+                                                       minOverlap,
+                                                       wrapInput)
 
         # Return both the overlap values and the inputs from
         # the potential synapses to all columns.
@@ -180,7 +182,8 @@ class test_theanoOverlap:
                                                        numInputRows,
                                                        centerPotSynapses,
                                                        connectedPerm,
-                                                       minOverlap)
+                                                       minOverlap,
+                                                       wrapInput)
 
         # Return both the overlap values and the inputs from
         # the potential synapses to all columns.
@@ -222,7 +225,8 @@ class test_theanoOverlap:
                                                                numInputRows,
                                                                centerPotSynapses,
                                                                connectedPerm,
-                                                               minOverlap)
+                                                               minOverlap,
+                                                               wrapInput)
 
                 columnPotSynPositions = overlapCalc.getPotentialSynapsePos(numInputCols, numInputRows)
 
@@ -291,7 +295,8 @@ class test_theanoOverlap:
                                                        numInputRows,
                                                        centerPotSynapses,
                                                        connectedPerm,
-                                                       minOverlap)
+                                                       minOverlap,
+                                                       wrapInput)
 
         # Return both the overlap values and the inputs from
         # the potential synapses to all columns.

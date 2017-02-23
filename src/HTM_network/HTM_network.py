@@ -136,6 +136,7 @@ class HTMLayer:
         self.potentialWidth = params['potentialWidth']
         self.potentialHeight = params['potentialHeight']
         self.minOverlap = params['minOverlap']
+        self.wrapInput = params['wrapInput']
         self.spatialPermanenceInc = params['spatialPermanenceInc']
         self.spatialPermanenceDec = params['spatialPermanenceDec']
         self.tempPermanenceInc = params['spatialPermanenceInc']
@@ -283,7 +284,8 @@ class HTMLayer:
                                                      self.inputHeight,
                                                      self.centerPotSynapses,
                                                      self.connectPermanence,
-                                                     self.minOverlap)
+                                                     self.minOverlap,
+                                                     self.wrapInput)
 
         self.inhibCalc = inhibition.inhibitionCalculator(self.width, self.height,
                                                          self.inhibitionWidth,

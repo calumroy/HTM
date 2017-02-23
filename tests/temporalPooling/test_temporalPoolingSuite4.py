@@ -24,11 +24,12 @@ testParameters = {
                             'HTMLayers': [{
                                 'desiredLocalActivity': 1,
                                 'minOverlap': 3,
+                                'wrapInput':0,
                                 'inhibitionWidth': 4,
                                 'inhibitionHeight': 2,
                                 'centerPotSynapses': 1,
-                                'potentialWidth': 4,
-                                'potentialHeight': 4,
+                                'potentialWidth': 5,
+                                'potentialHeight': 5,
                                 'spatialPermanenceInc': 0.1,
                                 'spatialPermanenceDec': 0.02,
                                 'activeColPermanenceDec': 0.02,
@@ -49,11 +50,12 @@ testParameters = {
                                 {
                                 'desiredLocalActivity': 1,
                                 'minOverlap': 2,
+                                'wrapInput':0,
                                 'inhibitionWidth': 8,
                                 'inhibitionHeight': 2,
                                 'centerPotSynapses': 1,
-                                'potentialWidth': 8,
-                                'potentialHeight': 8,
+                                'potentialWidth': 7,
+                                'potentialHeight': 7,
                                 'spatialPermanenceInc': 0.2,
                                 'spatialPermanenceDec': 0.02,
                                 'activeColPermanenceDec': 0.02,
@@ -74,20 +76,21 @@ testParameters = {
                                 {
                                 'desiredLocalActivity': 1,
                                 'minOverlap': 2,
+                                'wrapInput':1,
                                 'inhibitionWidth': 30,
                                 'inhibitionHeight': 2,
                                 'centerPotSynapses': 1,
                                 'connectPermanence': 0.3,
-                                'potentialWidth': 50,
-                                'potentialHeight': 40,
-                                'spatialPermanenceInc': 0.04,
-                                'spatialPermanenceDec': 0.01,
-                                'activeColPermanenceDec': 0.02,
+                                'potentialWidth': 29,
+                                'potentialHeight': 29,
+                                'spatialPermanenceInc': 0.08,
+                                'spatialPermanenceDec': 0.005,
+                                'activeColPermanenceDec': 0.001,
                                 'tempDelayLength': 10,
                                 'permanenceInc': 0.15,
                                 'permanenceDec': 0.05,
-                                'tempSpatialPermanenceInc': 0.04,
-                                'tempSeqPermanenceInc': 0.15,
+                                'tempSpatialPermanenceInc': 0.08,
+                                'tempSeqPermanenceInc': 0.1,
                                 'minThreshold': 5,
                                 'minScoreThreshold': 3,
                                 'newSynapseCount': 10,
@@ -192,7 +195,7 @@ class test_temporalPoolingSuite4:
         numPatternsTested = 2
         # The level and layer in the htm we are testing on.
         level = 0
-        layer = 1
+        layer = 2
 
         pattern1_ind = 11
         pattern2_ind = 12
@@ -203,21 +206,21 @@ class test_temporalPoolingSuite4:
         assert pat1NumInputs == pat2NumInputs
         numInputs = pat1NumInputs
 
-        self.InputCreator.changePattern(pattern1_ind)
-        self.InputCreator.setIndex(0)
-        self.gui.startHtmGui(self.htm, self.InputCreator)
-        self.InputCreator.changePattern(pattern2_ind)
-        self.InputCreator.setIndex(0)
-        self.gui.startHtmGui(self.htm, self.InputCreator)
-        self.InputCreator.changePattern(pattern1_ind)
-        self.InputCreator.setIndex(0)
-        self.gui.startHtmGui(self.htm, self.InputCreator)
-        self.InputCreator.changePattern(pattern2_ind)
-        self.InputCreator.setIndex(0)
-        self.gui.startHtmGui(self.htm, self.InputCreator)
-        self.InputCreator.changePattern(13)
-        self.InputCreator.setIndex(0)
-        self.gui.startHtmGui(self.htm, self.InputCreator)
+        # self.InputCreator.changePattern(pattern1_ind)
+        # self.InputCreator.setIndex(0)
+        # self.gui.startHtmGui(self.htm, self.InputCreator)
+        # self.InputCreator.changePattern(pattern2_ind)
+        # self.InputCreator.setIndex(0)
+        # self.gui.startHtmGui(self.htm, self.InputCreator)
+        # self.InputCreator.changePattern(pattern1_ind)
+        # self.InputCreator.setIndex(0)
+        # self.gui.startHtmGui(self.htm, self.InputCreator)
+        # self.InputCreator.changePattern(pattern2_ind)
+        # self.InputCreator.setIndex(0)
+        # self.gui.startHtmGui(self.htm, self.InputCreator)
+        # self.InputCreator.changePattern(13)
+        # self.InputCreator.setIndex(0)
+        # self.gui.startHtmGui(self.htm, self.InputCreator)
 
         # Create arrays to store the output SDR from the HTM layer for each input.
         outputSDR00 = self.getLearningCellsOutput(self.htm, level, layer)
@@ -234,8 +237,7 @@ class test_temporalPoolingSuite4:
         self.InputCreator.changePattern(pattern1_ind)
         # Since the higher layers take longer to receive a new input run through the
         # test pattern once. So the higher layer has at least got an intial input from the pattern.
-        #self.nSteps(3*numInputs)
-        self.nSteps(3)
+        self.nSteps(numInputs)
         # Reset the pattern to the start
         self.InputCreator.setIndex(0)
         # Now run through the pattern and store each output SDR
@@ -252,8 +254,7 @@ class test_temporalPoolingSuite4:
         self.InputCreator.changePattern(pattern2_ind)
         # Since the higher layers take longer to receive a new input run through the
         # test pattern once. So the higher layer has at least got an intial input from the new pattern.
-        #self.nSteps(2*numInputs)
-        self.nSteps(3)
+        self.nSteps(2*numInputs)
         # Reset the pattern to the start
         self.InputCreator.setIndex(0)
         # Store the outputs from the second pattern.
@@ -317,7 +318,7 @@ class test_temporalPoolingSuite4:
         numPatternsTested = 2
         # The level and layer in the htm we are testing on.
         level = 0
-        layer = 1
+        layer = 2
 
         pattern1_ind = 8
         pattern2_ind = 9
@@ -444,7 +445,7 @@ class test_temporalPoolingSuite4:
         numPatternsTested = 2
         # The level and layer in the htm we are testing on.
         level = 0
-        layer = 1
+        layer = 2
 
         pattern1_ind = 8
         pattern2_ind = 9

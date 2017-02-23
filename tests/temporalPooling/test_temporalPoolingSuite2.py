@@ -24,6 +24,7 @@ testParameters = {
                             'HTMLayers': [{
                                 'desiredLocalActivity': 1,
                                 'minOverlap': 3,
+                                'wrapInput':1,
                                 'inhibitionWidth': 4,
                                 'inhibitionHeight': 2,
                                 'centerPotSynapses': 1,
@@ -49,6 +50,7 @@ testParameters = {
                                 {
                                 'desiredLocalActivity': 1,
                                 'minOverlap': 2,
+                                'wrapInput':1,
                                 'inhibitionWidth': 8,
                                 'inhibitionHeight': 2,
                                 'centerPotSynapses': 1,
@@ -74,6 +76,7 @@ testParameters = {
                                 {
                                 'desiredLocalActivity': 1,
                                 'minOverlap': 2,
+                                'wrapInput':1,
                                 'inhibitionWidth': 15,
                                 'inhibitionHeight': 2,
                                 'centerPotSynapses': 1,

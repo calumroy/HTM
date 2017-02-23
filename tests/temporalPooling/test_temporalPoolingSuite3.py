@@ -25,6 +25,7 @@ testParameters = {
                                 {
                                 'desiredLocalActivity': 1,
                                 'minOverlap': 6,
+                                'wrapInput':1,
                                 'inhibitionWidth': 8,
                                 'inhibitionHeight': 2,
                                 'centerPotSynapses': 1,
@@ -50,6 +51,7 @@ testParameters = {
                                 {
                                 'desiredLocalActivity': 1,
                                 'minOverlap': 4,
+                                'wrapInput':1,
                                 'inhibitionWidth': 12,
                                 'inhibitionHeight': 2,
                                 'centerPotSynapses': 1,

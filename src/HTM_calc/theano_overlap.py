@@ -46,12 +46,15 @@ class OverlapCalculator():
                  columnsWidth, columnsHeight,
                  inputWidth, inputHeight,
                  centerPotSynapses, connectedPerm,
-                 minOverlap):
+                 minOverlap, wrapInput):
         # Overlap Parameters
         ###########################################
         # Specifies if the potential synapses are centered
         # over the columns
         self.centerPotSynapses = centerPotSynapses
+        # Use a wrap input function instead of padding the input
+        # to calcualte the overlap scores.
+        self.wrapInput = wrapInput
         self.potentialWidth = potentialWidth
         self.potentialHeight = potentialHeight
         self.connectedPermParam = connectedPerm
@@ -80,6 +83,7 @@ class OverlapCalculator():
         # overlap scores for columns.
         self.potSynTieBreaker = np.array([[0.0 for i in range(self.potentialHeight*self.potentialWidth)]
                                          for j in range(self.numColumns)])
+        #import ipdb; ipdb.set_trace()
         self.makePotSynTieBreaker(self.potSynTieBreaker)
         # Store the potential inputs to every column plus the tie breaker value.
         # Each row represents the inputs a columns potential synapses cover.
@@ -133,6 +137,29 @@ class OverlapCalculator():
         self.pool_convole = images2neibs(self.pool_inp, self.neib_shape, self.neib_step, mode='valid')
         self.pool_inputs = function([self.pool_inp],
                                     self.pool_convole,
+                                    on_unused_input='warn',
+                                    allow_input_downcast=True)
+
+        # Create the theano function for calculating
+        # the inputs to a column from an input grid.
+        # Uses a wrapping function when calculating the convole.
+        # The kernel size must be an odd shape for the wrapping function to work.
+        self.potentialHeightWrap = potentialHeight
+        self.potentialWidthWrap = potentialWidth
+        if potentialHeight % 2 != 1:
+            self.potentialHeightWrap = potentialHeight + 1
+        if potentialWidth % 2 != 1:
+            self.potentialWidthWrap = potentialWidth + 1
+        self.kernalSize_wrap = (self.potentialHeightWrap, self.potentialWidthWrap)
+        # poolstep is how far to move the kernal in each direction.
+        self.poolstep_wrap = (self.stepY, self.stepX)
+        # Create the theano function for calculating the input to each column
+        self.neib_shape_wrap = T.as_tensor_variable(self.kernalSize_wrap)
+        self.neib_step_wrap = T.as_tensor_variable(self.poolstep_wrap)
+        self.pool_inp_wrap = T.tensor4('pool_input_wrap', dtype='float32')
+        self.pool_convole_wrap = images2neibs(self.pool_inp_wrap, self.neib_shape_wrap, self.neib_step_wrap, mode='wrap_centered')
+        self.pool_inputs_wrap = function([self.pool_inp_wrap],
+                                    self.pool_convole_wrap,
                                     on_unused_input='warn',
                                     allow_input_downcast=True)
 
@@ -354,9 +381,12 @@ class OverlapCalculator():
                                                    self.columnsWidth, self.columnsHeight,
                                                    self.potentialWidth, self.potentialHeight)
         # print "self.stepX = %s, self.stepY = %s" % (self.stepX, self.stepY)
-        # work out how much padding is needed on the borders
-        # using the defined potential width and potential height.
-        indexInputGrid = self.addPaddingToInput(indexInputGrid, False)
+        # If we are not using the wrap input function then padding will need to be added
+        # to the edges.
+        if self.wrapInput == False:
+            # work out how much padding is needed on the borders
+            # using the defined potential width and potential height.
+            indexInputGrid = self.addPaddingToInput(indexInputGrid, False)
 
         # print "padded InputGrid = \n%s" % indexInputGrid
         # print "padded InputGrid.shape = %s,%s,%s,%s" % indexInputGrid.shape
@@ -365,7 +395,19 @@ class OverlapCalculator():
         # print "self.stepX = %s, self.stepY = %s" % (self.stepX, self.stepY)
         # print "inputWidth = %s, inputHeight = %s" % (inputWidth, inputHeight)
         # Calculate the inputs to each column.
-        inputPotSynIndex = self.pool_inputs(indexInputGrid)
+        if self.wrapInput == True:
+            # Wrap the input grid to create the potential pool for each column.
+            inputPotSynIndex = self.pool_inputs_wrap(indexInputGrid)
+            # Since we are wrapping and no padding was added to the input then 
+            # the inputConPotSyn could have more potential pool groups then the
+            # number of columns in the layer. Delete the last rows of the inputConPotSyn.
+            if len(indexInputGrid) > self.numColumns:
+                diff = len(indexInputGrid) - self.numColumns
+                num_pools = len(indexInputGrid)
+                indexInputGrid = np.delete(indexInputGrid, range(num_pools-diff,num_pools), axis=0)
+        else:
+            # Don't wrap the input. The columns on the edges have a smaller potential input pool.
+            inputPotSynIndex = self.pool_inputs(indexInputGrid)
         # print "inputPotSynIndex = \n%s" % inputPotSynIndex
 
         # Now turn the inputPotSynIndex into two matricies where the first
@@ -421,6 +463,9 @@ class OverlapCalculator():
         # This function uses theano's convolution function to
         # return the inputs that each column potentially connects to.
 
+        # It ouputs a matrix where each row represents the potential pool of inputs
+        # the one column in a layer can connect too.
+
         # Take the input and put it into a 4D tensor.
         # This is because the theano function images2neibs
         # works with 4D tensors only.
@@ -429,9 +474,12 @@ class OverlapCalculator():
         # print "inputGrid.shape = %s,%s,%s,%s" % inputGrid.shape
         firstDim, secondDim, width, height = inputGrid.shape
 
-        # work out how much padding is needed on the borders
-        # using the defined potential width and potential height.
-        inputGrid = self.addPaddingToInput(inputGrid)
+        # If we are not using the wrap input function then padding will need to be added
+        # to the edges.
+        if self.wrapInput == False:
+            # work out how much padding is needed on the borders
+            # using the defined potential width and potential height.
+            inputGrid = self.addPaddingToInput(inputGrid)
 
         # print "padded InputGrid = \n%s" % inputGrid
         # print "inputGrid.shape = %s,%s,%s,%s" % inputGrid.shape
@@ -439,7 +487,19 @@ class OverlapCalculator():
         # print "self.potentialHeight = %s" % self.potentialHeight
         # print "self.stepX = %s, self.stepY = %s" % (self.stepX, self.stepY)
         # Calculate the inputs to each column.
-        inputConPotSyn = self.pool_inputs(inputGrid)
+        if self.wrapInput == True:
+            # Wrap the input grid to create the potential pool for each column.
+            inputConPotSyn = self.pool_inputs_wrap(inputGrid)
+            # Since we are wrapping and no padding was added to the input then 
+            # the inputConPotSyn could have more potential pool groups then the
+            # number of columns in the layer. Delete the last rows of the inputConPotSyn.
+            if len(inputConPotSyn) > self.numColumns:
+                diff = len(inputConPotSyn) - self.numColumns
+                num_pools = len(inputConPotSyn)
+                inputConPotSyn = np.delete(inputConPotSyn, range(num_pools-diff,num_pools), axis=0)
+        else:
+            # Don't wrap the input. The columns on the edges have a smaller potential input pool.
+            inputConPotSyn = self.pool_inputs(inputGrid)
         # The returned array is within a list so just use pos 0.
         # print "inputConPotSyn = \n%s" % inputConPotSyn
         # print "inputConPotSyn.shape = %s,%s" % inputConPotSyn.shape
@@ -456,6 +516,7 @@ class OverlapCalculator():
         # and the colsynPerm match the original specified parameters.
         self.checkNewInputParams(colSynPerm, inputGrid)
         # Calcualte the inputs to each column
+        #import ipdb; ipdb.set_trace()
         self.colInputPotSyn = self.getColInputs(inputGrid)
 
         # Add a masked small tiebreaker value to the self.colInputPotSyn scores.
@@ -496,17 +557,18 @@ class OverlapCalculator():
 
 if __name__ == '__main__':
 
-    potWidth = 4
-    potHeight = 4
+    potWidth = 3
+    potHeight = 3
     centerPotSynapses = 1
     numInputRows = 4
     numInputCols = 5
-    numColumnRows = 7
-    numColumnCols = 5
+    numColumnRows = 4
+    numColumnCols = 4
     connectedPerm = 0.3
     minOverlap = 3
     numPotSyn = potWidth * potHeight
     numColumns = numColumnRows * numColumnCols
+    wrapInput = True
 
     # Create an array representing the permanences of colums synapses
     colSynPerm = np.random.rand(numColumns, numPotSyn)
@@ -526,7 +588,8 @@ if __name__ == '__main__':
                                     numInputRows,
                                     centerPotSynapses,
                                     connectedPerm,
-                                    minOverlap)
+                                    minOverlap,
+                                    wrapInput)
 
     print "newInputMat = \n%s" % newInputMat
     #potSyn = np.random.rand(1, 1, 4, 4)

@@ -19,6 +19,7 @@
             "HTMLayers": [{
                 "desiredLocalActivity": 1,
                 "minOverlap": 3,
+                "wrapInput": 1,
                 "inhibitionWidth": 3,
                 "inhibitionHeight": 3,
                 "centerPotSynapses": 1,
@@ -45,6 +46,7 @@
             {
                 "desiredLocalActivity": 1,
                 "minOverlap": 1,
+                "wrapInput": 1,
                 "inhibitionWidth": 3,
                 "inhibitionHeight": 3,
                 "centerPotSynapses": 0,
@@ -83,6 +85,7 @@
             "HTMLayers": [{
                 "desiredLocalActivity": 3,
                 "minOverlap": 5,
+                "wrapInput": 1,
                 "inhibitionWidth": 11,
                 "inhibitionHeight": 11,
                 "centerPotSynapses": 1,
@@ -109,6 +112,7 @@
             {
                 "desiredLocalActivity": 1,
                 "minOverlap": 1,
+                "wrapInput": 1,
                 "inhibitionWidth": 1,
                 "inhibitionHeight": 1,
                 "centerPotSynapses": 0,
