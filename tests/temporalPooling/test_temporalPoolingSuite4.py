@@ -12,8 +12,8 @@ from utilities import startHtmGui as htmgui
 testParameters = {
                   'HTM': {
                         'numLevels': 1,
-                        'columnArrayWidth': 10,
-                        'columnArrayHeight': 30,
+                        'columnArrayWidth': 11,
+                        'columnArrayHeight': 31,
                         'cellsPerColumn': 3,
 
                         'HTMRegions': [{
@@ -81,15 +81,15 @@ testParameters = {
                                 'inhibitionHeight': 2,
                                 'centerPotSynapses': 1,
                                 'connectPermanence': 0.3,
-                                'potentialWidth': 29,
-                                'potentialHeight': 29,
-                                'spatialPermanenceInc': 0.08,
-                                'spatialPermanenceDec': 0.005,
+                                'potentialWidth': 34,
+                                'potentialHeight': 31,
+                                'spatialPermanenceInc': 0.03,
+                                'spatialPermanenceDec': 0.01,
                                 'activeColPermanenceDec': 0.001,
                                 'tempDelayLength': 10,
                                 'permanenceInc': 0.15,
                                 'permanenceDec': 0.05,
-                                'tempSpatialPermanenceInc': 0.08,
+                                'tempSpatialPermanenceInc': 0.01,
                                 'tempSeqPermanenceInc': 0.1,
                                 'minThreshold': 5,
                                 'minScoreThreshold': 3,
@@ -133,7 +133,7 @@ class test_temporalPoolingSuite4:
         numInputs = params['HTM']['columnArrayWidth']*params['HTM']['cellsPerColumn']
         inputWidth = params['HTM']['columnArrayWidth']*params['HTM']['cellsPerColumn']
         inputHeight = 2*params['HTM']['columnArrayHeight']
-
+        #import ipdb; ipdb.set_trace()
         self.InputCreator = svli.simpleVerticalLineInputs(inputWidth, inputHeight, numInputs)
         #self.htmlayer = HTMLayer(self.inputs[0], self.width, self.height, self.cellsPerColumn)
         self.htm = HTM_network.HTM(self.InputCreator.createSimGrid(),
@@ -206,18 +206,18 @@ class test_temporalPoolingSuite4:
         assert pat1NumInputs == pat2NumInputs
         numInputs = pat1NumInputs
 
-        # self.InputCreator.changePattern(pattern1_ind)
-        # self.InputCreator.setIndex(0)
-        # self.gui.startHtmGui(self.htm, self.InputCreator)
-        # self.InputCreator.changePattern(pattern2_ind)
-        # self.InputCreator.setIndex(0)
-        # self.gui.startHtmGui(self.htm, self.InputCreator)
-        # self.InputCreator.changePattern(pattern1_ind)
-        # self.InputCreator.setIndex(0)
-        # self.gui.startHtmGui(self.htm, self.InputCreator)
-        # self.InputCreator.changePattern(pattern2_ind)
-        # self.InputCreator.setIndex(0)
-        # self.gui.startHtmGui(self.htm, self.InputCreator)
+        self.InputCreator.changePattern(pattern1_ind)
+        self.InputCreator.setIndex(0)
+        self.gui.startHtmGui(self.htm, self.InputCreator)
+        self.InputCreator.changePattern(pattern2_ind)
+        self.InputCreator.setIndex(0)
+        self.gui.startHtmGui(self.htm, self.InputCreator)
+        self.InputCreator.changePattern(pattern1_ind)
+        self.InputCreator.setIndex(0)
+        self.gui.startHtmGui(self.htm, self.InputCreator)
+        self.InputCreator.changePattern(pattern2_ind)
+        self.InputCreator.setIndex(0)
+        self.gui.startHtmGui(self.htm, self.InputCreator)
         # self.InputCreator.changePattern(13)
         # self.InputCreator.setIndex(0)
         # self.gui.startHtmGui(self.htm, self.InputCreator)
@@ -304,6 +304,19 @@ class test_temporalPoolingSuite4:
             print "simularity of outputs in pattern 2 sequence[%s] = %s" % (i, simOutIn2[i])
             print "simularity of outputs in pattern 1 vs 2 initial learing[%s] = %s" % (i, simOut1vs2start[i])
             print "simularity of outputs in pattern 1 vs 2 final patterns[%s] = %s" % (i, simOut1vs2end[i])
+
+        self.InputCreator.changePattern(pattern1_ind)
+        self.InputCreator.setIndex(0)
+        self.gui.startHtmGui(self.htm, self.InputCreator)
+        self.InputCreator.changePattern(pattern2_ind)
+        self.InputCreator.setIndex(0)
+        self.gui.startHtmGui(self.htm, self.InputCreator)
+        self.InputCreator.changePattern(pattern1_ind)
+        self.InputCreator.setIndex(0)
+        self.gui.startHtmGui(self.htm, self.InputCreator)
+        self.InputCreator.changePattern(pattern2_ind)
+        self.InputCreator.setIndex(0)
+        self.gui.startHtmGui(self.htm, self.InputCreator)
 
     def test_temporalDiff(self):
         '''

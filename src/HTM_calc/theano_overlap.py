@@ -148,8 +148,28 @@ class OverlapCalculator():
         self.potentialWidthWrap = potentialWidth
         if potentialHeight % 2 != 1:
             self.potentialHeightWrap = potentialHeight + 1
+            print "WARNING: The columns potential height was changed to %s" %self.potentialHeightWrap
+            print "     The overlap calculators wrapping function requires odd pooling shapes."
         if potentialWidth % 2 != 1:
             self.potentialWidthWrap = potentialWidth + 1
+            print "WARNING: The columns potential width was changed to %s" %self.potentialWidthWrap
+            print "     The overlap calculators wrapping function requires odd pooling shapes."
+        #import ipdb; ipdb.set_trace()
+        # When wrapping make sure the potential pools shapes are smaller then the total inputs.
+        # This is a restriction imposed by theanos wrapping function. Also keep the potential pool shape odd.
+        if self.wrapInput == True:
+            if self.potentialWidthWrap > self.inputWidth:
+                self.potentialWidthWrap = self.inputWidth
+                if self.potentialWidthWrap % 2 != 1:
+                    self.potentialWidthWrap = self.inputWidth - 1
+                print "WARNING: The columns potential width was changed to %s" %self.potentialWidthWrap
+                print "     The overlap calculators wrapping function requires pooling shapes smaller than the input."
+            if self.potentialHeightWrap > self.inputHeight:
+                self.potentialHeightWrap = self.inputHeight
+                if self.potentialHeightWrap % 2 != 1:
+                    self.potentialHeightWrap = self.inputHeight - 1
+                print "WARNING: The columns potential height was changed to %s" %self.potentialHeightWrap
+                print "     The overlap calculators wrapping function requires pooling shapes smaller than the input."
         self.kernalSize_wrap = (self.potentialHeightWrap, self.potentialWidthWrap)
         # poolstep is how far to move the kernal in each direction.
         self.poolstep_wrap = (self.stepY, self.stepX)
@@ -395,6 +415,7 @@ class OverlapCalculator():
         # print "self.stepX = %s, self.stepY = %s" % (self.stepX, self.stepY)
         # print "inputWidth = %s, inputHeight = %s" % (inputWidth, inputHeight)
         # Calculate the inputs to each column.
+        #import ipdb; ipdb.set_trace()
         if self.wrapInput == True:
             # Wrap the input grid to create the potential pool for each column.
             inputPotSynIndex = self.pool_inputs_wrap(indexInputGrid)
