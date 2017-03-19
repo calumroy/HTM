@@ -144,33 +144,22 @@ class OverlapCalculator():
         # the inputs to a column from an input grid.
         # Uses a wrapping function when calculating the convole.
         # The kernel size must be an odd shape for the wrapping function to work.
-        self.potentialHeightWrap = potentialHeight
-        self.potentialWidthWrap = potentialWidth
-        if potentialHeight % 2 != 1:
-            self.potentialHeightWrap = potentialHeight + 1
-            print "WARNING: The columns potential height was changed to %s" %self.potentialHeightWrap
-            print "     The overlap calculators wrapping function requires odd pooling shapes."
-        if potentialWidth % 2 != 1:
-            self.potentialWidthWrap = potentialWidth + 1
-            print "WARNING: The columns potential width was changed to %s" %self.potentialWidthWrap
-            print "     The overlap calculators wrapping function requires odd pooling shapes."
-        #import ipdb; ipdb.set_trace()
         # When wrapping make sure the potential pools shapes are smaller then the total inputs.
         # This is a restriction imposed by theanos wrapping function. Also keep the potential pool shape odd.
         if self.wrapInput == True:
-            if self.potentialWidthWrap > self.inputWidth:
-                self.potentialWidthWrap = self.inputWidth
-                if self.potentialWidthWrap % 2 != 1:
-                    self.potentialWidthWrap = self.inputWidth - 1
-                print "WARNING: The columns potential width was changed to %s" %self.potentialWidthWrap
-                print "     The overlap calculators wrapping function requires pooling shapes smaller than the input."
-            if self.potentialHeightWrap > self.inputHeight:
-                self.potentialHeightWrap = self.inputHeight
-                if self.potentialHeightWrap % 2 != 1:
-                    self.potentialHeightWrap = self.inputHeight - 1
-                print "WARNING: The columns potential height was changed to %s" %self.potentialHeightWrap
-                print "     The overlap calculators wrapping function requires pooling shapes smaller than the input."
-        self.kernalSize_wrap = (self.potentialHeightWrap, self.potentialWidthWrap)
+            if potentialHeight % 2 != 1:
+                print "WARNING: The columns potential height is not odd = %s" %self.potentialHeight
+                print "     The overlap calculators wrapping function requires odd pooling shapes smaller then the input."
+            if potentialWidth % 2 != 1:
+                print "WARNING: The columns potential width is not odd = %s" %self.potentialWidth
+                print "     The overlap calculators wrapping function requires odd pooling shapes smaller then the input."
+            assert potentialHeight % 2 == 1
+            assert potentialWidth % 2 == 1
+            #import ipdb; ipdb.set_trace()
+        if self.wrapInput == True:
+            self.kernalSize_wrap = (self.potentialHeight, self.potentialWidth)
+        else:
+            self.kernalSize_wrap = (0,0)
         # poolstep is how far to move the kernal in each direction.
         self.poolstep_wrap = (self.stepY, self.stepX)
         # Create the theano function for calculating the input to each column
@@ -381,6 +370,10 @@ class OverlapCalculator():
         # print "inputGrid = \n%s" % inputGrid
 
         return inputGrid
+
+    def getPotShape(self):
+        # Return the potential width and height.
+        return self.potentialWidth, self.potentialHeight
 
     def getPotentialSynapsePos(self, inputWidth, inputHeight):
         # Return 2 matricies of x and y positions repectively

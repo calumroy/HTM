@@ -150,6 +150,9 @@ class HTMLayer:
         self.permanenceDec = params['permanenceDec']
         self.inputHeight = len(self.Input)
         self.inputWidth = len(self.Input[0])
+        # Check that the potential width and height are of odd shape if the wrapInput parameter is true.
+        self.setWrapPotPoolShape()
+
         self.numPotSyn = self.potentialWidth * self.potentialHeight
         self.numColumns = self.height * self.width
         # Setup a matrix where each row represents a list of a columns
@@ -271,6 +274,28 @@ class HTMLayer:
         # Initialise the columns potential synapses.
         # Work out the potential feedforward connections each column could make to the input.
         self.setupPotentialSynapses(self.inputWidth, self.inputHeight)
+
+    def setWrapPotPoolShape(self):
+        # If the wrapInput parameter is true then set the potential pool shapes to odd.
+        # This is because the wrap function won't work with even shapes since the kernal can't be cenetered.
+        # This is actually a theano restriction (fix this in the future).
+        if self.wrapInput == True:
+            if self.potentialHeight % 2 != 1:
+                self.potentialHeight = self.potentialHeight + 1
+                if self.potentialHeight > self.inputHeight:
+                    self.potentialHeight = self.inputHeight
+                if self.potentialHeight % 2 != 1:
+                    self.potentialHeight = self.inputHeight - 1
+                print "WARNING: The columns potential height was changed to %s" %self.potentialHeight
+                print "     The overlap calculators wrapping function requires odd pooling shapes smaller then the input."
+            if self.potentialWidth % 2 != 1:
+                self.potentialWidth = self.potentialWidth + 1
+                if self.potentialWidth > self.inputWidth:
+                    self.potentialWidth = self.inputWidth
+                if self.potentialWidth % 2 != 1:
+                    self.potentialWidth = self.inputWidth - 1
+                print "WARNING: The columns potential width was changed to %s" %self.potentialWidth
+                print "     The overlap calculators wrapping function requires odd pooling shapes smaller then the input."
 
     def setupCalculators(self):
         # Setup the theano calculator classes used to calculate
@@ -528,14 +553,13 @@ class HTMLayer:
         # to obtain a list of x and y positions in the input that each
         # column can connect a potential synapse to.
         columnPotSynPositions = self.overlapCalc.getPotentialSynapsePos(inputWidth, inputHeight)
+        numPotSynapse = self.potentialHeight * self.potentialWidth
 
-        # If the columns potential Width or height has changed then its
-        # length of potential synapses will have changed. If not just change
-        # each synpases parameters.
+        # Just create a potential proximal synpase object for each of the potential synapses.
         cInd = 0
         for k in range(len(self.columns)):
             for c in self.columns[k]:
-                numPotSynapse = self.potentialHeight * self.potentialWidth
+
                 assert numPotSynapse == len(columnPotSynPositions[0][0])
                 c.potentialSynapses = np.array([])
                 for i in range(numPotSynapse):
@@ -801,7 +825,8 @@ class HTMLayer:
         self.colPotSynPerm = self.tempPoolCalc.updateProximalTempPool(self.colPotInputs,
                                                                       self.colActive,
                                                                       self.colPotSynPerm,
-                                                                      self.timeStep
+                                                                      self.timeStep,
+                                                                      self.activeCellsTime
                                                                       )
 
         # This updates distal synapses causing some cells to predict more often.
