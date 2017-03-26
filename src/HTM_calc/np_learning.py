@@ -74,7 +74,7 @@ class LearningCalculator():
         else:
             colSynPerm[c][s] -= decPerm
             colSynPerm[c][s] = max(0.0, colSynPerm[c][s])
-
+        
     def updatePermanenceValues(self, colSynPerm, colPotInputs, activeCols):
         # The inputs colSynPerm and colPotInputs are matricies.
         # colSynPerm is the permanence values of every potential synapse for each column.

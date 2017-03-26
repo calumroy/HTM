@@ -397,7 +397,7 @@ class TemporalPoolCalculator():
                                 colPotSynPerm[c][s] = min(1.0, colPotSynPerm[c][s])
                     # Update the potential synapses for the previous active columns.
                     if self.prevColActive[c] == 1:
-                        # Check to make sure the column isn't bursting.
+                        # Check to make sure the column wasn't bursting.
                         if self.checkColBursting(c, timeStep, activeCellsTime) is True:
                             # If any of the columns potential synapses are connected to a
                             # currently active input increment the synapses permenence.

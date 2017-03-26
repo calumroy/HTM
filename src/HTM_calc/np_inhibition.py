@@ -215,10 +215,6 @@ class inhibitionCalculator():
         # add a larger bias that counts for more then the position of the column.
 
 
-        #TODO
-        # TRY ADDING THE TIE BREAKER TO THE ACTUAL INPUTS NOT THE COLUMN OVERLAP
-        # VALUES. THIS WILL NEED TO BE DONE IN THE OVERLAP CALCULATOR.
-
         normValue = 1.0/float(2*self.numColumns+2)
 
         tieBreaker = np.array([[0 for i in range(self.width)]

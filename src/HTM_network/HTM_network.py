@@ -375,7 +375,7 @@ class HTMLayer:
         # column. Return all the column that are neighbours
         columnIndex = c.pos_y * self.width + c.pos_x
         colIndicieList = self.inhibCalc.getColInhibitionList(columnIndex)
-        print "Columns Neighbours list = %s" % colIndicieList
+        #print "Columns Neighbours list = %s" % colIndicieList
         closeColumns = []
         allColumns = self.columns.flatten().tolist()
         for i in colIndicieList:
@@ -571,6 +571,12 @@ class HTMLayer:
 
     def getPotColSynapses(self, column):
         # Get the list of the columns potential Synapses.
+        columnInd = column.pos_y * self.width + column.pos_x
+        for i in range(len(self.colPotSynPerm[columnInd])):
+            # Update the synapses permanence from the colPotSynPerm matrix
+            # This matrix hold all the synapse permanence values and is
+            # updated by the learning calculator.
+            column.potentialSynapses[i].permanence = self.colPotSynPerm[columnInd][i]
         return column.potentialSynapses
 
     def getConnectedSynapses(self, column):
@@ -584,7 +590,7 @@ class HTMLayer:
                 # This matrix hold all the synapse permanence values and is
                 # updated by the learning calculator.
                 column.potentialSynapses[i].permanence = self.colPotSynPerm[columnInd][i]
-                # Add this synapse to the list pf connected synapses.
+                # Add this synapse to the list of connected synapses.
                 connSyn.append(column.potentialSynapses[i])
         column.connectedSynapses = np.append(column.connectedSynapses, connSyn)
 

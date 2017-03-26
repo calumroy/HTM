@@ -276,7 +276,7 @@ class HTMInput(QtGui.QGraphicsView):
         #from PyQt4.QtCore import pyqtRemoveInputHook; import ipdb; pyqtRemoveInputHook(); ipdb.set_trace()
         potColumnsOverlap = currentLayer.getPotentialOverlaps(column)
         columnsMinOverlap = currentLayer.getColumnsMinOverlap()
-        print "     overlap = %s\n      potColumnsOverlap = %r\n      minOverlap = %s" % (columnsOverlap, potColumnsOverlap, columnsMinOverlap)
+        print "      overlap = %s\n      potColumnsOverlap = %r\n      minOverlap = %s" % (columnsOverlap, potColumnsOverlap, columnsMinOverlap)
         red = QtGui.QColor(0xFF, 0, 0, 0xFF)
         transpBlue = QtGui.QColor(0, 0, 0xFF, 0x30)
         green = QtGui.QColor(0, 0xFF, 0, 0xFF)
@@ -291,7 +291,8 @@ class HTMInput(QtGui.QGraphicsView):
         colSynList = currentLayer.getConnectedSynapses(selectedColumn)
         # Get the potential list of synapses for the selected column
         potColSynList = currentLayer.getPotColSynapses(selectedColumn)
-
+        print "        Number of potential synpases = %s" % len(potColSynList) 
+    
         # Color the inputs which have potential column synapses connected to
         # them for the selected column slightly lighter then the other inputs.
         for syn in potColSynList:
@@ -317,6 +318,7 @@ class HTMInput(QtGui.QGraphicsView):
                 brush.setColor(color)
                 col.setBrush(brush)
 
+        print "        Connected Col Synapse Permanence values > %s (x,y, perm):"
         # Color the inputs which have "connected" column synapses connected to
         # them for the selected column differently to the other inputs.
         for syn in colSynList:
@@ -328,6 +330,7 @@ class HTMInput(QtGui.QGraphicsView):
             col = self.columnItems[syn_index]
             value = self.htm.regionArray[self.level].layerArray[self.layer].Input[col.pos_y][col.pos_x]
 
+            print "        (%s, %s, %s)" %(syn.pos_x, syn.pos_y, syn.permanence)
             color = QtGui.QColor(0xFF, 0, 0, 0xFF)
             brush = QtGui.QBrush(QtCore.Qt.red)
 
