@@ -1,4 +1,4 @@
-
+import cProfile
 import random
 import numpy as np
 
@@ -10,6 +10,19 @@ A class to calculate the temporal pooling for a HTM layer.
 
 
 '''
+
+# Profiling function
+def do_cprofile(func):
+    def profiled_func(*args, **kwargs):
+        profile = cProfile.Profile()
+        try:
+            profile.enable()
+            result = func(*args, **kwargs)
+            profile.disable()
+            return result
+        finally:
+            profile.print_stats()
+    return profiled_func
 
 
 class TemporalPoolCalculator():
@@ -83,11 +96,10 @@ class TemporalPoolCalculator():
         # We need to check the activeCellsTime tensor which holds multiple
         # previous timeSteps when each cell was last active.
         # import ipdb; ipdb.set_trace()
-        colIndex = int(colIndex)
-        cellIndex = int(cellIndex)
-        if activeCellsTime[colIndex][cellIndex][0] == timeStep:
+
+        if activeCellsTime[int(colIndex)][int(cellIndex)][0] == timeStep:
             return True
-        if activeCellsTime[colIndex][cellIndex][1] == timeStep:
+        if activeCellsTime[int(colIndex)][int(cellIndex)][1] == timeStep:
             return True
         return False
 
@@ -349,6 +361,7 @@ class TemporalPoolCalculator():
                         cellIndex = newSynEnd[1]
                         segSynList[i] = [columnIndex, cellIndex, self.newSynPermanence]
 
+    #@do_cprofile  # For profiling
     def updateProximalTempPool(self, colPotInputs,
                                colActive, colPotSynPerm, timeStep, activeCellsTime):
         '''
@@ -383,10 +396,10 @@ class TemporalPoolCalculator():
         # Only perform temporal proximal pooling if the proximal permanence increment value is larger then zero!
         if self.spatialPermanenceInc > 0.0:
             for c in range(len(colActive)):
-                # Iterate through each potential synpase.
-                for s in range(len(colPotSynPerm[c])):
-                    # Update the potential synapses for the currently active columns.
-                    if colActive[c] == 1:
+                # Update the potential synapses for the currently active columns.
+                if colActive[c] == 1:
+                    # Iterate through each potential synpase.
+                    for s in range(len(colPotSynPerm[c])):
                         # Check to make sure the column isn't bursting.
                         if self.checkColBursting(c, timeStep, activeCellsTime) is True:
                             # If any of the columns potential synapses where connected to an
@@ -395,16 +408,16 @@ class TemporalPoolCalculator():
                                 # print "Current active Col prev input active for col, syn = %s, %s" % (c, s)
                                 colPotSynPerm[c][s] += self.spatialPermanenceInc
                                 colPotSynPerm[c][s] = min(1.0, colPotSynPerm[c][s])
-                    # Update the potential synapses for the previous active columns.
-                    if self.prevColActive[c] == 1:
-                        # Check to make sure the column wasn't bursting.
-                        if self.checkColBursting(c, timeStep, activeCellsTime) is True:
-                            # If any of the columns potential synapses are connected to a
-                            # currently active input increment the synapses permenence.
-                            if colPotInputs[c][s] == 1:
-                                # print "Prev active Col current input active for col, syn = %s, %s" % (c, s)
-                                colPotSynPerm[c][s] += self.spatialPermanenceInc
-                                colPotSynPerm[c][s] = min(1.0, colPotSynPerm[c][s])
+                        # Update the potential synapses for the previous active columns.
+                        if self.prevColActive[c] == 1:
+                            # Check to make sure the column wasn't bursting.
+                            if self.checkColBursting(c, timeStep, activeCellsTime) is True:
+                                # If any of the columns potential synapses are connected to a
+                                # currently active input increment the synapses permenence.
+                                if colPotInputs[c][s] == 1:
+                                    # print "Prev active Col current input active for col, syn = %s, %s" % (c, s)
+                                    colPotSynPerm[c][s] += self.spatialPermanenceInc
+                                    colPotSynPerm[c][s] = min(1.0, colPotSynPerm[c][s])
 
             # Store the current inputs to the potentialSynapses to use next time.
             self.prevColPotInputs = colPotInputs

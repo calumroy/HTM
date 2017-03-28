@@ -770,7 +770,11 @@ class HTMLayer:
          3. perform learning on the selected distal synpases
 
         '''
+        self.calcActiveCells(timeStep)
+        self.calcPredictCells(timeStep)
+        self.sequenceLearning(timeStep)
 
+    def calcActiveCells(self, timeStep):
         # 1. CALCULATE ACTIVE CELLS
         # Update the active cells and get the active Cells times and learn state times
         # from the calculator.
@@ -790,6 +794,7 @@ class HTMLayer:
         # Get the cells that are in the learning state as a list.
         self.learnCellsList = self.activeCellsCalc.getCurrentLearnCellsList()
 
+    def calcPredictCells(self, timeStep):
         # 2. CALCULATE PREDICTIVE CELLS
         self.predictCellsTime = self.predictCellsCalc.updatePredictiveState(timeStep,
                                                                             self.activeCellsTime,
@@ -801,6 +806,7 @@ class HTMLayer:
         (self.segIndUpdatePredict,
          self.segActiveSynPredict) = self.predictCellsCalc.getSegUpdates()
 
+    def sequenceLearning(self, timeStep):
         # 3. CALCULATE THE UPDATED DISTAL SYNAPSES FOR SEQUENCE LEARNING
         self.distalSynapses = self.seqLearnCalc.sequenceLearning(timeStep,
                                                                  self.activeCellsTime,

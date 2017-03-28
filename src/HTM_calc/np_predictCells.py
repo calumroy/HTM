@@ -206,6 +206,7 @@ class predictCellsCalculator():
 
         return count
 
+    @do_cprofile  # For profiling
     def updatePredictiveState(self, timeStep, activeCellsTime, distalSynapses):
     	'''
         This function calculates which cells should be set into the predictive state.
