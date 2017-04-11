@@ -169,20 +169,47 @@ class PredictCellsCalculator():
                                             self.seg_actcon_count,
                                             allow_input_downcast=True)
 
-        # Create the theano function for finding each segments count is larger
+        # Create the theano function for finding if each segments count is larger
         # then the self.activationThreshold. If so update the given tensor "activeSegsTime"
         # by setting that segments time step to the current time.
-        # TODO
-        # Finish this function
-        # self.time_step1 = T.scalar(dtype='int32')
-        # self.act_segTimes = T.tensor3(dtype='float32')
-        # self.act_thresh = T.scalar(dtype='float32')
-        # self.seg_activated = T.switch(T.gt(
-        # self.updateActSegTimes = function([self.act_segTimes,
-        #                                    self.time_step2, 
-        #                                    self.act_thresh],
-        #                                    self.seg_activated,
-        #                                    allow_input_downcast=True)
+        self.time_step2 = T.scalar(dtype='int32')
+        self.act_segTimes = T.tensor3(dtype='float32')
+        self.con_actSynCount = T.tensor3(dtype='float32')
+        self.act_thresh = T.scalar(dtype='float32')
+        self.seg_activated = T.switch(T.gt(self.con_actSynCount, self.act_thresh), self.time_step2, self.act_segTimes)
+        self.updateActSegTimes = function([self.con_actSynCount,
+                                           self.act_segTimes,
+                                           self.time_step2, 
+                                           self.act_thresh],
+                                           self.seg_activated,
+                                           allow_input_downcast=True)
+
+        # Create the theano funciton for finding the most predicting segment in each column.
+        # return a tensor storing for each column; 
+        #   [[mostPredSegmentInd],
+        #    [mostPredCellInd], 
+        #    [columnPredicting]] 
+        # Eg. The returned tensor has at position 0 an array of indicies. Each element in this array
+        #     corresponds to one column and stores the index of the segment in a cell in that column that
+        #     is most predicting.
+        #     The returned tensor has at position 1 an array of indicies. Each element in this array
+        #     corresponds to one column and stores the index of the cell in that column that
+        #     is most predicting.
+        #     The returned tensor has at position 2 an array of bools. Each element in this array
+        #     corresponds to one column and stores whether that column is predicting or not (1 or 0).
+        self.seg_actcon_count2 = T.tensor3(dtype='float32')
+        self.act_thresh2 = T.scalar(dtype='float32')
+        self.most_predSegInCell = T.max_and_argmax(self.seg_actcon_count2, axis=2, keepdims=False)
+        self.most_predSegInCol = T.max_and_argmax(self.most_predSegInCell[0], axis=1, keepdims=False)
+        self.col_pred = T.switch(T.gt(self.most_predSegInCol[0], self.act_thresh2), 1, 0)
+        self.most_predSegInd = T.max(self.most_predSegInCell[1], axis=1, keepdims=False)
+        self.most_predCellInd = T.argmax(self.most_predSegInCell[0], axis=1, keepdims=False)
+        self.most_pred = T.as_tensor_variable([self.most_predSegInd, self.most_predCellInd, self.col_pred])
+        self.mostPredSegInfo = function([self.seg_actcon_count2,
+                                         self.act_thresh2],
+                                         self.most_pred,
+                                         allow_input_downcast=True)
+
 
         #### END of Theano functions and variables definitions
         #################################################################
@@ -343,7 +370,8 @@ class PredictCellsCalculator():
             5. Update the activeSegsTime tensor by seeing if each segments count from step 4. is larger 
                then the self.activationThreshold.
             6. For all the segments that are active find the most active in a column. Store the activity count
-               the segment and cell index for this column and whether it was predicting in a new 2d tensor storing for each column;
+               the segment and cell index for this column and whether it was predicting. Store this in a new in a 
+               new 2d tensor storing for each column;
                     [predictionLevel, mostPredSegmentInd, mostPredCellInd, columnPredicting] 
             7. 
             ''' 
@@ -351,6 +379,8 @@ class PredictCellsCalculator():
         #import ipdb; ipdb.set_trace()
         print "distalSynapses.shape = \n" 
         print distalSynapses.shape
+        # Take a number of slices from the distal synapse tensor to seperate the column indicies,
+        # cell indices and synapses permanences from the tensor and use them in the following functions.
         sliced_distalSyn_colInd = distalSynapses[:,:,:,:,0]
         sliced_distalSyn_cellInd = distalSynapses[:,:,:,:,1]
         sliced_distalSyn_perm = distalSynapses[:,:,:,:,2]
@@ -362,6 +392,20 @@ class PredictCellsCalculator():
         print "connectActSynCount = \n%s" % segConActiveSynCount
 
         # Update the activeSegsTime tensor by seeing if each segments count is larger then the self.activationThreshold.
+        self.activeSegsTime = self.updateActSegTimes(segConActiveSynCount,
+                                                     self.activeSegsTime,
+                                                     timeStep, 
+                                                     self.activationThreshold)
+        # 
+
+        print "self.activeSegsTime = \n%s" % self.activeSegsTime
+        # For all the segments that are active find the most active in a column. Store the activity count
+        # the segment and cell index for this column and whether it was predicting. Store this in a new 
+        # 2d tensor storing for each column;
+        # [predictionLevel, mostPredSegmentInd, mostPredCellInd, columnPredicting]
+        mostActSegInfo = self.mostPredSegInfo(segConActiveSynCount,
+                                              self.activationThreshold)
+        print "mostActSegInfo = \n%s" % mostActSegInfo
 
 
         # for c in range(self.numColumns):
@@ -417,7 +461,7 @@ if __name__ == '__main__':
     # A main function to test and debug this class.
     numRows = 1
     numCols = 2
-    cellsPerColumn = 2
+    cellsPerColumn = 3
     numColumns = numRows * numCols
     maxSegPerCell = 2
     maxSynPerSeg = 3
