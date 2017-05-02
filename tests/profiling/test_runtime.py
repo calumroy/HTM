@@ -12,8 +12,8 @@ testParameters = {
                     'HTM':
                         {
                         'numLevels': 1,
-                        'columnArrayWidth': 8,
-                        'columnArrayHeight': 20,
+                        'columnArrayWidth': 80,
+                        'columnArrayHeight': 40,
                         'cellsPerColumn': 2,
 
                         'HTMRegions': [{
@@ -28,22 +28,23 @@ testParameters = {
                                 'inhibitionWidth': 2,
                                 'inhibitionHeight': 3,
                                 'centerPotSynapses': 1,
-                                'potentialWidth': 3,
-                                'potentialHeight': 3,
+                                'potentialWidth': 34,
+                                'potentialHeight': 31,
                                 'spatialPermanenceInc': 0.1,
                                 'spatialPermanenceDec': 0.02,
                                 'activeColPermanenceDec': 0.02,
                                 'tempDelayLength': 3,
                                 'permanenceInc': 0.1,
                                 'permanenceDec': 0.02,
+                                'tempSpatialPermanenceInc': 0,
+                                'tempSeqPermanenceInc': 0,
                                 'connectPermanence': 0.3,
                                 'minThreshold': 5,
                                 'minScoreThreshold': 5,
                                 'newSynapseCount': 10,
                                 'maxNumSegments': 10,
                                 'activationThreshold': 6,
-                                'dutyCycleAverageLength': 1000,
-                                'colSynPermanence': 0.2,
+                                'colSynPermanence': 0.1,
                                 'cellSynPermanence': 0.4
                             }]
                         }]
@@ -115,7 +116,7 @@ class test_RunTime:
         self.nSteps(1)
 
         # Run the inputs through the htm just once and obtain the column SDR outputs.
-        self.nSteps(1)
+        self.nSteps(5)
 
         #from PyQt4.QtCore import pyqtRemoveInputHook; import ipdb; pyqtRemoveInputHook(); ipdb.set_trace()
 

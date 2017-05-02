@@ -3,6 +3,7 @@ import math
 import random
 import theano.tensor as T
 from theano import function
+from theano import scan
 
 import cProfile
 # Profiling function
@@ -77,7 +78,7 @@ THIS CLASS IS A REIMPLEMENTATION OF THE ORIGINAL CODE:
 '''
 
 
-class PredictCellsCalculator():
+class predictCellsCalculator():
     def __init__(self, numColumns, cellsPerColumn, maxSegPerCell, maxSynPerSeg, connectPermanence, activationThreshold):
         self.numColumns = numColumns
         self.cellsPerColumn = cellsPerColumn
@@ -121,6 +122,11 @@ class PredictCellsCalculator():
         self.predictionLevel = np.array([[[0.0 for k in range(self.maxSegPerCell)]
                                          for i in range(self.cellsPerColumn)]
                                          for j in range(self.numColumns)])
+
+        # Store for each segment in each cell in each column the number of synpases that are connected
+        # (permanence is larger then the connectPermanence value) and are active (their end is connected to
+        # an active cell). This is a 3d tensor.
+        self.segConActiveSynCount = None
 
         # Create theano variables and functions
         ############################################
@@ -197,27 +203,58 @@ class PredictCellsCalculator():
         #     is most predicting.
         #     The returned tensor has at position 2 an array of bools. Each element in this array
         #     corresponds to one column and stores whether that column is predicting or not (1 or 0).
+        # Note: If 2 cells in a column or 2 segments in a cell have the same count for the active and connected
+        #       distal synapses then the first one (the one with the lower cell or segment index) is returned as
+        #       the most predicting cell and segment.
+
         self.seg_actcon_count2 = T.tensor3(dtype='float32')
         self.act_thresh2 = T.scalar(dtype='float32')
         self.most_predSegInCell = T.max_and_argmax(self.seg_actcon_count2, axis=2, keepdims=False)
+        self.most_predSegInCellVal = T.max(self.seg_actcon_count2, axis=2, keepdims=False)
+        self.most_predSegSegInd = T.argmax(self.seg_actcon_count2, axis=2, keepdims=False)
+        
         self.most_predSegInCol = T.max_and_argmax(self.most_predSegInCell[0], axis=1, keepdims=False)
         self.col_pred = T.switch(T.gt(self.most_predSegInCol[0], self.act_thresh2), 1, 0)
-        self.most_predSegInd = T.max(self.most_predSegInCell[1], axis=1, keepdims=False)
+        self.most_predSegCountInd = T.cast(T.argmax(self.most_predSegInCellVal, axis=1, keepdims=False), 'int32')
+
+        # Use a theano scan function to loop through the tensor most_predSegCountInd and most_predSegSegInd.
+        # This function returns the mostPredSegmentInd (the index of the most active segment in each column).
+        self.i = T.iscalar('i') #Number of iterations.
+        self.most_predSegInd, updates = scan(fn=self.get_bwa,
+                                                    outputs_info=None,
+                                                    non_sequences=[self.most_predSegCountInd, self.most_predSegSegInd],
+                                                    sequences=T.arange(self.i),
+                                                    n_steps = self.numColumns)
+        # Return [[mostPredSegmentInd], [mostPredCellInd], [columnPredicting]]
         self.most_predCellInd = T.argmax(self.most_predSegInCell[0], axis=1, keepdims=False)
         self.most_pred = T.as_tensor_variable([self.most_predSegInd, self.most_predCellInd, self.col_pred])
         self.mostPredSegInfo = function([self.seg_actcon_count2,
-                                         self.act_thresh2],
+                                         self.act_thresh2,
+                                         self.i],
                                          self.most_pred,
-                                         allow_input_downcast=True)
+                                         allow_input_downcast=True,
+                                         on_unused_input='ignore')
 
 
         #### END of Theano functions and variables definitions
         #################################################################
+        # The folowing variables are used for indicies when looking up values
+        # in matricies from within a theano function.
+        # Create a matrix that just holds the column index for each column.
+        self.col_numMat = np.array([i for i in range(self.numColumns)])
+
+    def get_bwa(self, i, avec, bmat):
+        # A function use din a Theano loop from the theano function mostPredSegInfo
+        return bmat[i, avec[i]]
         
     def getActiveSegTimes(self):
         # Return the activeSegsTime tensor which holds only the most recent
         # timeSteps that each segment was active for.
         return self.activeSegsTime
+
+    def getSegConActiveSynCount(self):
+        # Return for each segment in each cell in each column the number of synpases that are connected and active.
+        return self.segConActiveSynCount
 
     def getSegUpdates(self):
         # Return the tensors storing information on which distal synapses
@@ -370,82 +407,68 @@ class PredictCellsCalculator():
             5. Update the activeSegsTime tensor by seeing if each segments count from step 4. is larger 
                then the self.activationThreshold.
             6. For all the segments that are active find the most active in a column. Store the activity count
-               the segment and cell index for this column and whether it was predicting. Store this in a new in a 
-               new 2d tensor storing for each column;
-                    [predictionLevel, mostPredSegmentInd, mostPredCellInd, columnPredicting] 
-            7. 
+               the segment and cell index for this column and whether it was predicting. The following is required for
+               each column;
+                    predictionLevel, mostPredSegmentIndex, mostPredCellIndex, columnPredicting 
+            7. Set the most predicting cell in the column as the predicting cell.
+            8. Create a new update structure if the cell wasn't already predicting
+            9. Update the segment s by adding to the update tensors. The update happens in the future.
+            10. Return the self.predictCellsTime storing the time steps when each cell was last in the predicting state.
             ''' 
-        print "self.connectPermanence = \n%s" % self.connectPermanence
-        #import ipdb; ipdb.set_trace()
-        print "distalSynapses.shape = \n" 
-        print distalSynapses.shape
+
         # Take a number of slices from the distal synapse tensor to seperate the column indicies,
         # cell indices and synapses permanences from the tensor and use them in the following functions.
         sliced_distalSyn_colInd = distalSynapses[:,:,:,:,0]
         sliced_distalSyn_cellInd = distalSynapses[:,:,:,:,1]
         sliced_distalSyn_perm = distalSynapses[:,:,:,:,2]
-        segConActiveSynCount = self.connectActSynCount(sliced_distalSyn_colInd,
+        self.segConActiveSynCount = self.connectActSynCount(sliced_distalSyn_colInd,
                                                    sliced_distalSyn_cellInd, 
                                                    sliced_distalSyn_perm,
                                                    timeStep, activeCellsTime,
                                                    self.connectPermanence)
-        print "connectActSynCount = \n%s" % segConActiveSynCount
+        #print "connectActSynCount = \n%s" % self.segConActiveSynCount
 
         # Update the activeSegsTime tensor by seeing if each segments count is larger then the self.activationThreshold.
-        self.activeSegsTime = self.updateActSegTimes(segConActiveSynCount,
+        self.activeSegsTime = self.updateActSegTimes(self.segConActiveSynCount,
                                                      self.activeSegsTime,
                                                      timeStep, 
                                                      self.activationThreshold)
-        # 
 
-        print "self.activeSegsTime = \n%s" % self.activeSegsTime
+        #print "self.activeSegsTime = \n%s" % self.activeSegsTime
         # For all the segments that are active find the most active in a column. Store the activity count
-        # the segment and cell index for this column and whether it was predicting. Store this in a new 
-        # 2d tensor storing for each column;
-        # [predictionLevel, mostPredSegmentInd, mostPredCellInd, columnPredicting]
-        mostActSegInfo = self.mostPredSegInfo(segConActiveSynCount,
-                                              self.activationThreshold)
-        print "mostActSegInfo = \n%s" % mostActSegInfo
+        # the segment and cell index for this column and whether it was predicting. 
+        # self.mostPredSegInfo returns:
+        #   [[mostPredSegmentInd array],
+        #    [mostPredCellInd array], 
+        #    [columnPredicting array]] 
+        # The predictionLevel for each column is already known from the self.segConActiveSynCount tensor.
+        mostActSegInfo = self.mostPredSegInfo(self.segConActiveSynCount,
+                                              self.activationThreshold,
+                                              self.numColumns)
+        #print "mostActSegInfo = \n%s" % mostActSegInfo
 
-
-        # for c in range(self.numColumns):
-        #     mostPredCellSynCount = 0
-        #     mostPredCell = 0
-        #     columnPredicting = False
-
-        #     for i in range(self.cellsPerColumn):
-        #         for g in range(self.maxSegPerCell):
-        #             # Find in the current segment,  synapses that where active for the current timeStep.
-        #             predictionLevel = self.segmentNumSynapsesActive(distalSynapses[c][i][g],
-        #                                                             timeStep,
-        #                                                             activeCellsTime)
-
-        #             self.currentSegSynCount[c][i][g] = predictionLevel
-        #             if predictionLevel > self.activationThreshold:
-        #                 # Update the activeSegsTime tensor as this segment is active.
-        #                 self.setActiveSeg(c, i, g, timeStep)
-        #                 # Check if this is the most predicting for the cells in the column.
-        #                 if predictionLevel > mostPredCellSynCount:
-        #                         mostPredCellSynCount = predictionLevel
-        #                         mostPredCell = i
-        #                         mostPredSegment = g
-        #                         columnPredicting = True
-        #     if columnPredicting is True:
-        #         # Set the most predicting cell in the column as the predicting cell.
-        #         self.setPredictCell(c, mostPredCell, timeStep)
-        #         # Only create a new update structure if the cell wasn't already predicting
-        #         if self.checkCellPredicting(c, i, timeStep-1) is False:
-        #             # Update the segment s by adding to the update tensors. The update happens in the future.
-        #             self.segIndUpdate[c][mostPredCell] = mostPredSegment
-        #             self.segActiveSyn[c][mostPredCell] = self.getSegmentActiveSynapses(distalSynapses[c][mostPredCell][mostPredSegment],
-        #                                                                                timeStep,
-        #                                                                                activeCellsTime)
-        #             # print "self.segActiveSyn[%s][%s] = %s" % (c, mostPredCell, self.segActiveSyn[c][mostPredCell])
-
-        # # print "self.currentSegSynCount = \n%s" % self.currentSegSynCount
-        # # print "self.predictCellsTime = \n%s" % self.predictCellsTime
-
-        # return self.predictCellsTime
+        # Non theano functions. The code below does not uses any theano functions.
+        # Update the self.predictCellsTime storing the last two times when a cell was predicting.
+        # Create the update structure so a cells distal synapse permanences can be altered in the future.
+        for c in range(self.numColumns):
+            # Get from the mostActSegInfo tensor whether the current column is predicting or not.
+            columnPredicting = mostActSegInfo[2][c]
+            if columnPredicting == 1:
+                mostPredCell = mostActSegInfo[1][c]
+                # Set the most predicting cell in the column as the predicting cell.
+                self.setPredictCell(c, mostPredCell, timeStep)
+                # Only create a new update structure if the cell wasn't already predicting
+                if self.checkCellPredicting(c, mostPredCell, timeStep-1) is False:
+                    # Update the segment s by adding to the update tensors. The update happens in the future.
+                    mostPredSegment = mostActSegInfo[0][c]
+                    self.segIndUpdate[c][mostPredCell] = mostPredSegment
+                    self.segActiveSyn[c][mostPredCell] = self.getSegmentActiveSynapses(distalSynapses[c][mostPredCell][mostPredSegment],
+                                                                                       timeStep,
+                                                                                       activeCellsTime)
+                    # print "self.segActiveSyn[%s][%s] = %s" % (c, mostPredCell, self.segActiveSyn[c][mostPredCell])
+        # print "self.currentSegSynCount = \n%s" % self.currentSegSynCount
+        #print "self.predictCellsTime = \n%s" % self.predictCellsTime
+        return self.predictCellsTime
 
 
 
@@ -460,10 +483,10 @@ def updateActiveCells(numColumns, cellsPerColumn, timeStep):
 if __name__ == '__main__':
     # A main function to test and debug this class.
     numRows = 1
-    numCols = 2
-    cellsPerColumn = 3
+    numCols = 3
+    cellsPerColumn = 4
     numColumns = numRows * numCols
-    maxSegPerCell = 2
+    maxSegPerCell = 3
     maxSynPerSeg = 3
     connectPermanence = 0.3
     activationThreshold = 1
@@ -488,14 +511,13 @@ if __name__ == '__main__':
     # print "activeCells = \n%s" % activeCells
     print "distalSynapses = \n%s" % distalSynapses
 
-    predCellsCalc = PredictCellsCalculator(numColumns,
+    predCellsCalc = predictCellsCalculator(numColumns,
                                            cellsPerColumn,
                                            maxSegPerCell,
                                            maxSynPerSeg,
                                            connectPermanence,
                                            activationThreshold)
     # Run through calculator
-
     test_iterations = 1
     for i in range(test_iterations):
         timeStep += 1
