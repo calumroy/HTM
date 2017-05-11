@@ -425,6 +425,7 @@ class TemporalPoolCalculator():
 
         return colPotSynPerm
 
+    #@do_cprofile  # For profiling
     def updateDistalTempPool(self, timeStep, newLearnCellsList, learnCellsTime, predictCellsTime,
                              activeCellsTime, activeSeg, distalSynapses):
         '''
@@ -619,7 +620,7 @@ if __name__ == '__main__':
                                         connectPermanence, tempDelayLength)
 
     # Test the temporal poolers update proximal synapse function
-    # runTempPoolUpdateProximal(tempPooler, colPotInputs, colPotSynPerm, timeStep, activeCellsTime)
+    runTempPoolUpdateProximal(tempPooler, colPotInputs, colPotSynPerm, timeStep, activeCellsTime)
 
     # Test the temporal poolers update distal synapse function
     runTempPoolUpdateDistal(tempPooler, timeStep, newLearnCellsList, learnCellsTime, predictCellsTime,

@@ -15,8 +15,8 @@ from HTM_calc import np_temporal as temporal
 from HTM_calc import theano_overlap as overlap
 # from HTM_calc import theano_inhibition as inhibition
 from HTM_calc import np_inhibition as inhibition
-# from HTM_calc import theano_learning as learning
-from HTM_calc import np_learning as spatLearning
+from HTM_calc import theano_learning as spatLearning
+#from HTM_calc import np_learning as spatLearning
 
 from HTM_calc import np_activeCells as activeCells
 from HTM_calc import theano_predictCells as predictCells
@@ -1170,7 +1170,7 @@ class HTM:
         for i in range(self.numLevels):
             self.regionArray[i].rewardThalamus(reward)
 
-    @do_cprofile  # For profiling
+    #@do_cprofile  # For profiling
     def spatialTemporal(self, input):
         # Update the spatial and temporal pooler.
         # Find spatial and temporal patterns from the input.

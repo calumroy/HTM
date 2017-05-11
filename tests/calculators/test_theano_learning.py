@@ -5,6 +5,7 @@ import sys
 import json
 from copy import deepcopy
 from HTM_calc import theano_learning
+from HTM_calc import np_learning
 
 class test_theanoLearning:
     def setUp(self):
@@ -25,6 +26,7 @@ class test_theanoLearning:
         numCols = 4
         spatialPermanenceInc = 0.3
         spatialPermanenceDec = 0.05
+        activeColPermanenceDec = 0.01
         numPotSyn = 4
         numColumns = numRows * numCols
         # Create an array representing the permanences of colums synapses
@@ -56,7 +58,8 @@ class test_theanoLearning:
         permanenceUpdater = theano_learning.LearningCalculator(numColumns,
                                                                numPotSyn,
                                                                spatialPermanenceInc,
-                                                               spatialPermanenceDec)
+                                                               spatialPermanenceDec,
+                                                               activeColPermanenceDec)
 
         colSynPerm = permanenceUpdater.updatePermanenceValues(colSynPerm,
                                                               colPotInputsMat,
@@ -67,6 +70,78 @@ class test_theanoLearning:
                 assert colSynPerm[i][j] <= 1.0
                 assert colSynPerm[i][j] >= 0.0
         #print "Updated colSynPerm = \n%s" % colSynPerm
+
+    def test_comparison(self):
+        '''
+        Test the theano learning calculator against the numpy learning calcualtor.
+        '''
+        numRows = 4
+        numCols = 4
+        spatialPermanenceInc = 0.5
+        spatialPermanenceDec = 0.2
+        activeColPermanenceDec = 0.1
+        numPotSyn = 4
+        numColumns = numRows * numCols
+        # Create an array representing the permanences of colums synapses
+        colSynPerm = np.array([[0.1, 0.2, 0.3, 0.4],
+                               [0.1, 0.2, 0.3, 0.4],
+                               [0.1, 0.2, 0.3, 0.4],
+                               [0.1, 0.2, 0.3, 0.4],
+                               [0.1, 0.2, 0.3, 0.4],
+                               [0.1, 0.2, 0.3, 0.4],
+                               [0.1, 0.2, 0.3, 0.4],
+                               [0.1, 0.2, 0.3, 0.4],
+                               [0.1, 0.2, 0.3, 0.4],
+                               [0.1, 0.2, 0.3, 0.4],
+                               [0.1, 0.2, 0.3, 0.4],
+                               [0.1, 0.2, 0.3, 0.4],
+                               [0.1, 0.2, 0.3, 0.4],
+                               [0.1, 0.2, 0.3, 0.4],
+                               [0.1, 0.2, 0.3, 0.4],
+                               [0.1, 0.2, 0.3, 0.4]])
+        # Create an array representing the potential inputs to each column
+        colPotInputsMat = np.random.randint(2, size=(numColumns, numPotSyn))
+        # Create an array representing the active columns
+        activeCols = np.random.randint(2, size=(numColumns))
+
+        # print "colSynPerm = \n%s" % colSynPerm
+        # print "colPotInputsMat = \n%s" % colPotInputsMat
+        # print "activeCols = \n%s" % activeCols
+
+        permanenceUpdater = theano_learning.LearningCalculator(numColumns,
+                                                               numPotSyn,
+                                                               spatialPermanenceInc,
+                                                               spatialPermanenceDec,
+                                                               activeColPermanenceDec)
+
+        colSynPerm = permanenceUpdater.updatePermanenceValues(colSynPerm,
+                                                              colPotInputsMat,
+                                                              activeCols)
+
+        permanenceUpdater_np = np_learning.LearningCalculator(numColumns,
+                                                               numPotSyn,
+                                                               spatialPermanenceInc,
+                                                               spatialPermanenceDec,
+                                                               activeColPermanenceDec)
+
+        colSynPerm_np = permanenceUpdater_np.updatePermanenceValues(colSynPerm,
+                                                                    colPotInputsMat,
+                                                                    activeCols)
+
+        assert colSynPerm.all() == colSynPerm_np.all()
+
+        # Rerun through the updatePermanenceValues
+        colSynPerm = permanenceUpdater.updatePermanenceValues(colSynPerm,
+                                                              colPotInputsMat,
+                                                              activeCols)
+        colSynPerm_np = permanenceUpdater_np.updatePermanenceValues(colSynPerm,
+                                                                    colPotInputsMat,
+                                                                    activeCols)
+        assert colSynPerm.all() == colSynPerm_np.all()
+
+        #print "Updated colSynPerm = \n%s" % colSynPerm
+
+
 
 
 
