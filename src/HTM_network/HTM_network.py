@@ -169,21 +169,14 @@ class HTMLayer:
         self.colPotInputs = np.empty([self.numColumns, self.numPotSyn])
         # Store the previous timeSteps potential inputs.
         self.prevColPotInputs = np.empty([self.numColumns, self.numPotSyn])
-        # Setup a matrix where each element represents the timestep when a column
-        # was active but not bursting last. Each position in the first dimension
-        # represents a column. The matrix stores the last two times the column
-        # was active but not bursting. The latest timeStep is stored in the first position.
-        # eg. self.colActNotBurstTimes[41][0] stores the latest time that column 42 was active
-        # but not bursting. self.colActNotBurstTimes[41][1] stores the second last time that column
-        # 42 was active but not bursting. The third place is a temporary position used to update
-        # the other two positions.
-        self.colActNotBurstTimes = np.zeros((self.numColumns, 3))
-        self.tempTimeCheck = 0
         # Setup a vector where each element represents if a column is active 1 or not 0
         self.colActive = np.zeros(self.numColumns)
         # Setup a vector where each element represents if a column was active one timeStep ago
         # 1 represens active, 0 not active one timeStep ago
         self.prevColActive = np.zeros(self.numColumns)
+        # The timeSteps when columns where last bursting. This is a 1D tensor (an array).
+        # The 1st dimension stores for each column the timestep when it was last bursting.
+        self.burstColsTime = np.array([-1 for y in range(self.numColumns)])
 
         # The timeSteps when cells where active last. This is a 3D tensor.
         # The 1st dimension stores the columns the 2nd is the cells in the columns.
@@ -621,27 +614,6 @@ class HTMLayer:
         # All columns have the same minoverlap value in a htm layer.
         return self.minOverlap
 
-    def updateColActNotBurstTimes(self, columnIndex, timeStep):
-        # update the vector holding the timestep when the columns
-        # where active but not bursting last.
-        # The input column c should be updated with the input timestep
-        # unless it already has that timestep value. If this is the case
-        # then no update should occur. Check the last position for the current time
-        # and also check the temporary storing position which also may hold this time
-        # if the column already tried to check this time.
-        if (self.colActNotBurstTimes[columnIndex][0] != timeStep and
-            self.colActNotBurstTimes[columnIndex][2] != timeStep):
-            # move the vector back so the old time is kept.
-            self.colActNotBurstTimes[columnIndex][1] = self.colActNotBurstTimes[columnIndex][0]
-            self.colActNotBurstTimes[columnIndex][0] = timeStep
-        else:
-            # A cell in the column was already active so this column is bursting.
-            # revert the latest timeback to the previous value.
-            # Also store the current time in the temp position so the column knows this time
-            # was already checked.
-            self.colActNotBurstTimes[columnIndex][2] = timeStep
-            self.colActNotBurstTimes[columnIndex][0] = self.colActNotBurstTimes[columnIndex][1]
-
     def columnActiveStateNow(self, pos_x, pos_y):
         # look at the colActive array to see if a column is active at the moment.
         columnIndex = pos_y * self.width + pos_x
@@ -831,8 +803,6 @@ class HTMLayer:
         and columns that have just become active predictive.
 
         '''
-
-        #latestColActNotBurstTimes = self.colActNotBurstTimes[:, 0]
 
         self.colPotSynPerm = self.tempPoolCalc.updateProximalTempPool(self.colPotInputs,
                                                                       self.colActive,
