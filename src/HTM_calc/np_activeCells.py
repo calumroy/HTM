@@ -758,23 +758,6 @@ def updateActiveCols(numColumns):
     # print "activeColumns = \n%s" % activeColumns
     return activeColumns
 
-
-def updateActiveCells(activeCols, cellsPerColumn):
-    # note active cells are only found in active columns
-    numColumns = len(activeCols)
-    activeCells = np.zeros((numColumns, cellsPerColumn))
-    for i in range(len(activeColumns)):
-        if activeColumns[i] == 1:
-            cellIndex = (random.randint(0, 3))
-            # Not bursting set one of the cells active in the column.
-            if cellIndex != 3:
-                activeCells[i][cellIndex] = 1
-            else:
-                # Bursting case, set all cells active.
-                activeCells[i][0:4] = 1
-    # print "activeCells = \n%s" % activeCells
-    return activeCells
-
 if __name__ == '__main__':
     # A main function to test and debug this class.
     numRows = 40
@@ -791,8 +774,6 @@ if __name__ == '__main__':
 
     # Create an array representing the active columns
     activeColumns = updateActiveCols(numColumns)
-    # Create an array representing the active cells.
-    # activeCells = updateActiveCells(activeColumns, cellsPerColumn)
     # Create the distalSynapse 5d tensor holding the information of the distal synapses.
     distalSynapses = np.zeros((numColumns, cellsPerColumn, maxSegPerCell, maxSynPerSeg, 3))
     for index, x in np.ndenumerate(distalSynapses):
@@ -811,7 +792,6 @@ if __name__ == '__main__':
     activeSeg = np.zeros((numColumns, cellsPerColumn, maxSegPerCell))
 
     # print "activeColumns = \n%s" % activeColumns
-    # print "activeCells = \n%s" % activeCells
     # print "distalSynapses = \n%s" % distalSynapses
 
     activeCellsCalc = activeCellsCalculator(numColumns, cellsPerColumn, maxSegPerCell,
@@ -827,5 +807,4 @@ if __name__ == '__main__':
             print timeStep
         # Change the active columns and active cells and run again.
         activeColumns = updateActiveCols(numColumns)
-        # activeCells = updateActiveCells(activeColumns, cellsPerColumn)
         activeCells = activeCellsCalc.updateActiveCells(timeStep, activeColumns, predictCells, activeSeg, distalSynapses)
