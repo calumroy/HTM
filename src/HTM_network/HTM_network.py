@@ -765,6 +765,8 @@ class HTMLayer:
          self.segNewSynActive) = self.activeCellsCalc.getSegUpdates()
         # Get the cells that are in the learning state as a list.
         self.learnCellsList = self.activeCellsCalc.getCurrentLearnCellsList()
+        # Get the timeSteps when each column was bursting last.
+        self.burstColsTime = self.activeCellsCalc.getBurstCol()
 
     def calcPredictCells(self, timeStep):
         # 2. CALCULATE PREDICTIVE CELLS
@@ -808,7 +810,8 @@ class HTMLayer:
                                                                       self.colActive,
                                                                       self.colPotSynPerm,
                                                                       self.timeStep,
-                                                                      self.activeCellsTime
+                                                                      self.activeCellsTime,
+                                                                      self.burstColsTime
                                                                       )
 
         # This updates distal synapses causing some cells to predict more often.

@@ -209,6 +209,9 @@ class activeCellsCalculator():
         self.segNewSyn = np.array([[[[-1, -1, 0.0] for z in range(self.maxSynPerSeg)]
                                     for x in range(self.cellsPerColumn)]
                                   for y in range(self.numColumns)])
+        # The timeSteps when columns where last bursting. This is a 1D tensor (an array).
+        # The 1st dimension stores for each column the timestep when it was last bursting.
+        self.burstColsTime = np.array([-1 for y in range(self.numColumns)])
 
     def getCurrentLearnCellsList(self):
         return self.currentLearnCellsList
@@ -397,6 +400,14 @@ class activeCellsCalculator():
             print "ERROR Column %s has %s number of cells previously active." % (colIndex, count)
             print "     A Column should have only one or all cells active!"
             return False
+
+    def setBurstCol(self, colIndex, timeStep):
+        # Update the burstColsTime array which indicates when columsn where last bursting.
+        self.burstColsTime[colIndex] = timeStep
+
+    def getBurstCol(self):
+        # Return the array sotoring the timeSteps when the columsn where last bursting.
+        return self.burstColsTime
 
     def findActiveCell(self, colIndex, timeStep):
         # Return the cell index that was active in the column with
@@ -722,8 +733,9 @@ class activeCellsCalculator():
                     # According to the CLA paper
                     if activeCellChosen is False:
                         # No prediction so the column "bursts".
+                        self.setBurstCol(c, timeStep)
                         for i in range(self.cellsPerColumn):
-                            self.setActiveCell(c, i, timeStep)
+                            self.setActiveCell(c, i, timeStep)    
                     if learningCellChosen is False:
                         # print " Getting the best matching cell to set as learning cell"
                         # The best matching cell whose segment was most active and hence was most predicting.

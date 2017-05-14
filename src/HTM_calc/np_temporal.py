@@ -146,16 +146,9 @@ class TemporalPoolCalculator():
         else:
             return False
 
-    def checkColBursting(self, colIndex, timeStep, activeCellsTime):
+    def checkColBursting(self, colIndex, timeStep, burstColsTime):
         # Check if the given column is bursting or not for a particular timeStep.
-        cellsActive = 0
-        for cellIndex in range(len(activeCellsTime[colIndex])):
-            # Count the number of cells in the column that where active.
-            if self.checkCellActive(colIndex, cellIndex, timeStep, activeCellsTime) is True:
-                cellsActive += 1
-            if cellsActive > 1:
-                break
-        if cellsActive == 1:
+        if burstColsTime[colIndex] == timeStep:
             return True
         else:
             return False 
@@ -363,7 +356,7 @@ class TemporalPoolCalculator():
 
     #@do_cprofile  # For profiling
     def updateProximalTempPool(self, colPotInputs,
-                               colActive, colPotSynPerm, timeStep, activeCellsTime):
+                               colActive, colPotSynPerm, timeStep, activeCellsTime, burstColsTime):
         '''
         Update the proximal synapses (the column synapses) such that;
             a. For each currently active column increment the permanence values
@@ -388,6 +381,9 @@ class TemporalPoolCalculator():
                 5.  "activeCellsTime" This is a 3D tensor. It is the timeSteps when cells where
                     active last. The 1st dimension stores the columns the 2nd is the cells in the columns.
                     Each element stores the last 2 timestep when this cell was active last.
+
+                6.  "burstColsTime" is an array where each element is the last time step when a column was
+                    bursting.
         Outputs:
                 1.  Updates and outputs the 2d tensor colPotSynPerm.
 
@@ -401,7 +397,7 @@ class TemporalPoolCalculator():
                     # Iterate through each potential synpase.
                     for s in range(len(colPotSynPerm[c])):
                         # Check to make sure the column isn't bursting.
-                        if self.checkColBursting(c, timeStep, activeCellsTime) is True:
+                        if self.checkColBursting(c, timeStep, burstColsTime) is True:
                             # If any of the columns potential synapses where connected to an
                             # active input increment the synapses permenence.
                             if self.prevColPotInputs[c][s] == 1:
@@ -411,7 +407,7 @@ class TemporalPoolCalculator():
                         # Update the potential synapses for the previous active columns.
                         if self.prevColActive[c] == 1:
                             # Check to make sure the column wasn't bursting.
-                            if self.checkColBursting(c, timeStep, activeCellsTime) is True:
+                            if self.checkColBursting(c, timeStep, burstColsTime) is True:
                                 # If any of the columns potential synapses are connected to a
                                 # currently active input increment the synapses permenence.
                                 if colPotInputs[c][s] == 1:
@@ -527,7 +523,7 @@ class TemporalPoolCalculator():
         return distalSynapses
 
 
-def runTempPoolUpdateProximal(tempPooler, colPotInputs, colPotSynPerm, timeStep, activeCellsTime):
+def runTempPoolUpdateProximal(tempPooler, colPotInputs, colPotSynPerm, timeStep, activeCellsTime, burstColsTime):
     # Run the temporal poolers function to update the proximal synapses for a test.
     print "INITIAL colPotSynPerm = \n%s" % colPotSynPerm
     print "colPotInputs = \n%s" % colPotInputs
@@ -540,7 +536,8 @@ def runTempPoolUpdateProximal(tempPooler, colPotInputs, colPotSynPerm, timeStep,
                                                           colActive,
                                                           colPotSynPerm,
                                                           timeStep,
-                                                          activeCellsTime
+                                                          activeCellsTime,
+                                                          burstColsTime
                                                           )
         print "colPotSynPerm = \n%s" % colPotSynPerm
 
@@ -604,9 +601,12 @@ if __name__ == '__main__':
     learnCellsTime = np.zeros((numColumns, cellsPerColumn, 2))
     # Create the predictive cells times
     predictCellsTime = np.zeros((numColumns, cellsPerColumn, 2))
-    # Create the active cells times
+    # Create the active cells time step history
     activeCellsTime = np.zeros((numColumns, cellsPerColumn, 2))
+    # Create the segment active time step history
     activeSegsTime = np.zeros((numColumns, cellsPerColumn, maxSegPerCell))
+    # Create the columns bursting time step history array
+    burstColsTime = np.zeros(numColumns)
 
     # # Profile and save results as a picture
     # graphviz = GraphvizOutput()
@@ -620,7 +620,7 @@ if __name__ == '__main__':
                                         connectPermanence, tempDelayLength)
 
     # Test the temporal poolers update proximal synapse function
-    runTempPoolUpdateProximal(tempPooler, colPotInputs, colPotSynPerm, timeStep, activeCellsTime)
+    runTempPoolUpdateProximal(tempPooler, colPotInputs, colPotSynPerm, timeStep, activeCellsTime, burstColsTime)
 
     # Test the temporal poolers update distal synapse function
     runTempPoolUpdateDistal(tempPooler, timeStep, newLearnCellsList, learnCellsTime, predictCellsTime,
