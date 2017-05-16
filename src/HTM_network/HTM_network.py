@@ -174,9 +174,9 @@ class HTMLayer:
         # Setup a vector where each element represents if a column was active one timeStep ago
         # 1 represens active, 0 not active one timeStep ago
         self.prevColActive = np.zeros(self.numColumns)
-        # The timeSteps when columns where last bursting. This is a 1D tensor (an array).
-        # The 1st dimension stores for each column the timestep when it was last bursting.
-        self.burstColsTime = np.array([-1 for y in range(self.numColumns)])
+        # The timeSteps when columns where last bursting. This is a 2D tensor.
+        # The 1st dimension stores for each column the last 2 timesteps when it was last bursting.
+        self.burstColsTime = np.array([[-1, -1] for y in range(self.numColumns)])
 
         # The timeSteps when cells where active last. This is a 3D tensor.
         # The 1st dimension stores the columns the 2nd is the cells in the columns.
@@ -721,7 +721,7 @@ class HTMLayer:
         # Store the current activecol as the previous active columns and update the colActive
         self.prevColActive = self.colActive
         self.colActive = self.inhibCalc.calculateWinningCols(colOverlapsGrid, self.potColOverlapsGrid)
-        # print "self.colActive = \n%s" % self.colActive
+        #print "self.colActive = \n%s" % self.colActive
 
     def spatialLearning(self):
         '''

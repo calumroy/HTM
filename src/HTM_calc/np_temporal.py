@@ -148,10 +148,14 @@ class TemporalPoolCalculator():
 
     def checkColBursting(self, colIndex, timeStep, burstColsTime):
         # Check if the given column is bursting or not for a particular timeStep.
-        if burstColsTime[colIndex] == timeStep:
+        # We need to check the burstColsTime tensor which holds multiple
+        # previous timeSteps when each column was last bursting.
+        colIndex = colIndex
+        if burstColsTime[colIndex][0] == timeStep:
             return True
-        else:
-            return False 
+        if burstColsTime[colIndex][1] == timeStep:
+            return True
+        return False
 
     def updateAvgPesist(self, prevTrackingNum, cellsAvgPersistNum):
         # Update the average persistance count with an ARMA filter.
@@ -382,7 +386,7 @@ class TemporalPoolCalculator():
                     active last. The 1st dimension stores the columns the 2nd is the cells in the columns.
                     Each element stores the last 2 timestep when this cell was active last.
 
-                6.  "burstColsTime" is an array where each element is the last time step when a column was
+                6.  "burstColsTime" is an array where each element stores the last 2 time step when a column was
                     bursting.
         Outputs:
                 1.  Updates and outputs the 2d tensor colPotSynPerm.
@@ -391,29 +395,33 @@ class TemporalPoolCalculator():
 
         # Only perform temporal proximal pooling if the proximal permanence increment value is larger then zero!
         if self.spatialPermanenceInc > 0.0:
-            for c in range(len(colActive)):
+            for c in range(self.numColumns):
                 # Update the potential synapses for the currently active columns.
                 if colActive[c] == 1:
                     # Iterate through each potential synpase.
                     for s in range(len(colPotSynPerm[c])):
                         # Check to make sure the column isn't bursting.
-                        if self.checkColBursting(c, timeStep, burstColsTime) is True:
+                        if self.checkColBursting(c, timeStep, burstColsTime) is False:
                             # If any of the columns potential synapses where connected to an
-                            # active input increment the synapses permenence.
+                            # active input increment the synapses permanence.
                             if self.prevColPotInputs[c][s] == 1:
-                                # print "Current active Col prev input active for col, syn = %s, %s" % (c, s)
+                                #print "Current active Col prev input active for col, syn = %s, %s" % (c, s)
+                                #from PyQt4.QtCore import pyqtRemoveInputHook; import ipdb; pyqtRemoveInputHook(); ipdb.set_trace()
                                 colPotSynPerm[c][s] += self.spatialPermanenceInc
                                 colPotSynPerm[c][s] = min(1.0, colPotSynPerm[c][s])
-                        # Update the potential synapses for the previous active columns.
-                        if self.prevColActive[c] == 1:
-                            # Check to make sure the column wasn't bursting.
-                            if self.checkColBursting(c, timeStep, burstColsTime) is True:
-                                # If any of the columns potential synapses are connected to a
-                                # currently active input increment the synapses permenence.
-                                if colPotInputs[c][s] == 1:
-                                    # print "Prev active Col current input active for col, syn = %s, %s" % (c, s)
-                                    colPotSynPerm[c][s] += self.spatialPermanenceInc
-                                    colPotSynPerm[c][s] = min(1.0, colPotSynPerm[c][s])
+                # Update the potential synapses for the previous active columns.
+                if self.prevColActive[c] == 1:
+                    # Iterate through each potential synpase.
+                    for s in range(len(colPotSynPerm[c])):
+                        # Check to make sure the column wasn't bursting.
+                        if self.checkColBursting(c, timeStep-1, burstColsTime) is False:
+                            #from PyQt4.QtCore import pyqtRemoveInputHook; import ipdb; pyqtRemoveInputHook(); ipdb.set_trace()
+                            # If any of the columns potential synapses are connected to a
+                            # currently active input increment the synapses permanence.
+                            if colPotInputs[c][s] == 1:
+                                #print "Prev active Col current input active for col, syn = %s, %s" % (c, s)
+                                colPotSynPerm[c][s] += self.spatialPermanenceInc
+                                colPotSynPerm[c][s] = min(1.0, colPotSynPerm[c][s])
 
             # Store the current inputs to the potentialSynapses to use next time.
             self.prevColPotInputs = colPotInputs
@@ -606,7 +614,7 @@ if __name__ == '__main__':
     # Create the segment active time step history
     activeSegsTime = np.zeros((numColumns, cellsPerColumn, maxSegPerCell))
     # Create the columns bursting time step history array
-    burstColsTime = np.zeros(numColumns)
+    burstColsTime = np.zeros((numColumns,2))
 
     # # Profile and save results as a picture
     # graphviz = GraphvizOutput()

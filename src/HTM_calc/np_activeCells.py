@@ -210,8 +210,8 @@ class activeCellsCalculator():
                                     for x in range(self.cellsPerColumn)]
                                   for y in range(self.numColumns)])
         # The timeSteps when columns where last bursting. This is a 1D tensor (an array).
-        # The 1st dimension stores for each column the timestep when it was last bursting.
-        self.burstColsTime = np.array([-1 for y in range(self.numColumns)])
+        # The each element stores for each column the last 2 timestep when it was bursting.
+        self.burstColsTime = np.array([[-1, -1] for y in range(self.numColumns)])
 
     def getCurrentLearnCellsList(self):
         return self.currentLearnCellsList
@@ -402,11 +402,16 @@ class activeCellsCalculator():
             return False
 
     def setBurstCol(self, colIndex, timeStep):
-        # Update the burstColsTime array which indicates when columsn where last bursting.
-        self.burstColsTime[colIndex] = timeStep
+        # Update the burstColsTime array which indicates when columns where last bursting.
+        # We need to check the burstColsTime tensor which holds multiple
+        # previous timeSteps and set the oldest one to the given timeStep.
+        if self.burstColsTime[colIndex][0] <= self.burstColsTime[colIndex][1]:
+            self.burstColsTime[colIndex][0] = timeStep
+        else:
+            self.burstColsTime[colIndex][1] = timeStep
 
     def getBurstCol(self):
-        # Return the array sotoring the timeSteps when the columsn where last bursting.
+        # Return the array storing the timeSteps when the columns where last bursting.
         return self.burstColsTime
 
     def findActiveCell(self, colIndex, timeStep):
@@ -688,6 +693,8 @@ class activeCellsCalculator():
                         prevLearnCellIndex = self.findLearnCell(c, timeStep-1)
                         #print "Setting Learning Cell = [%s][%s] for timeStep = %s" % (c, prevLearnCellIndex, timeStep)
                         self.setLearnCell(c, prevLearnCellIndex, timeStep)
+                        # The column stays in the bursting state
+                        self.setBurstCol(c, timeStep)
                 else:
                     # For the columns that have changed state from not active to active,
                     # update their cells by setting new active and learn states.

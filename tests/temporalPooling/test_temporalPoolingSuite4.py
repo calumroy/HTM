@@ -85,18 +85,18 @@ testParameters = {
                                 'potentialHeight': 31,
                                 'spatialPermanenceInc': 0.1,
                                 'spatialPermanenceDec': 0.01,
-                                'activeColPermanenceDec': 0.0,
+                                'activeColPermanenceDec': 0.01,
                                 'tempDelayLength': 10,
                                 'permanenceInc': 0.15,
                                 'permanenceDec': 0.05,
-                                'tempSpatialPermanenceInc': 0.04,
+                                'tempSpatialPermanenceInc': 0.2,
                                 'tempSeqPermanenceInc': 0.1,
                                 'minThreshold': 5,
                                 'minScoreThreshold': 3,
                                 'newSynapseCount': 10,
                                 'maxNumSegments': 10,
                                 'activationThreshold': 6,
-                                'colSynPermanence': 0.1,
+                                'colSynPermanence': 0.0,
                                 'cellSynPermanence': 0.4
                                 }]
                             }]
