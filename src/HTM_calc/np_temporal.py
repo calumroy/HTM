@@ -398,10 +398,10 @@ class TemporalPoolCalculator():
             for c in range(self.numColumns):
                 # Update the potential synapses for the currently active columns.
                 if colActive[c] == 1:
-                    # Iterate through each potential synpase.
-                    for s in range(len(colPotSynPerm[c])):
-                        # Check to make sure the column isn't bursting.
-                        if self.checkColBursting(c, timeStep, burstColsTime) is False:
+                    # Check to make sure the column isn't bursting.
+                    if self.checkColBursting(c, timeStep, burstColsTime) is False:
+                        # Iterate through each potential synpase.
+                        for s in range(len(colPotSynPerm[c])):
                             # If any of the columns potential synapses where connected to an
                             # active input increment the synapses permanence.
                             if self.prevColPotInputs[c][s] == 1:
@@ -411,10 +411,10 @@ class TemporalPoolCalculator():
                                 colPotSynPerm[c][s] = min(1.0, colPotSynPerm[c][s])
                 # Update the potential synapses for the previous active columns.
                 if self.prevColActive[c] == 1:
-                    # Iterate through each potential synpase.
-                    for s in range(len(colPotSynPerm[c])):
-                        # Check to make sure the column wasn't bursting.
-                        if self.checkColBursting(c, timeStep-1, burstColsTime) is False:
+                    # Check to make sure the column wasn't bursting.
+                    if self.checkColBursting(c, timeStep-1, burstColsTime) is False:
+                        # Iterate through each potential synpase.
+                        for s in range(len(colPotSynPerm[c])):
                             #from PyQt4.QtCore import pyqtRemoveInputHook; import ipdb; pyqtRemoveInputHook(); ipdb.set_trace()
                             # If any of the columns potential synapses are connected to a
                             # currently active input increment the synapses permanence.

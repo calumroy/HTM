@@ -1,4 +1,4 @@
-
+import cProfile
 from HTM_network import HTM_network
 import numpy as np
 from HTM_GUI import GUI_HTM
@@ -7,14 +7,27 @@ import sys
 import json
 from copy import deepcopy
 from utilities import simpleVerticalLineInputs as svli
+from utilities import startHtmGui as htmgui
+
+def do_cprofile(func):
+    def profiled_func(*args, **kwargs):
+        profile = cProfile.Profile()
+        try:
+            profile.enable()
+            result = func(*args, **kwargs)
+            profile.disable()
+            return result
+        finally:
+            profile.print_stats()
+    return profiled_func
 
 testParameters = {
                     'HTM':
                         {
                         'numLevels': 1,
-                        'columnArrayWidth': 80,
-                        'columnArrayHeight': 40,
-                        'cellsPerColumn': 2,
+                        'columnArrayWidth': 60,
+                        'columnArrayHeight': 60,
+                        'cellsPerColumn': 3,
 
                         'HTMRegions': [{
                             'numLayers': 1,
@@ -36,8 +49,8 @@ testParameters = {
                                 'tempDelayLength': 3,
                                 'permanenceInc': 0.1,
                                 'permanenceDec': 0.02,
-                                'tempSpatialPermanenceInc': 0,
-                                'tempSeqPermanenceInc': 0,
+                                'tempSpatialPermanenceInc': 0.2,
+                                'tempSeqPermanenceInc': 0.1,
                                 'connectPermanence': 0.3,
                                 'minThreshold': 5,
                                 'minScoreThreshold': 5,
@@ -78,10 +91,14 @@ class test_RunTime:
         # Setup some parameters of the HTM
         self.setupParameters()
 
+        # define the gui class
+        self.gui = htmgui.start_htm_gui()
+
     def setupParameters(self):
         # Setup some parameters of the HTM
         pass
 
+    @do_cprofile  # For profiling
     def step(self):
         # Update the inputs and run them through the HTM levels just once.
         # Update the HTM input and run through the
@@ -120,9 +137,7 @@ class test_RunTime:
 
         #from PyQt4.QtCore import pyqtRemoveInputHook; import ipdb; pyqtRemoveInputHook(); ipdb.set_trace()
 
-        # app = QtGui.QApplication(sys.argv)
-        # self.htmGui = GUI_HTM.HTMGui(self.htm, self.InputCreator)
-        # sys.exit(app.exec_())
+        self.gui.startHtmGui(self.htm, self.InputCreator)
 
         #from PyQt4.QtCore import pyqtRemoveInputHook; import ipdb; pyqtRemoveInputHook(); ipdb.set_trace()
         assert 1 == 1

@@ -42,9 +42,7 @@ class test_np_temporal:
         cellsPerColumn = 2
         maxSynPerSeg = 2
         spatialPermanenceInc = 1.0
-        spatialPermanenceDec = 0.2
         seqPermanenceInc = 0.1
-        seqPermanenceDec = 0.02
         newSynPermanence = 0.3
         minNumSynThreshold = 1
         connectPermanence = 0.2
@@ -69,8 +67,8 @@ class test_np_temporal:
         activeCellsTime[numColumns-1][0][0] = timeStep-1
 
         tempPooler = np_temporal.TemporalPoolCalculator(cellsPerColumn, numColumns, numPotSyn,
-                                                        spatialPermanenceInc, spatialPermanenceDec,
-                                                        seqPermanenceInc, seqPermanenceDec,
+                                                        spatialPermanenceInc, 
+                                                        seqPermanenceInc,
                                                         minNumSynThreshold, newSynPermanence,
                                                         connectPermanence, tempDelayLength)
 

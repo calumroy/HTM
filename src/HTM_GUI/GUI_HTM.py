@@ -1156,7 +1156,7 @@ class HTMNetwork(QtGui.QWidget):
 
         # addWidget(QWidget, row, column, rowSpan, columnSpan)
         # Set the minimum size for the HTM veiwer (row , minsize in pixels)
-        self.grid.setRowMinimumHeight(6, self.height*20)
+        self.grid.setRowMinimumHeight(6, self.height)
         self.grid.addWidget(self.frameSplitter, 3, 1, 4, 8)
 
         # Add each pair of input and HTM layer views to the splitter frames

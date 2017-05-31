@@ -197,6 +197,8 @@ class test_temporalPoolingSuite4:
         level = 0
         layer = 2
 
+        # Select which patterns are to be tested against. See the simpleVertical lines calcualtor.
+        # These two patterns are similar but offset. None of the inputs overlap between the patterns.
         pattern1_ind = 11
         pattern2_ind = 12
 
@@ -206,18 +208,19 @@ class test_temporalPoolingSuite4:
         assert pat1NumInputs == pat2NumInputs
         numInputs = pat1NumInputs
 
-        self.InputCreator.changePattern(pattern1_ind)
-        self.InputCreator.setIndex(0)
-        self.gui.startHtmGui(self.htm, self.InputCreator)
-        self.InputCreator.changePattern(pattern2_ind)
-        self.InputCreator.setIndex(0)
-        self.gui.startHtmGui(self.htm, self.InputCreator)
-        self.InputCreator.changePattern(pattern1_ind)
-        self.InputCreator.setIndex(0)
-        self.gui.startHtmGui(self.htm, self.InputCreator)
-        self.InputCreator.changePattern(pattern2_ind)
-        self.InputCreator.setIndex(0)
-        self.gui.startHtmGui(self.htm, self.InputCreator)
+        # self.InputCreator.changePattern(pattern1_ind)
+        # self.InputCreator.setIndex(0)
+        # self.gui.startHtmGui(self.htm, self.InputCreator)
+        # self.InputCreator.changePattern(pattern2_ind)
+        # self.InputCreator.setIndex(0)
+        # self.gui.startHtmGui(self.htm, self.InputCreator)
+        # self.InputCreator.changePattern(pattern1_ind)
+        # self.InputCreator.setIndex(0)
+        # self.gui.startHtmGui(self.htm, self.InputCreator)
+        # self.InputCreator.changePattern(pattern2_ind)
+        # self.InputCreator.setIndex(0)
+        # self.gui.startHtmGui(self.htm, self.InputCreator)
+
         # self.InputCreator.changePattern(13)
         # self.InputCreator.setIndex(0)
         # self.gui.startHtmGui(self.htm, self.InputCreator)
@@ -268,7 +271,7 @@ class test_temporalPoolingSuite4:
         # Rerun through all the inputs multiple times and store the outputs from
         # the first pattern again.
         self.InputCreator.setIndex(0)
-        self.nSteps(20*numInputs)
+        self.nSteps(40*numInputs)
         for i in range(numInputs):
             outputsFromPatternXAgain[0][i] = self.getLearningCellsOutput(self.htm, level, layer)
             self.step()
@@ -279,7 +282,7 @@ class test_temporalPoolingSuite4:
         # Rerun through all the inputs multiple times and store the outputs from
         # the second pattern again.
         self.InputCreator.setIndex(0)
-        self.nSteps(20*numInputs)
+        self.nSteps(40*numInputs)
         for i in range(numInputs):
             outputsFromPatternXAgain[1][i] = self.getLearningCellsOutput(self.htm, level, layer)
             self.step()
@@ -302,21 +305,24 @@ class test_temporalPoolingSuite4:
             # # The simularity between the inital HTM output for each pattern vs the final output.
             print "simularity of outputs in pattern 1 sequence[%s] = %s" % (i, simOutIn1[i])
             print "simularity of outputs in pattern 2 sequence[%s] = %s" % (i, simOutIn2[i])
-            print "simularity of outputs in pattern 1 vs 2 initial learing[%s] = %s" % (i, simOut1vs2start[i])
+            print "simularity of outputs in pattern 1 vs 2 initial learning[%s] = %s" % (i, simOut1vs2start[i])
             print "simularity of outputs in pattern 1 vs 2 final patterns[%s] = %s" % (i, simOut1vs2end[i])
 
-        self.InputCreator.changePattern(pattern1_ind)
-        self.InputCreator.setIndex(0)
-        self.gui.startHtmGui(self.htm, self.InputCreator)
-        self.InputCreator.changePattern(pattern2_ind)
-        self.InputCreator.setIndex(0)
-        self.gui.startHtmGui(self.htm, self.InputCreator)
-        self.InputCreator.changePattern(pattern1_ind)
-        self.InputCreator.setIndex(0)
-        self.gui.startHtmGui(self.htm, self.InputCreator)
-        self.InputCreator.changePattern(pattern2_ind)
-        self.InputCreator.setIndex(0)
-        self.gui.startHtmGui(self.htm, self.InputCreator)
+            assert simOut1vs2start[i] < 0.25
+            assert simOut1vs2end[i] < 0.25
+
+        # self.InputCreator.changePattern(pattern1_ind)
+        # self.InputCreator.setIndex(0)
+        # self.gui.startHtmGui(self.htm, self.InputCreator)
+        # self.InputCreator.changePattern(pattern2_ind)
+        # self.InputCreator.setIndex(0)
+        # self.gui.startHtmGui(self.htm, self.InputCreator)
+        # self.InputCreator.changePattern(pattern1_ind)
+        # self.InputCreator.setIndex(0)
+        # self.gui.startHtmGui(self.htm, self.InputCreator)
+        # self.InputCreator.changePattern(pattern2_ind)
+        # self.InputCreator.setIndex(0)
+        # self.gui.startHtmGui(self.htm, self.InputCreator)
 
     def test_temporalDiff(self):
         '''
@@ -481,23 +487,25 @@ class test_temporalPoolingSuite4:
         # Set the input to the first pattern
         self.InputCreator.changePattern(pattern1_ind)
 
-        # Now run through the pattern and store each output SDR
-        # These are used to compare against later on.
-        # outputsFromPatternX is an array storing a list of SDRs representing
-        # the output from the htm for every input in a particular pattern.
-        # Reset the pattern to the start
-        self.InputCreator.setIndex(0)
+        # Creat a tensor to store the output of each pattern
         outputSDR00 = self.getLearningCellsOutput(self.htm, level, layer)
-        outputsFromPatternX = np.array([[np.zeros_like(outputSDR00)
+        o_patX = np.array([[np.zeros_like(outputSDR00)
                                          for n in range(numInputs)]
                                         for p in range(numPatternsTested)]
                                        )
-        outputsFromPatternXAgain = np.array([[np.zeros_like(outputSDR00)
+        o_patXAgain = np.array([[np.zeros_like(outputSDR00)
                                               for n in range(numInputs)]
                                              for p in range(numPatternsTested)]
                                             )
+        # Now run through the pattern and store each output SDR
+        # These are used to compare against later on.
+        # o_patX is an array storing a list of SDRs representing
+        # the output from the htm for every input in a particular pattern.
+        # Reset the pattern to the start
+        self.InputCreator.setIndex(0)
+        self.nSteps(40*numInputs)
         for i in range(numInputs):
-            outputsFromPatternX[0][i] = self.getLearningCellsOutput(self.htm, level, layer)
+            o_patX[0][i] = self.getLearningCellsOutput(self.htm, level, layer)
             self.step()
 
         #import ipdb; ipdb.set_trace()
@@ -506,53 +514,88 @@ class test_temporalPoolingSuite4:
         self.InputCreator.changePattern(pattern2_ind)
         # Store the outputs from the second pattern.
         self.InputCreator.setIndex(0)
+        self.nSteps(40*numInputs)
         for i in range(numInputs):
-            outputsFromPatternX[1][i] = self.getLearningCellsOutput(self.htm, level, layer)
+            o_patX[1][i] = self.getLearningCellsOutput(self.htm, level, layer)
             self.step()
 
-        # Set the input to the first pattern
+        # Now the temporally pooled outputs of both patterns have been stored.
+        # We want to make sure that if the transition from on pattern to the next occurs enough then
+        # this is also temporally pooled. It should also result in a temporally pooled pattern consisting of
+        # half of each of the output form the individual temporal pooled patterns.
+        for i in range(20*numInputs):
+            self.InputCreator.changePattern(pattern1_ind)
+            self.nSteps(numInputs)
+            self.InputCreator.changePattern(pattern2_ind)
+            self.nSteps(numInputs)
+
+        
+        # Rerun through all the inputs and store the final temporally pooled pattern
+        # Also measure the amount of temporal pooling occuring.
+        # Measure the temporal pooling
+        tempMeasure1 = mtp.measureTemporalPooling()
+        tempMeasure2 = mtp.measureTemporalPooling()
+        tempMeasure12 = mtp.measureTemporalPooling()
+        tempPoolPercent1 = 0.0
+        tempPoolPercent2 = 0.0
+        tempPoolPercent12 = 0.0
         self.InputCreator.changePattern(pattern1_ind)
-        #self.gui.startHtmGui(self.htm, self.InputCreator)
-        # Now the pattern has been changed back to the first one.
-        # Rerun through all the inputs multiple times and store the outputs from
-        # the first pattern again.
         self.InputCreator.setIndex(0)
-        self.nSteps(20*numInputs)
         for i in range(numInputs):
-            outputsFromPatternXAgain[0][i] = self.getLearningCellsOutput(self.htm, level, layer)
+            o_patXAgain[0][i] = self.getLearningCellsOutput(self.htm, level, layer)
+            tempPoolPercent1 = tempMeasure1.temporalPoolingPercent(o_patXAgain[0][i])
+            tempPoolPercent12 = tempMeasure12.temporalPoolingPercent(o_patXAgain[0][i])
             self.step()
-
-        # Set the input to the second pattern
         self.InputCreator.changePattern(pattern2_ind)
-        #self.gui.startHtmGui(self.htm, self.InputCreator)
-        # Rerun through all the inputs multiple times and store the outputs from
-        # the second pattern again.
         self.InputCreator.setIndex(0)
-        self.nSteps(20*numInputs)
         for i in range(numInputs):
-            outputsFromPatternXAgain[1][i] = self.getLearningCellsOutput(self.htm, level, layer)
+            o_patXAgain[1][i] = self.getLearningCellsOutput(self.htm, level, layer)
+            tempPoolPercent2 = tempMeasure2.temporalPoolingPercent(o_patXAgain[1][i])
+            tempPoolPercent12 = tempMeasure12.temporalPoolingPercent(o_patXAgain[1][i])
             self.step()
 
         # Now we need to compare the two outputs from both times the two input patterns
         # were stored.
-        simOutIn1 = np.zeros(numInputs)
-        simOutIn2 = np.zeros(numInputs)
-        simOut1vs2start = np.zeros(numInputs)
+        simOut1Vs2 = np.zeros(numInputs)
         simOut1vs2end = np.zeros(numInputs)
+        simOut1vsEnd= np.zeros(numInputs)
+        simOut2vsEnd= np.zeros(numInputs)
+        
         for i in range(numInputs):
-            simOutIn1[i] = sdrFunctions.similarInputGrids(outputsFromPatternX[0][i],
-                                                     outputsFromPatternXAgain[0][i])
-            simOutIn2[i] = sdrFunctions.similarInputGrids(outputsFromPatternX[1][i],
-                                                     outputsFromPatternXAgain[1][i])
-            simOut1vs2start[i] = sdrFunctions.similarInputGrids(outputsFromPatternX[0][i],
-                                                     outputsFromPatternX[1][i])
-            simOut1vs2end[i] = sdrFunctions.similarInputGrids(outputsFromPatternXAgain[0][i],
-                                                     outputsFromPatternXAgain[1][i])
+            
+            simOut1Vs2[i] = sdrFunctions.similarInputGrids(o_patX[0][i],
+                                                           o_patX[1][i])
+            simOut1vs2end[i] = sdrFunctions.similarInputGrids(o_patXAgain[0][i],
+                                                              o_patXAgain[1][i])
+            simOut1vsEnd[i] = sdrFunctions.similarInputGrids(o_patX[0][i],
+                                                              o_patXAgain[0][i])
+            simOut2vsEnd[i] = sdrFunctions.similarInputGrids(o_patX[1][i],
+                                                              o_patXAgain[1][i])
             # # The simularity between the inital HTM output for each pattern vs the final output.
-            print "simularity of outputs in pattern 1 sequence[%s] = %s" % (i, simOutIn1[i])
-            print "simularity of outputs in pattern 2 sequence[%s] = %s" % (i, simOutIn2[i])
-            print "simularity of outputs in pattern 1 vs 2 initial learing[%s] = %s" % (i, simOut1vs2start[i])
-            print "simularity of outputs in pattern 1 vs 2 final patterns[%s] = %s" % (i, simOut1vs2end[i])
+            print "simularity of temporally pooled pattern 1 vs pattern 2 sequence[%s] = %s" % (i, simOut1Vs2[i])
+            print "simularity of outputs in pattern 1 vs 2 after final temp pooled patterns[%s] = %s" % (i, simOut1vs2end[i])
+            print "simularity of outputs in pattern 1 vs final temp pooled patterns[%s] = %s" % (i, simOut1vsEnd[i])
+            print "simularity of outputs in pattern 2 vs final temp pooled patterns[%s] = %s" % (i, simOut2vsEnd[i])
+            assert (simOut1Vs2[i] < 0.1)
+            assert (simOut1vs2end[i] > 0.9)
+            assert (simOut1vsEnd[i] > 0.0)
+            assert (simOut2vsEnd[i] > 0.0)
+
+        print "The percentage of temporal pooling occuring in the:\n"
+        print "      pattern 1 inputs = %s" %tempPoolPercent1
+        print "      pattern 2 inputs = %s" %tempPoolPercent2
+        print "      final total temporally pooled 1 and 2 patterns = %s" %tempPoolPercent12 
+        assert (tempPoolPercent1 > 0.9)
+        assert (tempPoolPercent2 > 0.9)
+        assert (tempPoolPercent12 > 0.9)
+        # self.InputCreator.changePattern(pattern1_ind)
+        # self.gui.startHtmGui(self.htm, self.InputCreator)
+        # self.InputCreator.changePattern(pattern2_ind)
+        # self.gui.startHtmGui(self.htm, self.InputCreator)
+        # self.InputCreator.changePattern(pattern1_ind)
+        # self.gui.startHtmGui(self.htm, self.InputCreator)
+        # self.InputCreator.changePattern(pattern2_ind)
+        # self.gui.startHtmGui(self.htm, self.InputCreator)
 
 
 
