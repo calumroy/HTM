@@ -32,6 +32,7 @@ def joinInputArrays(input1, input2):
     # must be equal so one input may need to be padded.
     output = np.array([])
     # check that the inputs are arrays
+    #from PyQt4.QtCore import pyqtRemoveInputHook; import ipdb; pyqtRemoveInputHook();ipdb.set_trace()
     assert (type(input1).__name__ == 'ndarray' or
             type(input1).__name__ == 'list')
     assert (type(input2).__name__ == 'ndarray' or

@@ -528,7 +528,7 @@ class HTMLayer:
         output = np.array([[0 for i in range(self.width*self.cellsPerColumn)]
                           for j in range(self.height)])
         for y in range(len(self.columns)):
-            for x in range(len(self.columns[i])):
+            for x in range(len(self.columns[0])):
                 c = self.columns[y][x]
                 for k in range(len(c.cells)):
                     # Set the cells in the column that are predicting now
@@ -673,7 +673,7 @@ class HTMLayer:
         # Set the corresponding bit in the output to true if the cell is currently learning.
         # Learning cells list is a list of column indicies and cell indices which are learning.
         # [colInd, cellInd]
-        
+
         for learnCellPos in self.learnCellsList:
             colInd = learnCellPos[0]
             cellInd = learnCellPos[1]
@@ -1133,10 +1133,7 @@ class HTM:
     def updateAllThalamus(self):
         # Update all the thalaums classes in each region
         for i in range(self.numLevels):
-            # TODO
-            # HAck to make higher levels thalamus choose commands slower
-            if self.regionArray[i].layerArray[0].timeStep % (2*i+1) == 0:
-                self.regionArray[i].updateThalamus()
+            self.regionArray[i].updateThalamus()
 
     def rewardAllThalamus(self, reward):
         # Reward the thalamus classes in each region

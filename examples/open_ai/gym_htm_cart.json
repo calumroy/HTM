@@ -1,0 +1,73 @@
+{
+    "HTM": {
+        "numLevels": 2,
+        "columnArrayWidth": 20,
+        "columnArrayHeight": 20,
+        "cellsPerColumn": 3,
+
+        "HTMRegions": [{
+            "numLayers": 2,
+            "enableHigherLevFb": 0,
+            "enableCommandFeedback": 1,
+            "Thalamus": {
+                "numSquaresInComm": 2,
+                "newCommChance": 0.01,
+                "futureQvalMax": 0.5,
+                "qValLearnRate": 0.2
+            },
+
+            "HTMLayers": [{
+                "desiredLocalActivity": 4,
+                "minOverlap": 3,
+                "wrapInput": 0,
+                "inhibitionWidth": 3,
+                "inhibitionHeight": 3,
+                "centerPotSynapses": 1,
+                "potentialWidth": 4,
+                "potentialHeight": 4,
+                "spatialPermanenceInc": 0.1,
+                "spatialPermanenceDec": 0.02,
+                "activeColPermanenceDec": 0.02,
+                "tempDelayLength": 3,
+                "permanenceInc": 0.1,
+                "permanenceDec": 0.02,
+                "tempSpatialPermanenceInc": 0.0,
+                "tempSeqPermanenceInc": 0.0,
+                "connectPermanence": 0.3,
+                "minThreshold": 7,
+                "minScoreThreshold": 5,
+                "newSynapseCount": 10,
+                "maxNumSegments": 10,
+                "activationThreshold": 6,
+                "colSynPermanence": 0.4,
+                "cellSynPermanence": 0.4
+            },
+            {
+                "desiredLocalActivity": 1,
+                "minOverlap": 4,
+                "wrapInput": 0,
+                "inhibitionWidth": 30,
+                "inhibitionHeight": 3,
+                "centerPotSynapses": 1,
+                "potentialWidth": 30,
+                "potentialHeight": 10,
+                "spatialPermanenceInc": 0.1,
+                "spatialPermanenceDec": 0.01,
+                "activeColPermanenceDec": 0.01,
+                "tempDelayLength": 10,
+                "permanenceInc": 0.15,
+                "permanenceDec": 0.05,
+                "tempSpatialPermanenceInc": 0.2,
+                "tempSeqPermanenceInc": 0.1,
+                "connectPermanence": 0.3,
+                "minThreshold": 5,
+                "minScoreThreshold": 3,
+                "newSynapseCount": 10,
+                "maxNumSegments": 10,
+                "activationThreshold": 6,
+                "colSynPermanence": 0.0,
+                "cellSynPermanence": 0.4
+            }]
+        }]
+    }
+}
