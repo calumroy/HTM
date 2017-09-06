@@ -1013,7 +1013,7 @@ class HTM:
         commandFeedback = np.array([[0 for i in range(self.width*self.cellsPerColumn)]
                                     for j in range(int(self.height/2))])
         # The lowest region receives the new input.
-        # If the region has enablehigherLevFb parameter enabled add extra space to the input.
+        # If the region has enablehigherLevFb parameter enabled add extra space to the input to the lowest region.
         if bottomRegionsParams['enableHigherLevFb'] == 1:
             newInput = SDRFunct.joinInputArrays(commandFeedback, input)
         else:

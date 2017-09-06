@@ -1,6 +1,6 @@
 {
     "HTM": {
-        "numLevels": 2,
+        "numLevels": 1,
         "columnArrayWidth": 20,
         "columnArrayHeight": 20,
         "cellsPerColumn": 3,
@@ -8,7 +8,7 @@
         "HTMRegions": [{
             "numLayers": 2,
             "enableHigherLevFb": 0,
-            "enableCommandFeedback": 1,
+            "enableCommandFeedback": 0,
             "Thalamus": {
                 "numSquaresInComm": 2,
                 "newCommChance": 0.01,
@@ -34,11 +34,11 @@
                 "tempSpatialPermanenceInc": 0.0,
                 "tempSeqPermanenceInc": 0.0,
                 "connectPermanence": 0.3,
-                "minThreshold": 7,
+                "minThreshold": 9,
                 "minScoreThreshold": 5,
-                "newSynapseCount": 10,
-                "maxNumSegments": 10,
-                "activationThreshold": 6,
+                "newSynapseCount": 12,
+                "maxNumSegments": 5,
+                "activationThreshold": 9,
                 "colSynPermanence": 0.4,
                 "cellSynPermanence": 0.4
             },
@@ -51,20 +51,20 @@
                 "centerPotSynapses": 1,
                 "potentialWidth": 30,
                 "potentialHeight": 10,
-                "spatialPermanenceInc": 0.1,
+                "spatialPermanenceInc": 0.05,
                 "spatialPermanenceDec": 0.01,
                 "activeColPermanenceDec": 0.01,
                 "tempDelayLength": 10,
                 "permanenceInc": 0.15,
                 "permanenceDec": 0.05,
                 "tempSpatialPermanenceInc": 0.2,
-                "tempSeqPermanenceInc": 0.1,
+                "tempSeqPermanenceInc": 0.05,
                 "connectPermanence": 0.3,
-                "minThreshold": 5,
+                "minThreshold": 6,
                 "minScoreThreshold": 3,
                 "newSynapseCount": 10,
-                "maxNumSegments": 10,
-                "activationThreshold": 6,
+                "maxNumSegments": 5,
+                "activationThreshold": 8,
                 "colSynPermanence": 0.0,
                 "cellSynPermanence": 0.4
             }]

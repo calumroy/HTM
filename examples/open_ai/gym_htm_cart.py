@@ -43,10 +43,11 @@ def main():
     max_time_per_epi = 500
 
     # Define the Input creator.
+    random_actions = True
     InputCreator = openAiSim.openAiSimulator(env,
                                              num_episodes,
                                              max_time_per_epi,
-                                             inputWidth, inputHeight)
+                                             inputWidth, inputHeight, random_actions)
 
     # Create a HTM object
     htm = HTM_network.HTM(InputCreator.encoder.encodeVar(0), params)

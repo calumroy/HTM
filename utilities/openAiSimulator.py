@@ -2,7 +2,7 @@
 import numpy as np
 import math
 from encoders import simple_htm_encoder as encoder
-
+import random
 
 class openAiSimulator:
     '''
@@ -14,7 +14,7 @@ class openAiSimulator:
 
     '''
     def __init__(self, open_ai_env, num_episodes, max_time_per_epi,
-                 width, height):
+                 width, height, random_actions):
 
         # Store a refenrence to the open_ai simualtion that is being run.
         self.open_ai_env = open_ai_env
@@ -26,6 +26,12 @@ class openAiSimulator:
         # The width and height are the size of the output binary matrix.
         self.width = width
         self.height = height
+        # A flag to indicate if random actions should be taken.
+        self.random_actions = random_actions
+        # How many timesteps should pass before a new random action is taken.
+        self.random_action_period = 10
+        # Store the previous random action
+        self.rand_action = None
 
         # THe min and max values indicate the minimum and maximum values that
         # the input variables are going to have. They will be an array if more
@@ -47,12 +53,12 @@ class openAiSimulator:
 
         self.encoder = encoder.simpleHtmEncoder(self.width, self.height, self.min_val, self.max_val)
 
-        # Initilise the simualtion with this command.
-        # Initilise the observation
+        # Initialise the simualtion with this command.
+        # Initialise the observation
         self.observation = self.open_ai_env.reset()
         self.reward = 0
 
-        # Initillise the encoded input that is to be sent to the htm.
+        # Initialise the encoded input that is to be sent to the htm.
         # Feed the action and result to the HTM
         action = 1
         encode_vals = np.append(self.observation, action)
@@ -104,10 +110,21 @@ class openAiSimulator:
         self.open_ai_env.render()
 
         # SET THE ACTION
-        # Convert the input grid input an acceleration first
-        action = self.convertSDRtoAcc(cellGrid)
-        # Round to the nearest whole number
-        action = int(round(action))
+        action = None
+        if self.random_actions is False:
+            # Convert the input grid input an acceleration first
+            action = self.convertSDRtoAcc(cellGrid)
+            # Round to the nearest whole number
+            action = int(round(action))
+        else:
+            # Get a new random action every period.
+            if self.timeStep % self.random_action_period == 0:
+                # Get the min and max action values and choose a random int value between them
+                #from PyQt4.QtCore import pyqtRemoveInputHook; import ipdb; pyqtRemoveInputHook(); ipdb.set_trace()
+                self.rand_action = int(round(random.uniform(self.min_val[2], self.max_val[2])))
+            elif self.rand_action == None:
+                self.rand_action = int(round(random.uniform(self.min_val[2], self.max_val[2])))
+            action = self.rand_action
         print "ACTION = %s" % action
 
         # Perform a single simulation time step.
