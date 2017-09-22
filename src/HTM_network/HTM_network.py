@@ -86,12 +86,14 @@ class HTMLayer:
         self.width = columnArrayWidth
         self.height = columnArrayHeight
         self.Input = input
-        # The overlap values are used in determining the active columns.
-        # For columns with the same overlap value
-        # both columns are active. This is why sometimes more columns then
-        # the desiredLocalActivity parameter
-        # are observed in the inhibition radius.
-        # How many cells within the inhibition radius are active
+        # Enable space in the input for feedback from other levels.
+        self.enableHigherLevFb = params['enableHigherLevFb']
+        # An index indicating the level that feedback will come from.
+        self.higherLevFbLevelInd = params['higherLevFbLevelInd']
+        # An index indicating the layer in a particular level that feedback will come from.
+        self.higherLevFbLayerInd = params['higherLevFbLayerInd']
+
+        # How many columns within the inhibition radius are active
         self.desiredLocalActivity = params['desiredLocalActivity']
         # The inhibition distance width and height. How far away a column can inhibit another
         # column.
@@ -840,9 +842,9 @@ class HTMRegion:
         self.width = columnArrayWidth
         self.height = columnArrayHeight
         self.cellsPerColumn = cellsPerColumn
+        from PyQt4.QtCore import pyqtRemoveInputHook; import ipdb; pyqtRemoveInputHook(); ipdb.set_trace()
         self.numLayers = params['numLayers']  # The number of HTM layers that make up a region.
-        # Enable space in the first layers input for feedback from higher levels.
-        self.enableHigherLevFb = params['enableHigherLevFb']
+        # An array to store the layers that make up this level (region).
         self.layerArray = np.array([], dtype=object)
         # Make a place to store the thalamus command.
         self.commandInput = np.array([[0 for i in range(self.width*cellsPerColumn)]
@@ -1004,17 +1006,22 @@ class HTM:
 
         # Get just the parameters for the HTMRegion
         # Note the params comes in a list of dictionaries, one for each region.
+        
         htmRegionParams = params['HTM']['HTMRegions']
-        bottomRegionsParams = htmRegionParams[0]
+        lowestregionparams = htmRegionParams[0]
+        # Get the parameters of the lowest layer in the bottom region.
+        lowestLayersParams = lowestregionparams['HTMLayers'][0]
+        #from PyQt4.QtCore import pyqtRemoveInputHook; import ipdb; pyqtRemoveInputHook(); ipdb.set_trace()
 
         ### Setup the inputs and outputs between levels
         # Each regions input needs to make room for the command
         # feedback from the higher level.
         commandFeedback = np.array([[0 for i in range(self.width*self.cellsPerColumn)]
                                     for j in range(int(self.height/2))])
+
         # The lowest region receives the new input.
-        # If the region has enablehigherLevFb parameter enabled add extra space to the input to the lowest region.
-        if bottomRegionsParams['enableHigherLevFb'] == 1:
+        # If the regions lowest layer has enablehigherLevFb parameter enabled add extra space to the input to the lowest region.
+        if lowestLayersParams['enableHigherLevFb'] == 1:
             newInput = SDRFunct.joinInputArrays(commandFeedback, input)
         else:
             newInput = input
@@ -1024,7 +1031,7 @@ class HTM:
                                                self.width,
                                                self.height,
                                                self.cellsPerColumn,
-                                               bottomRegionsParams)
+                                               lowestregionparams)
                                      )
         # The higher levels get inputs from the lower levels.
         #highestLevel = self.numLevels-1
@@ -1035,10 +1042,11 @@ class HTM:
                 regionsParam = htmRegionParams[i]
             else:
                 regionsParam = htmRegionParams[-1]
-
+            # Get the parameters of the lowest layer in the bottom region.
+            lowestLayersParams = regionsParam[0]['HTMLayers']
             lowerOutput = self.regionArray[i-1].regionOutput()
             # If the region has higherLevFb param enabled add extra space to the input.
-            if regionsParam['enableHigherLevFb'] == 1:
+            if lowestLayersParams['enableHigherLevFb'] == 1:
                 newInput = SDRFunct.joinInputArrays(commandFeedback, lowerOutput)
             else:
                 newInput = lowerOutput
@@ -1088,7 +1096,7 @@ class HTM:
 
         # The lowest levels lowest layer gets this new input.
         # All other levels and layers get inputs from lower levels and layers.
-        if self.regionArray[0].enableHigherLevFb == 1:
+        if self.regionArray[0].layerArray[0].enableHigherLevFb == 1:
             if self.numLevels > 1:
                 commFeedbackLev1 = self.levelOutput(1)
             else:
@@ -1108,7 +1116,7 @@ class HTM:
             # Set the output of the lower level
             highestLayer = self.regionArray[lowerLevel].numLayers - 1
             lowerLevelOutput = self.regionArray[lowerLevel].layerOutput(highestLayer)
-            if self.regionArray[i].enableHigherLevFb == 1:
+            if self.regionArray[i].layerArray[0].enableHigherLevFb == 1:
                 # Check to make sure this isn't the highest level
                 if higherLevel < self.numLevels:
                     # Get the feedback command from the higher level
