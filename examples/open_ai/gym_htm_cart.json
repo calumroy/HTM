@@ -16,9 +16,9 @@
             },
 
             "HTMLayers": [{
-                "enableHigherLevFb": 1,
-                "higherLevFbLevelInd": 0,
-                "higherLevFbLayerInd": 1,
+                "enableFeedback": 1,
+                "feedbackLevelInd": 0,
+                "feedbackLayerInd": 1,
                 "desiredLocalActivity": 4,
                 "minOverlap": 3,
                 "wrapInput": 0,
@@ -45,9 +45,9 @@
                 "cellSynPermanence": 0.4
             },
             {
-                "enableHigherLevFb": 1,
-                "higherLevFbLevelInd": 0,
-                "higherLevFbLayerInd": 1,
+                "enableFeedback": 1,
+                "feedbackLevelInd": 0,
+                "feedbackLayerInd": 1,
                 "desiredLocalActivity": 1,
                 "minOverlap": 4,
                 "wrapInput": 0,
