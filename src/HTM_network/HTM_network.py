@@ -36,12 +36,16 @@ class HTM:
         self.cellsPerColumn = params['HTM']['cellsPerColumn']
         self.regionArray = np.array([], dtype=object)
 
-        # Get just the parameters for the HTMRegion
-        # Note the params comes in a list of dictionaries, one for each region.
-
-        htmRegionParams = params['HTM']['HTMRegions']
         #from PyQt4.QtCore import pyqtRemoveInputHook; import ipdb; pyqtRemoveInputHook(); ipdb.set_trace()
+        self.setupRegions(self, input, params['HTM']['HTMRegions'])
 
+        # create a place to store layers so they can be reverted.
+        #self.HTMOriginal = copy.deepcopy(self.regionArray)
+        self.HTMOriginal = None
+
+    def setupRegions(self, input, htmRegionParams):
+        # Set up the HTM regions.
+        # Note the region parameters comes in a list of dics, one for each region.
         # Setup the inputs and outputs between levels
         # Each regions input needs to make room for the command
         # feedback from another layer in possibly another level.
@@ -80,14 +84,7 @@ class HTM:
                                                    self.cellsPerColumn,
                                                    regionsParam)
                                          )
-
-        # create a place to store layers so they can be reverted.
-        #self.HTMOriginal = copy.deepcopy(self.regionArray)
-        self.HTMOriginal = None
-
-    def updateTopLevelFb(self, newCommand):
-        # Update the top level feedback command with a new one.
-        self.topLevelFeedback = newCommand
+    
 
     def saveRegions(self):
         # Save the HTM so it can be reloaded.
@@ -104,6 +101,10 @@ class HTM:
         # return the pointer to the HTM so the GUI can use it to point
         # to the correct object.
         return self.regionArray
+
+    def updateTopLevelFb(self, newCommand):
+        # Update the top level feedback command with a new one.
+        self.topLevelFeedback = newCommand
 
     def updateHTMInput(self, input):
         # Update the input and outputs of the levels.

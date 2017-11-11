@@ -36,7 +36,7 @@ class HTMRegion:
         # command feedback param is true.
         self.thalamus = None
         if self.enableCommandFeedback == 1:
-            # The width of the the thalamus should match the width of the input grid.
+            # The width of the thalamus should match the width of the input grid.
             thalamusParams = params['Thalamus']
             self.thalamus = Thalamus.Thalamus(self.width*self.cellsPerColumn,
                                               self.height,
