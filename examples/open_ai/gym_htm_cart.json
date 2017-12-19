@@ -7,7 +7,7 @@
 
         "HTMRegions": [{
             "numLayers": 2,
-            "enableCommandFeedback": 0,
+            "enableCommandFeedback": 1,
             "Thalamus": {
                 "numSquaresInComm": 2,
                 "newCommChance": 0.01,
@@ -16,6 +16,9 @@
             },
 
             "HTMLayers": [{
+                "columnArrayWidth": 20,
+                "columnArrayHeight": 20,
+                "cellsPerColumn": 3,
                 "enableFeedback": 1,
                 "feedbackLevelInd": 0,
                 "feedbackLayerInd": 1,
@@ -45,6 +48,9 @@
                 "cellSynPermanence": 0.4
             },
             {
+                "columnArrayWidth": 20,
+                "columnArrayHeight": 20,
+                "cellsPerColumn": 3,
                 "enableFeedback": 1,
                 "feedbackLevelInd": 0,
                 "feedbackLayerInd": 1,

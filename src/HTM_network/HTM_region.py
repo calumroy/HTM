@@ -2,6 +2,7 @@ import cProfile
 import numpy as np
 from utilities import sdrFunctions as SDRFunct
 from HTM_layer import HTMLayer
+from reinforcement_learning import Thalamus
 
 
 class HTMRegion:
@@ -54,18 +55,15 @@ class HTMRegion:
                                                               bottomLayerParams))
         # The higher layers receive the lower layers output.
         for i in range(1, self.numLayers):
-            # Try to get the parameters for this layer else use the
-            # last specified params from the highest layer.
-            if len(htmLayerParams) >= i+1:
-                layersParams = htmLayerParams[i]
-            else:
-                layersParams = htmLayerParams[-1]
+            # Try to get the parameters for this layer.
+            layersParams = self.getLayerParams(htmLayerParams, i)
 
             lowerOutput = self.layerArray[i-1].output
 
             # The highest layer receives the lower layers input and
             # an input from the thalamus equal in size to the lower layers input.
             highestLayer = self.numLayers - 1
+
             if i == highestLayer and self.enableCommandFeedback == 1:
                 lowerOutput = SDRFunct.joinInputArrays(self.commandInput, lowerOutput)
 
@@ -75,6 +73,19 @@ class HTMRegion:
                                                  self.height,
                                                  self.cellsPerColumn,
                                                  layersParams))
+
+    def getLayerParams(self, params, layerIndex):
+        # Get the parameters from the layer with the given index from this region
+        #from PyQt4.QtCore import pyqtRemoveInputHook; import ipdb; pyqtRemoveInputHook(); ipdb.set_trace()
+        layerParams = None
+
+        if len(params) >= layerIndex:
+            layerParams = params[layerIndex]
+        else:
+            # Just return the parameters of the highest layer.
+            layerParams = params[-1]
+
+        return layerParams
 
     def updateThalamus(self):
         # Update the thalamus.

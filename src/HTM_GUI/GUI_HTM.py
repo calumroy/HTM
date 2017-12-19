@@ -291,8 +291,8 @@ class HTMInput(QtGui.QGraphicsView):
         colSynList = currentLayer.getConnectedSynapses(selectedColumn)
         # Get the potential list of synapses for the selected column
         potColSynList = currentLayer.getPotColSynapses(selectedColumn)
-        print "        Number of potential synpases = %s" % len(potColSynList) 
-    
+        print "        Number of potential synpases = %s" % len(potColSynList)
+
         # Color the inputs which have potential column synapses connected to
         # them for the selected column slightly lighter then the other inputs.
         for syn in potColSynList:
@@ -918,8 +918,6 @@ class HTMNetwork(QtGui.QWidget):
         self.origIteration = self.iteration  # Stores the iteration for the previous saved HTM
         self.numLevels = self.htm.numLevels  # The number of levels.
         self.numCells = self.htm.cellsPerColumn  # The number of cells in a column.
-        self.width = self.htm.width  # The width of the columns in the HTM 2D array
-        self.height = self.htm.height  # The height of the columns in the HTM 2D array
         self.inputWidth = len(self.htm.regionArray[0].layerArray[0].Input[0])*self.numCells
         self.inputHeight = len(self.htm.regionArray[0].layerArray[0].Input)
         self.InputCreator = InputCreator
@@ -1156,7 +1154,7 @@ class HTMNetwork(QtGui.QWidget):
 
         # addWidget(QWidget, row, column, rowSpan, columnSpan)
         # Set the minimum size for the HTM veiwer (row , minsize in pixels)
-        self.grid.setRowMinimumHeight(6, self.height)
+        self.grid.setRowMinimumHeight(6, 30)
         self.grid.addWidget(self.frameSplitter, 3, 1, 4, 8)
 
         # Add each pair of input and HTM layer views to the splitter frames
