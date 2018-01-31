@@ -18,16 +18,13 @@ class HTMRegion:
         This extra input is meant to direct the HTM.
         '''
         # The class contains multiple HTM layers stacked on one another
-        self.width = columnArrayWidth
-        self.height = columnArrayHeight
-        self.cellsPerColumn = cellsPerColumn
         #from PyQt4.QtCore import pyqtRemoveInputHook; import ipdb; pyqtRemoveInputHook(); ipdb.set_trace()
         self.numLayers = params['numLayers']  # The number of HTM layers that make up a region.
         # An array to store the layers that make up this level (region).
         self.layerArray = np.array([], dtype=object)
         # Make a place to store the thalamus command.
-        self.commandInput = np.array([[0 for i in range(self.width*cellsPerColumn)]
-                                     for j in range(self.height)])
+        self.commandInput = np.array([[0 for i in range(columnArrayWidth*cellsPerColumn)]
+                                     for j in range(columnArrayHeight)])
         # Setup space in the input for a command feedback SDR
         self.enableCommandFeedback = params['enableCommandFeedback']
 
@@ -39,8 +36,8 @@ class HTMRegion:
         if self.enableCommandFeedback == 1:
             # The width of the thalamus should match the width of the input grid.
             thalamusParams = params['Thalamus']
-            self.thalamus = Thalamus.Thalamus(self.width*self.cellsPerColumn,
-                                              self.height,
+            self.thalamus = Thalamus.Thalamus(columnArrayWidth*cellsPerColumn,
+                                              columnArrayHeight,
                                               thalamusParams)
 
     def setupLayers(self, input, htmLayerParams):
@@ -48,10 +45,13 @@ class HTMRegion:
         # Note the params comes in a list of dics, one for each layer.
         # Layer 0 gets the new input.
         bottomLayerParams = htmLayerParams[0]
+        layer_width = bottomLayerParams['columnArrayWidth']
+        layer_height = bottomLayerParams['columnArrayHeight']
+        layer_numCells = bottomLayerParams['cellsPerColumn']
         self.layerArray = np.append(self.layerArray, HTMLayer(input,
-                                                              self.width,
-                                                              self.height,
-                                                              self.cellsPerColumn,
+                                                              layer_width,
+                                                              layer_height,
+                                                              layer_numCells,
                                                               bottomLayerParams))
         # The higher layers receive the lower layers output.
         for i in range(1, self.numLayers):
@@ -66,12 +66,14 @@ class HTMRegion:
 
             if i == highestLayer and self.enableCommandFeedback == 1:
                 lowerOutput = SDRFunct.joinInputArrays(self.commandInput, lowerOutput)
-
+            layer_width = layersParams['columnArrayWidth']
+            layer_height = layersParams['columnArrayHeight']
+            layer_numCells = bottomLayerParams['cellsPerColumn']
             self.layerArray = np.append(self.layerArray,
                                         HTMLayer(lowerOutput,
-                                                 self.width,
-                                                 self.height,
-                                                 self.cellsPerColumn,
+                                                 layer_width,
+                                                 layer_height,
+                                                 layer_numCells,
                                                  layersParams))
 
     def getLayerParams(self, params, layerIndex):
