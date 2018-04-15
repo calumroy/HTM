@@ -73,7 +73,7 @@ class HTMLayer:
         self.height = columnArrayHeight
         self.Input = input
         # Enable space in the input for feedback from other levels.
-        from PyQt4.QtCore import pyqtRemoveInputHook; import ipdb; pyqtRemoveInputHook(); ipdb.set_trace()
+        #from PyQt4.QtCore import pyqtRemoveInputHook; import ipdb; pyqtRemoveInputHook(); ipdb.set_trace()
         self.enableFeedback = params['enableFeedback']
         # An index indicating the level that feedback will come from.
         self.feedbackLevelInd = params['feedbackLevelInd']
