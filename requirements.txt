@@ -43,7 +43,7 @@ pathlib2==2.1.0
 pbr==1.8.1
 pexpect==4.1.0
 pickleshare==0.7.2
-Pillow==4.0.0
+Pillow==6.2.0
 plotly==2.0.15
 prompt-toolkit==1.0.6
 ptyprocess==0.5.1
