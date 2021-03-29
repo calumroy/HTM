@@ -49,7 +49,7 @@ prompt-toolkit==1.0.6
 ptyprocess==0.5.1
 pycallgraph==1.0.1
 pyglet==1.2.4
-Pygments==2.1.3
+Pygments==2.7.4
 pylint==1.6.4
 pyparsing==2.2.0
 python-dateutil==2.6.1
